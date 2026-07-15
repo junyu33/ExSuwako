@@ -1,0 +1,228 @@
+# ExSuwako
+
+**ExSuwako** is an early proof-of-concept implementation of generalized
+Suwako reduction for sparse binary polynomials.
+
+It extends the original trinomial-oriented Suwako idea to moduli of the form
+
+\[
+g(x)=x^m+1+\sum_{t\in T}x^t,
+\]
+
+where
+
+\[
+0<t<m
+\]
+
+for every \(t\in T\). The Hamming weight of the modulus is therefore
+
+\[
+h=|T|+2\ge 3.
+\]
+
+The current implementation operates over \(\mathbb F_2[x]\) and reduces inputs
+of degree less than \(2m\), which is the usual degree range produced by
+multiplying two polynomials of degree less than \(m\).
+
+## Status
+
+This repository is a research prototype.
+
+The current code is intended to:
+
+- validate the generalized construction against a simple reference reducer;
+- expose the operator structure of the algorithm;
+- support further correctness, complexity, implementation, and prior-art work;
+- serve as a starting point for SIMD and hardware implementations.
+
+It is **not** currently intended to be:
+
+- a production cryptographic library;
+- a constant-time Python implementation;
+- a formally verified implementation;
+- evidence that all relevant prior work has been exhausted;
+- a claim that the present formulation is novel in every component.
+
+The repository is private while the result is still being investigated.
+
+## Operator formulation
+
+Write the input as
+
+\[
+C=L+x^mH,
+\]
+
+where \(L\) contains the low \(m\) coefficients and \(H\) contains the high
+coefficients.
+
+For every internal exponent \(t\in T\), define
+
+\[
+\Delta_t=m-t.
+\]
+
+On the truncated \(m\)-bit coefficient space, define the feedback operator
+
+\[
+U(X)=\bigoplus_{t\in T}\left(X\gg\Delta_t\right).
+\]
+
+Also define the low-part assembly operator
+
+\[
+V(X)
+=
+X
+\oplus
+\bigoplus_{t\in T}
+\left((X\ll t)\bmod x^m\right).
+\]
+
+The reduction implemented by the PoC can be written as
+
+\[
+\operatorname{red}_g(C)
+=
+L\oplus V\!\left((I+U)^{-1}H\right).
+\]
+
+Because the shift operators commute and the coefficient field has
+characteristic two,
+
+\[
+U^{2^k}(X)
+=
+\bigoplus_{t\in T}
+\left(X\gg 2^k\Delta_t\right).
+\]
+
+The operator \(U\) is nilpotent on the truncated space. Consequently, for a
+sufficient number of rounds,
+
+\[
+(I+U)^{-1}
+=
+\prod_{k\ge 0}\left(I+U^{2^k}\right).
+\]
+
+The corresponding iteration is
+
+\[
+X_{k+1}
+=
+X_k
+\oplus
+\bigoplus_{t\in T}
+\left(X_k\gg 2^k\Delta_t\right).
+\]
+
+All shifts in a single round must read the same old value \(X_k\). They must
+not observe partially updated results from other taps in that round.
+
+In a SIMD or hardware implementation, this naturally suggests two
+ping-pong buffers. The Python PoC expresses the same dependency rule through
+an immutable `old` state within each round.
+
+If
+
+\[
+\Delta_{\min}=\min_{t\in T}(m-t),
+\]
+
+the number of dependent feedback rounds used by the implementation is
+
+\[
+\left\lceil
+\log_2\left(\frac{m}{\Delta_{\min}}\right)
+\right\rceil.
+\]
+
+## Files
+
+### `generalized_suwako_poc.py`
+
+Contains:
+
+- `generalized_suwako`, the generalized reduction prototype;
+- `naive_sparse_reduction`, a bit-by-bit reference implementation;
+- input and modulus validation;
+- hand-picked edge cases;
+- randomized differential testing;
+- detailed diagnostics on a mismatch.
+
+The implementation uses Python arbitrary-precision integers as coefficient
+vectors. Bit \(i\) represents the coefficient of \(x^i\).
+
+## Requirements
+
+Only Python 3 and its standard library are required.
+
+No third-party Python packages are needed.
+
+## Running the validation
+
+Run the default validation suite with:
+
+```bash
+python3 generalized_suwako_poc.py
+```
+
+The default suite includes:
+
+- hand-picked trinomial, pentanomial, and higher-weight cases;
+- cases with taps close to both ends of the modulus;
+- cases with \(\Delta_{\min}=1\);
+- 10,000 randomized cases;
+- degrees up to \(m=2048\);
+- modulus Hamming weights from 3 through 12.
+
+For a reproducible run with a fixed random seed:
+
+```bash
+python3 -c \
+  'from generalized_suwako_poc import run_validation; run_validation(seed=0)'
+```
+
+The generalized result is compared against the bit-by-bit reference reducer
+for every test case.
+
+## Scope and assumptions
+
+The current PoC assumes:
+
+1. coefficients are in \(\mathbb F_2\);
+2. the modulus is monic and has degree \(m\);
+3. the constant coefficient of the modulus is one;
+4. all internal tap exponents are distinct;
+5. every internal tap satisfies \(0<t<m\);
+6. at least one internal tap is present, so the Hamming weight is at least 3;
+7. the input has degree less than \(2m\).
+
+The implementation does not construct a dense reciprocal polynomial or a dense
+reduction matrix. It computes the feedback schedule directly from the sparse
+tap positions.
+
+## Research directions
+
+The present prototype is intended to support work on:
+
+- a complete formal derivation of the reduction map;
+- precise work, depth, and space bounds;
+- comparison with serial sparse folding;
+- comparison with multiplication-based reduction methods;
+- comparison with LFSR look-ahead, CRC unfolding, parallel polynomial
+  division, and related hardware techniques;
+- SIMD implementations with explicit ping-pong buffers;
+- RTL implementations and area/depth tradeoffs;
+- code generation for compile-time modulus parameters;
+- evaluation on cryptographically relevant sparse moduli;
+- characterization of the regimes in which the generalized method is useful.
+
+## Repository name
+
+`ExSuwako` is a working name meaning **Extended Suwako**.
+
+The algorithmic terminology used in technical writing should remain
+**generalized Suwako reduction** until a final name and scope are established.
