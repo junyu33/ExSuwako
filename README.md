@@ -5,25 +5,25 @@ Suwako reduction for sparse binary polynomials.
 
 It extends the original trinomial-oriented Suwako idea to moduli of the form
 
-\[
+$$
 g(x)=x^m+1+\sum_{t\in T}x^t,
-\]
+$$
 
 where
 
-\[
+$$
 0<t<m
-\]
+$$
 
-for every \(t\in T\). The Hamming weight of the modulus is therefore
+for every $t\in T$. The Hamming weight of the modulus is therefore
 
-\[
+$$
 h=|T|+2\ge 3.
-\]
+$$
 
-The current implementation operates over \(\mathbb F_2[x]\) and reduces inputs
-of degree less than \(2m\), which is the usual degree range produced by
-multiplying two polynomials of degree less than \(m\).
+The current implementation operates over $\mathbb F_2[x]$ and reduces inputs
+of degree less than $2m$, which is the usual degree range produced by
+multiplying two polynomials of degree less than $m$.
 
 ## Status
 
@@ -50,75 +50,75 @@ The repository is private while the result is still being investigated.
 
 Write the input as
 
-\[
+$$
 C=L+x^mH,
-\]
+$$
 
-where \(L\) contains the low \(m\) coefficients and \(H\) contains the high
+where $L$ contains the low $m$ coefficients and $H$ contains the high
 coefficients.
 
-For every internal exponent \(t\in T\), define
+For every internal exponent $t\in T$, define
 
-\[
+$$
 \Delta_t=m-t.
-\]
+$$
 
-On the truncated \(m\)-bit coefficient space, define the feedback operator
+On the truncated $m$-bit coefficient space, define the feedback operator
 
-\[
+$$
 U(X)=\bigoplus_{t\in T}\left(X\gg\Delta_t\right).
-\]
+$$
 
 Also define the low-part assembly operator
 
-\[
+$$
 V(X)
 =
 X
 \oplus
 \bigoplus_{t\in T}
 \left((X\ll t)\bmod x^m\right).
-\]
+$$
 
 The reduction implemented by the PoC can be written as
 
-\[
+$$
 \operatorname{red}_g(C)
 =
 L\oplus V\!\left((I+U)^{-1}H\right).
-\]
+$$
 
 Because the shift operators commute and the coefficient field has
 characteristic two,
 
-\[
+$$
 U^{2^k}(X)
 =
 \bigoplus_{t\in T}
 \left(X\gg 2^k\Delta_t\right).
-\]
+$$
 
-The operator \(U\) is nilpotent on the truncated space. Consequently, for a
+The operator $U$ is nilpotent on the truncated space. Consequently, for a
 sufficient number of rounds,
 
-\[
+$$
 (I+U)^{-1}
 =
 \prod_{k\ge 0}\left(I+U^{2^k}\right).
-\]
+$$
 
 The corresponding iteration is
 
-\[
+$$
 X_{k+1}
 =
 X_k
 \oplus
 \bigoplus_{t\in T}
 \left(X_k\gg 2^k\Delta_t\right).
-\]
+$$
 
-All shifts in a single round must read the same old value \(X_k\). They must
+All shifts in a single round must read the same old value $X_k$. They must
 not observe partially updated results from other taps in that round.
 
 In a SIMD or hardware implementation, this naturally suggests two
@@ -127,17 +127,17 @@ an immutable `old` state within each round.
 
 If
 
-\[
+$$
 \Delta_{\min}=\min_{t\in T}(m-t),
-\]
+$$
 
 the number of dependent feedback rounds used by the implementation is
 
-\[
+$$
 \left\lceil
 \log_2\left(\frac{m}{\Delta_{\min}}\right)
 \right\rceil.
-\]
+$$
 
 ## Files
 
@@ -153,7 +153,7 @@ Contains:
 - detailed diagnostics on a mismatch.
 
 The implementation uses Python arbitrary-precision integers as coefficient
-vectors. Bit \(i\) represents the coefficient of \(x^i\).
+vectors. Bit $i$ represents the coefficient of $x^i$.
 
 ## Requirements
 
@@ -173,9 +173,9 @@ The default suite includes:
 
 - hand-picked trinomial, pentanomial, and higher-weight cases;
 - cases with taps close to both ends of the modulus;
-- cases with \(\Delta_{\min}=1\);
+- cases with $\Delta_{\min}=1$;
 - 10,000 randomized cases;
-- degrees up to \(m=2048\);
+- degrees up to $m=2048$;
 - modulus Hamming weights from 3 through 12.
 
 For a reproducible run with a fixed random seed:
@@ -192,13 +192,13 @@ for every test case.
 
 The current PoC assumes:
 
-1. coefficients are in \(\mathbb F_2\);
-2. the modulus is monic and has degree \(m\);
+1. coefficients are in $\mathbb F_2$;
+2. the modulus is monic and has degree $m$;
 3. the constant coefficient of the modulus is one;
 4. all internal tap exponents are distinct;
-5. every internal tap satisfies \(0<t<m\);
+5. every internal tap satisfies $0<t<m$;
 6. at least one internal tap is present, so the Hamming weight is at least 3;
-7. the input has degree less than \(2m\).
+7. the input has degree less than $2m$.
 
 The implementation does not construct a dense reciprocal polynomial or a dense
 reduction matrix. It computes the feedback schedule directly from the sparse
@@ -208,79 +208,79 @@ tap positions.
 
 Let
 
-\[
+$$
 n=\left\lceil\frac{m}{W}\right\rceil
-\]
+$$
 
-be the number of \(W\)-bit machine words used to represent an \(m\)-bit
+be the number of $W$-bit machine words used to represent an $m$-bit
 polynomial, and let
 
-\[
+$$
 r=
 \left\lceil
 \log_2\left(\frac{m}{\Delta_{\min}}\right)
 \right\rceil.
-\]
+$$
 
 The coarse machine-word work bound for generalized Suwako is
 
-\[
+$$
 T_{\mathrm{ExSuwako}}(m,h,W)
 =
 O(hnr).
-\]
+$$
 
-Let \(M_W(n)\) denote the machine-word complexity of multiplying two
-\(n\)-word binary polynomials. A Barrett- or Montgomery-style reduction
+Let $M_W(n)$ denote the machine-word complexity of multiplying two
+$n$-word binary polynomials. A Barrett- or Montgomery-style reduction
 dominated by a constant number of polynomial multiplications has work
 
-\[
+$$
 \Theta(M_W(n)).
-\]
+$$
 
 Thus generalized Suwako has asymptotically lower machine-word work whenever
 
-\[
+$$
 hnr=o(M_W(n)),
-\]
+$$
 
 or equivalently,
 
-\[
+$$
 h
 =
 o\left(
 \frac{M_W(n)}
      {n\log(m/\Delta_{\min})}
 \right).
-\]
+$$
 
 For schoolbook word multiplication,
 
-\[
+$$
 M_W(n)=\Theta(n^2),
-\]
+$$
 
 which gives
 
-\[
+$$
 h
 =
 o\left(
 \frac{m}
      {W\log(m/\Delta_{\min})}
 \right).
-\]
+$$
 
 For Karatsuba word multiplication,
 
-\[
+$$
 M_W(n)=\Theta\left(n^{\log_2 3}\right),
-\]
+$$
 
 which gives
 
-\[
+$$
 h
 =
 o\left(
@@ -292,7 +292,7 @@ o\left(
 \frac{(m/W)^{0.585\ldots}}
      {\log(m/\Delta_{\min})}
 \right).
-\]
+$$
 
 These bounds compare asymptotic machine-word work. They do not by themselves
 determine the practical crossover point, which also depends on shift/XOR
