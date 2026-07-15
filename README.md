@@ -204,6 +204,101 @@ The implementation does not construct a dense reciprocal polynomial or a dense
 reduction matrix. It computes the feedback schedule directly from the sparse
 tap positions.
 
+## Comparison with multiplication-based reduction
+
+Let
+
+\[
+n=\left\lceil\frac{m}{W}\right\rceil
+\]
+
+be the number of \(W\)-bit machine words used to represent an \(m\)-bit
+polynomial, and let
+
+\[
+r=
+\left\lceil
+\log_2\left(\frac{m}{\Delta_{\min}}\right)
+\right\rceil.
+\]
+
+The coarse machine-word work bound for generalized Suwako is
+
+\[
+T_{\mathrm{ExSuwako}}(m,h,W)
+=
+O(hnr).
+\]
+
+Let \(M_W(n)\) denote the machine-word complexity of multiplying two
+\(n\)-word binary polynomials. A Barrett- or Montgomery-style reduction
+dominated by a constant number of polynomial multiplications has work
+
+\[
+\Theta(M_W(n)).
+\]
+
+Thus generalized Suwako has asymptotically lower machine-word work whenever
+
+\[
+hnr=o(M_W(n)),
+\]
+
+or equivalently,
+
+\[
+h
+=
+o\left(
+\frac{M_W(n)}
+     {n\log(m/\Delta_{\min})}
+\right).
+\]
+
+For schoolbook word multiplication,
+
+\[
+M_W(n)=\Theta(n^2),
+\]
+
+which gives
+
+\[
+h
+=
+o\left(
+\frac{m}
+     {W\log(m/\Delta_{\min})}
+\right).
+\]
+
+For Karatsuba word multiplication,
+
+\[
+M_W(n)=\Theta\left(n^{\log_2 3}\right),
+\]
+
+which gives
+
+\[
+h
+=
+o\left(
+\frac{(m/W)^{\log_2 3-1}}
+     {\log(m/\Delta_{\min})}
+\right)
+=
+o\left(
+\frac{(m/W)^{0.585\ldots}}
+     {\log(m/\Delta_{\min})}
+\right).
+\]
+
+These bounds compare asymptotic machine-word work. They do not by themselves
+determine the practical crossover point, which also depends on shift/XOR
+throughput, carryless-multiplication instructions, vector width, memory
+traffic, tap placement, and implementation constants.
+
 ## Research directions
 
 The present prototype is intended to support work on:
