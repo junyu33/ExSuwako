@@ -80,6 +80,25 @@ X
 \left((X\ll t)\bmod x^m\right).
 $$
 
+Equivalently, with
+
+$$
+f(x)=1+\sum_{t\in T}x^t,
+$$
+
+the product $fX$ splits as
+
+$$
+fX=V(X)+x^mU(X).
+$$
+
+Since $g=x^m+f$ implies $x^m\equiv f$ modulo $g$, cancelling the high part
+requires solving
+
+$$
+H=(I+U)X.
+$$
+
 The reduction implemented by the PoC can be written as
 
 $$
@@ -137,6 +156,15 @@ $$
 \left\lceil
 \log_2\left(\frac{m}{\Delta_{\min}}\right)
 \right\rceil.
+$$
+
+The exact ceiling is important. When the closest tap is a fixed distance from
+the leading term, the bare expression $\log(m/\Delta_{\min})$ tends to zero,
+but the feedback closure still needs one round. Asymptotic statements should
+therefore keep the exact $r$ or use
+
+$$
+r=\Theta\left(1+\log\frac{m}{\Delta_{\min}}\right).
 $$
 
 ## Files
@@ -204,6 +232,26 @@ The implementation does not construct a dense reciprocal polynomial or a dense
 reduction matrix. It computes the feedback schedule directly from the sparse
 tap positions.
 
+This is best viewed as a matrix-free sparse reciprocal application. It does
+not deny the reciprocal structure; rather, it avoids explicitly materializing
+the usually dense reciprocal $q(z)^{-1}\bmod z^m$, where
+
+$$
+q(z)=1+\bigoplus_{t\in T}z^{\Delta_t},
+$$
+
+and applies it through sparse Frobenius factors:
+
+$$
+q(z)^{-1}
+\equiv
+\prod_{k=0}^{r-1}
+\left(
+1+\bigoplus_{t\in T}z^{2^k\Delta_t}
+\right)
+\pmod{z^m}.
+$$
+
 ## Comparison with multiplication-based reduction
 
 Let
@@ -222,6 +270,15 @@ r=
 \right\rceil.
 $$
 
+For an individual tap, define
+
+$$
+r_t=
+\left\lceil
+\log_2\left(\frac{m}{\Delta_t}\right)
+\right\rceil.
+$$
+
 The coarse machine-word work bound for generalized Suwako is
 
 $$
@@ -229,6 +286,17 @@ T_{\mathrm{ExSuwako}}(m,h,W)
 =
 O(hnr).
 $$
+
+A more precise schedule-sensitive bound, counting only active tap shifts in
+rounds where $2^k\Delta_t<m$, is
+
+$$
+O\left(n\left(r+\sum_{t\in T}r_t+|T|\right)\right).
+$$
+
+The $r$ term accounts for the per-round state update, the sum accounts for
+active feedback shifts, and the $|T|$ term accounts for the final low-part
+assembly.
 
 Let $M_W(n)$ denote the machine-word complexity of multiplying two
 $n$-word binary polynomials. A Barrett- or Montgomery-style reduction
@@ -251,7 +319,18 @@ h
 =
 o\left(
 \frac{M_W(n)}
-     {n\log(m/\Delta_{\min})}
+     {nr}
+\right).
+$$
+
+Using $r=\Theta(1+\log(m/\Delta_{\min}))$, this may be written as
+
+$$
+h
+=
+o\left(
+\frac{M_W(n)}
+     {n\left(1+\log(m/\Delta_{\min})\right)}
 \right).
 $$
 
@@ -268,7 +347,7 @@ h
 =
 o\left(
 \frac{m}
-     {W\log(m/\Delta_{\min})}
+     {W\left(1+\log(m/\Delta_{\min})\right)}
 \right).
 $$
 
@@ -285,12 +364,12 @@ h
 =
 o\left(
 \frac{(m/W)^{\log_2 3-1}}
-     {\log(m/\Delta_{\min})}
+     {1+\log(m/\Delta_{\min})}
 \right)
 =
 o\left(
 \frac{(m/W)^{0.585\ldots}}
-     {\log(m/\Delta_{\min})}
+     {1+\log(m/\Delta_{\min})}
 \right).
 $$
 
@@ -314,6 +393,19 @@ The present prototype is intended to support work on:
 - code generation for compile-time modulus parameters;
 - evaluation on cryptographically relevant sparse moduli;
 - characterization of the regimes in which the generalized method is useful.
+
+## Current triage status
+
+The algebraic core has passed the current first-round correctness checks:
+manual derivation, comparison against a bit-by-bit reference reducer, and an
+independent reimplementation-based differential check. These checks are useful
+evidence against off-by-one, synchronous-update, tap-interaction, final
+assembly, and round-count mistakes.
+
+This does not yet establish novelty, importance, or a compelling application.
+The next kill steps are prior-art search around reciprocal methods, sparse
+operator factorization, LFSR and CRC unfolding, and concrete C/SIMD/RTL
+performance measurements on relevant sparse moduli.
 
 ## Repository name
 
