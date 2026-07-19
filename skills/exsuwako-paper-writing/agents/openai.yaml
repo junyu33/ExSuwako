@@ -1,0 +1,4 @@
+interface:
+  display_name: "ExSuwako Paper Writing"
+  short_description: "ExSuwako paper writing guide"
+  default_prompt: "Use $exsuwako-paper-writing to draft or revise this paper section."

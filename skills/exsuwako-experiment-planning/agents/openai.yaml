@@ -1,0 +1,4 @@
+interface:
+  display_name: "ExSuwako Experiments"
+  short_description: "Plan and track ExSuwako experiments"
+  default_prompt: "Use $exsuwako-experiment-planning to plan or review the ExSuwako experiment checklist."

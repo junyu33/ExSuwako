@@ -169,7 +169,7 @@ $$
 
 ## Files
 
-### `generalized_suwako_poc.py`
+### `src/reference/generalized_suwako_poc.py`
 
 Contains:
 
@@ -194,7 +194,7 @@ No third-party Python packages are needed.
 Run the default validation suite with:
 
 ```bash
-python3 generalized_suwako_poc.py
+python3 src/reference/generalized_suwako_poc.py
 ```
 
 The default suite includes:
