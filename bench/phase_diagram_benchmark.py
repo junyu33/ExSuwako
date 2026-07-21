@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import random
 import subprocess
 from pathlib import Path
@@ -25,6 +26,19 @@ def main() -> None:
 
     rng = random.Random(args.seed)
     rows: list[dict[str, object]] = []
+    fields = [
+        "m", "s", "h", "Delta_min", "log2_m_over_delta", "GS_ns",
+        "Serial_ns", "BarrettGF2X_ns", "Serial/GS", "BarrettGF2X/GS",
+        "sample", "seed",
+    ]
+
+    def save_rows() -> None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(rows)
+
     for s in args.s:
         if not 1 <= s < args.m:
             raise ValueError(f"invalid support size {s} for m={args.m}")
@@ -45,7 +59,7 @@ def main() -> None:
             for row in parsed:
                 row = dict(row)
                 row["seed"] = c_seed
-                row["log2_m_over_delta"] = __import__("math").log2(
+                row["log2_m_over_delta"] = math.log2(
                     args.m / float(row["Delta_min"])
                 )
                 rows.append(row)
@@ -56,17 +70,7 @@ def main() -> None:
                     f"barrett/GS={row['BarrettGF2X/GS']}",
                     flush=True,
                 )
-
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    fields = [
-        "m", "s", "h", "Delta_min", "log2_m_over_delta", "GS_ns",
-        "Serial_ns", "BarrettGF2X_ns", "Serial/GS", "BarrettGF2X/GS",
-        "sample", "seed",
-    ]
-    with args.output.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(rows)
+            save_rows()
 
 
 if __name__ == "__main__":
