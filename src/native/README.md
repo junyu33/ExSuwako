@@ -10,7 +10,7 @@ installation prefix and build with MinGW:
 
 ```text
 make -C src/native GF2X_PREFIX=C:/path/to/gf2x
-src/native/barrett_gf2x_benchmark.exe 12 64 5 > bench/barrett_gf2x_benchmark.csv
+src/native/barrett_gf2x_benchmark 12 64 5 > bench/barrett_gf2x_benchmark.csv
 ```
 
 Arguments are `supports`, `inputs`, and `repeats`. The output is reduction-only

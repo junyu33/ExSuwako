@@ -1,11 +1,13 @@
 /* Native reduction-only benchmark using the upstream gf2x multiplication API. */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <gf2x.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <windows.h>
+#include <time.h>
 
 typedef unsigned long word_t;
 enum { WORD_BITS = sizeof(word_t) * 8 };
@@ -195,9 +197,16 @@ static uint64_t rng_next(void) {
 
 static int random_bit(void) { return (int)(rng_next() & 1); }
 
-static LARGE_INTEGER qpc(void) { LARGE_INTEGER x; QueryPerformanceCounter(&x); return x; }
-static double elapsed_ns(LARGE_INTEGER a, LARGE_INTEGER b, LARGE_INTEGER freq) {
-    return (double)(b.QuadPart - a.QuadPart) * 1e9 / (double)freq.QuadPart;
+static struct timespec monotonic_time(void) {
+    struct timespec x;
+    if (clock_gettime(CLOCK_MONOTONIC, &x) != 0) die("clock_gettime failed");
+    return x;
+}
+
+static double elapsed_ns(struct timespec a, struct timespec b) {
+    time_t seconds = b.tv_sec - a.tv_sec;
+    long nanoseconds = b.tv_nsec - a.tv_nsec;
+    return (double)seconds * 1e9 + (double)nanoseconds;
 }
 
 static int compare_double(const void *left, const void *right) {
@@ -230,11 +239,11 @@ static int poly_equal(const poly_t *a, const poly_t *b) {
 static double time_method(int method, const poly_t *inputs, size_t count,
                           const size_t *taps, size_t s, size_t m,
                           const poly_t *modulus, const poly_t *mu,
-                          int repeats, LARGE_INTEGER freq) {
+                          int repeats) {
     double *samples = calloc((size_t)repeats, sizeof(double));
     if (!samples) die("allocation failed");
     for (int rep = 0; rep < repeats; ++rep) {
-        LARGE_INTEGER start = qpc();
+        struct timespec start = monotonic_time();
         for (size_t i = 0; i < count; ++i) {
             poly_t out;
             if (method == 0) out = gs_reduce(&inputs[i], taps, s, m);
@@ -242,7 +251,7 @@ static double time_method(int method, const poly_t *inputs, size_t count,
             else out = barrett_reduce(&inputs[i], modulus, mu, m);
             poly_free(&out);
         }
-        samples[rep] = elapsed_ns(start, qpc(), freq) / (double)count;
+        samples[rep] = elapsed_ns(start, monotonic_time()) / (double)count;
     }
     double result = median(samples, (size_t)repeats);
     free(samples);
@@ -263,7 +272,6 @@ int main(int argc, char **argv) {
     int inputs_count = argc > 2 ? atoi(argv[2]) : 64;
     int repeats = argc > 3 ? atoi(argv[3]) : 5;
     rng_state = 0x9e3779b97f4a7c15ULL;
-    LARGE_INTEGER freq; QueryPerformanceFrequency(&freq);
     printf("m,s,h,GS_ns,naive_ns,BarrettGF2X_ns,naive/GS,BarrettGF2X/GS\n");
 
     for (size_t mi = 0; mi < sizeof(m_values) / sizeof(m_values[0]); ++mi) {
@@ -303,9 +311,9 @@ int main(int argc, char **argv) {
                     }
                     poly_free(&a); poly_free(&b); poly_free(&c);
                 }
-                gs_samples[trial] = time_method(0, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats, freq);
-                naive_samples[trial] = time_method(1, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats, freq);
-                barrett_samples[trial] = time_method(2, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats, freq);
+                gs_samples[trial] = time_method(0, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
+                naive_samples[trial] = time_method(1, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
+                barrett_samples[trial] = time_method(2, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
                 for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
                 free(inputs); poly_free(&modulus); poly_free(&mu); free(pool); free(taps);
             }

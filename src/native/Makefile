@@ -2,7 +2,7 @@ CC ?= gcc
 GF2X_PREFIX ?= C:/local/gf2x
 CFLAGS ?= -O3 -std=c11 -Wall -Wextra
 
-TARGET = barrett_gf2x_benchmark.exe
+TARGET = barrett_gf2x_benchmark
 SRC = barrett_gf2x_benchmark.c
 
 all: $(TARGET)
@@ -12,4 +12,4 @@ $(TARGET): $(SRC)
 		-L$(GF2X_PREFIX)/lib -lgf2x
 
 clean:
-	-del /q $(TARGET) 2>NUL
+	rm -f $(TARGET)
