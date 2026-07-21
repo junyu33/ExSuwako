@@ -7,7 +7,7 @@ SERIAL_CHECK = build/serial_correctness_check
 SERIAL_TARGET = build/gs_serial_benchmark
 SOURCES = src/exp.c src/GS.c src/barrett.c src/naive.c src/serial.c
 SERIAL_CHECK_SOURCES = tests/check_serial.c src/GS.c src/naive.c src/serial.c
-SERIAL_SOURCES = bench/serial_exp.c src/GS.c src/serial.c
+SERIAL_SOURCES = bench/serial_exp.c src/GS.c src/serial.c src/barrett.c
 
 all: $(TARGET)
 

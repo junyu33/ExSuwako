@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 
+#include "barrett.h"
 #include "GS.h"
 #include "serial.h"
 #include <time.h>
@@ -71,9 +72,9 @@ static volatile word_t benchmark_sink;
  * steady-state distinction between serial U-propagation and GS doubling.
  * Correctness and checksum consumption are outside the timed region.
  */
-static double time_reducer(int serial, const poly_t *inputs, size_t count,
+static double time_reducer(int method, const poly_t *inputs, size_t count,
                            gs_plan *gs, serial_plan *serial_plan_value,
-                           size_t m, int repeats) {
+                           barrett_plan *barrett, int repeats) {
     double *samples = calloc((size_t)repeats, sizeof(*samples));
     poly_t *outputs = calloc(count, sizeof(*outputs));
     if (!samples || !outputs) die("allocation failed");
@@ -85,8 +86,10 @@ static double time_reducer(int serial, const poly_t *inputs, size_t count,
     for (int repeat = 0; repeat < repeats; ++repeat) {
         struct timespec start = monotonic_time();
         for (size_t i = 0; i < count; ++i) {
-            if (serial)
+            if (method == 1)
                 serial_reduce_into(&inputs[i], serial_plan_value, &outputs[i]);
+            else if (method == 2)
+                barrett_reduce_into(&inputs[i], barrett, &outputs[i]);
             else
                 gs_reduce_into(&inputs[i], gs, &outputs[i]);
         }
@@ -114,12 +117,18 @@ int main(int argc, char **argv) {
     int repeats = argc > 3 ? atoi(argv[3]) : 1;
     size_t m = argc > 4 ? (size_t)strtoull(argv[4], NULL, 10) : 1024;
     size_t s = argc > 5 ? (size_t)strtoull(argv[5], NULL, 10) : 8;
+    uint64_t seed = argc > 6
+        ? (uint64_t)strtoull(argv[6], NULL, 0)
+        : 0x9e3779b97f4a7c15ULL;
     if (m == 0 || s == 0 || s > m) die("invalid m or support size");
 
-    rng_state = 0x9e3779b97f4a7c15ULL;
+    rng_state = seed;
     double *gs_samples = calloc((size_t)supports, sizeof(*gs_samples));
     double *serial_samples = calloc((size_t)supports, sizeof(*serial_samples));
-    if (!gs_samples || !serial_samples) die("allocation failed");
+    double *barrett_samples = calloc((size_t)supports, sizeof(*barrett_samples));
+    if (!gs_samples || !serial_samples || !barrett_samples) die("allocation failed");
+    size_t *delta_values = calloc((size_t)supports, sizeof(*delta_values));
+    if (!delta_values) die("allocation failed");
 
     for (int trial = 0; trial < supports; ++trial) {
         size_t *pool = malloc(m * sizeof(*pool));
@@ -129,8 +138,19 @@ int main(int argc, char **argv) {
         shuffle(pool, m);
         memcpy(taps, pool, s * sizeof(*taps));
 
+        size_t delta_min = m;
+        for (size_t i = 0; i < s; ++i) {
+            size_t delta = m - taps[i];
+            if (delta < delta_min) delta_min = delta;
+        }
+        delta_values[trial] = delta_min;
+
+        poly_t modulus = poly_from_exponents(m + 1, taps, s);
+        poly_set_bit(&modulus, m);
+        poly_t mu = barrett_setup(&modulus, m);
         gs_plan *gs = gs_plan_create(taps, s, m);
         serial_plan *serial = serial_plan_create(taps, s, m);
+        barrett_plan *barrett = barrett_plan_create(&modulus, &mu, m);
         poly_t *inputs = calloc((size_t)inputs_count, sizeof(*inputs));
         if (!inputs) die("allocation failed");
         for (int i = 0; i < inputs_count; ++i) {
@@ -141,32 +161,49 @@ int main(int argc, char **argv) {
         for (int i = 0; i < inputs_count; ++i) {
             poly_t gs_result = poly_new(poly_words_for_bits(m));
             poly_t serial_result = poly_new(poly_words_for_bits(m));
+            poly_t barrett_result = poly_new(poly_words_for_bits(m));
             gs_reduce_into(&inputs[i], gs, &gs_result);
             serial_reduce_into(&inputs[i], serial, &serial_result);
-            if (!poly_equal(&gs_result, &serial_result))
+            barrett_reduce_into(&inputs[i], barrett, &barrett_result);
+            if (!poly_equal(&gs_result, &serial_result)
+                || !poly_equal(&gs_result, &barrett_result))
                 die("GS/serial correctness mismatch");
             poly_free(&gs_result);
             poly_free(&serial_result);
+            poly_free(&barrett_result);
         }
 
         gs_samples[trial] = time_reducer(
-            0, inputs, (size_t)inputs_count, gs, serial, m, repeats);
+            0, inputs, (size_t)inputs_count, gs, serial, barrett, repeats);
         serial_samples[trial] = time_reducer(
-            1, inputs, (size_t)inputs_count, gs, serial, m, repeats);
+            1, inputs, (size_t)inputs_count, gs, serial, barrett, repeats);
+        barrett_samples[trial] = time_reducer(
+            2, inputs, (size_t)inputs_count, gs, serial, barrett, repeats);
 
         for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
         free(inputs);
         serial_plan_destroy(serial);
         gs_plan_destroy(gs);
+        barrett_plan_destroy(barrett);
+        poly_free(&modulus);
+        poly_free(&mu);
         free(taps);
         free(pool);
     }
 
     double gs = median(gs_samples, (size_t)supports);
     double serial = median(serial_samples, (size_t)supports);
-    printf("m,s,h,GS_ns,Serial_ns,Serial/GS\n%zu,%zu,%zu,%.1f,%.1f,%.3f\n",
-           m, s, s + 1, gs, serial, serial / gs);
+    double barrett = median(barrett_samples, (size_t)supports);
+    size_t delta_min = delta_values[0];
+    for (int trial = 1; trial < supports; ++trial)
+        if (delta_values[trial] < delta_min) delta_min = delta_values[trial];
+    printf("m,s,h,Delta_min,GS_ns,Serial_ns,BarrettGF2X_ns,Serial/GS,BarrettGF2X/GS\n");
+    printf("%zu,%zu,%zu,%.0f,%.1f,%.1f,%.1f,%.3f,%.3f\n",
+           m, s, s + 1, delta_min, gs, serial, barrett,
+           serial / gs, barrett / gs);
     free(gs_samples);
     free(serial_samples);
+    free(barrett_samples);
+    free(delta_values);
     return 0;
 }
