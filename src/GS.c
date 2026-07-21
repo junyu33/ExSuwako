@@ -1,4 +1,4 @@
-#include "gs.h"
+#include "GS.h"
 
 poly_t gs_reduce(const poly_t *input, const size_t *taps, size_t s, size_t m) {
     poly_t low = poly_new(poly_words_for_bits(m));

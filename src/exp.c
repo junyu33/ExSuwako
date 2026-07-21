@@ -1,7 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "barrett.h"
-#include "gs.h"
+#include "GS.h"
 #include "naive.h"
 #include <time.h>
 
