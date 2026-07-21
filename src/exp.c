@@ -51,7 +51,7 @@ static double median(double *values, size_t count) {
 }
 
 static double time_method(int method, const poly_t *inputs, size_t count,
-                          const size_t *taps, size_t s, size_t m,
+                          gs_plan *plan, size_t m,
                           const poly_t *modulus, const poly_t *mu, int repeats) {
     double *samples = calloc((size_t)repeats, sizeof(double));
     if (!samples) die("allocation failed");
@@ -59,7 +59,7 @@ static double time_method(int method, const poly_t *inputs, size_t count,
         struct timespec start = monotonic_time();
         for (size_t i = 0; i < count; ++i) {
             poly_t out;
-            if (method == 0) out = gs_reduce(&inputs[i], taps, s, m);
+            if (method == 0) out = gs_reduce_planned(&inputs[i], plan);
             else if (method == 1) out = naive_reduce(&inputs[i], modulus, m);
             else out = barrett_reduce(&inputs[i], modulus, mu, m);
             poly_free(&out);
@@ -110,12 +110,13 @@ int main(int argc, char **argv) {
                 poly_t modulus = poly_from_exponents(m + 1, taps, s);
                 poly_set_bit(&modulus, m);
                 poly_t mu = barrett_setup(&modulus, m);
+                gs_plan *plan = gs_plan_create(taps, s, m);
                 poly_t *inputs = calloc((size_t)inputs_count, sizeof(poly_t));
                 if (!inputs) die("allocation failed");
                 for (int i = 0; i < inputs_count; ++i) {
                     inputs[i] = poly_new(poly_words_for_bits(2 * m));
                     random_input(&inputs[i], m);
-                    poly_t gs = gs_reduce(&inputs[i], taps, s, m);
+                    poly_t gs = gs_reduce_planned(&inputs[i], plan);
                     poly_t barrett = barrett_reduce(&inputs[i], &modulus, &mu, m);
                     int correct = poly_equal(&gs, &barrett);
                     poly_t naive = {NULL, 0};
@@ -127,11 +128,12 @@ int main(int argc, char **argv) {
                     if (!skip_naive) poly_free(&naive);
                     poly_free(&gs); poly_free(&barrett);
                 }
-                gs_samples[trial] = time_method(0, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
-                naive_samples[trial] = skip_naive ? 0.0 : time_method(1, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
-                barrett_samples[trial] = time_method(2, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
+                gs_samples[trial] = time_method(0, inputs, (size_t)inputs_count, plan, m, &modulus, &mu, repeats);
+                naive_samples[trial] = skip_naive ? 0.0 : time_method(1, inputs, (size_t)inputs_count, plan, m, &modulus, &mu, repeats);
+                barrett_samples[trial] = time_method(2, inputs, (size_t)inputs_count, plan, m, &modulus, &mu, repeats);
                 for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
-                free(inputs); poly_free(&modulus); poly_free(&mu); free(pool); free(taps);
+                free(inputs); gs_plan_destroy(plan); poly_free(&modulus);
+                poly_free(&mu); free(pool); free(taps);
             }
             double gs = median(gs_samples, (size_t)supports);
             double naive = skip_naive ? 0.0 : median(naive_samples, (size_t)supports);
