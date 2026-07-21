@@ -23,3 +23,10 @@ For a large `m` run that skips naive long division, pass a custom `m` and the
 ```text
 build/barrett_gf2x_benchmark 6 8 5 1000000 no-naive > bench/barrett_gf2x_1e6.csv
 ```
+
+An optional final argument replaces the power-of-two support sweep with the
+linear range `1..s_max`:
+
+```text
+build/barrett_gf2x_benchmark 12 128 7 1024 no-naive 32
+```

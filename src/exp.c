@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
     int repeats = argc > 3 ? atoi(argv[3]) : 5;
     int custom_m = argc > 4;
     int skip_naive = argc > 5 && strcmp(argv[5], "no-naive") == 0;
+    size_t linear_s_max = argc > 6 ? (size_t)strtoull(argv[6], NULL, 10) : 0;
     if (custom_m) m_values[0] = (size_t)strtoull(argv[4], NULL, 10);
     rng_state = 0x9e3779b97f4a7c15ULL;
     printf("m,s,h,GS_ns,naive_ns,BarrettGF2X_ns,naive/GS,BarrettGF2X/GS\n");
@@ -93,8 +94,11 @@ int main(int argc, char **argv) {
     size_t m_count = custom_m ? 1 : sizeof(m_values) / sizeof(m_values[0]);
     for (size_t mi = 0; mi < m_count; ++mi) {
         size_t m = m_values[mi];
-        for (size_t si = 0; si < sizeof(s_values) / sizeof(s_values[0]); ++si) {
-            size_t s = s_values[si];
+        size_t s_count = linear_s_max
+            ? linear_s_max
+            : sizeof(s_values) / sizeof(s_values[0]);
+        for (size_t si = 0; si < s_count; ++si) {
+            size_t s = linear_s_max ? si + 1 : s_values[si];
             if (s >= m) continue;
             double *gs_samples = calloc((size_t)supports, sizeof(double));
             double *naive_samples = calloc((size_t)supports, sizeof(double));
