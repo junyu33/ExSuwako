@@ -164,27 +164,28 @@ static poly_t naive_reduce(const poly_t *input, const poly_t *modulus, size_t m)
 static poly_t gs_reduce(const poly_t *input, const size_t *taps, size_t s, size_t m) {
     poly_t low = poly_new(poly_words_for_bits(m));
     poly_t state = poly_shift_right(input, m);
+    poly_t next = poly_new(state.n);
     size_t dmin = m + 1;
     for (size_t i = 0; i < s; ++i) if (taps[i] > 0 && m - taps[i] < dmin) dmin = m - taps[i];
     size_t rounds = dmin > m ? 0 : 0;
     while (dmin <= m && (((size_t)1 << rounds) * dmin < m)) ++rounds;
     for (size_t k = 0; k < rounds; ++k) {
-        poly_t old = poly_new(state.n);
-        memcpy(old.v, state.v, state.n * sizeof(word_t));
+        memcpy(next.v, state.v, state.n * sizeof(word_t));
         for (size_t i = 0; i < s; ++i) {
             size_t factor = (size_t)1 << k;
             size_t delta = m - taps[i];
             if (!taps[i] || factor * delta >= m) continue;
-            poly_t shifted = poly_shift_right(&old, factor * delta);
-            for (size_t j = 0; j < state.n; ++j) state.v[j] ^= shifted.v[j];
-            poly_free(&shifted);
+            poly_xor_shift(&next, &state, factor * delta);
         }
-        poly_free(&old);
+        poly_t swap = state;
+        state = next;
+        next = swap;
     }
     for (size_t i = 0; i < low.n && i < input->n; ++i) low.v[i] = input->v[i];
     for (size_t i = 0; i < s; ++i) poly_xor_shift(&low, &state, taps[i]);
     poly_t result = low;
     poly_free(&state);
+    poly_free(&next);
     return result;
 }
 
