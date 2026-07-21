@@ -19,6 +19,17 @@ Do not call a Python correctness PoC a performance implementation. Keep
 correctness, operation-count validation, microbenchmarking, and end-to-end
 cryptographic impact as separate evidence layers.
 
+## Repository Layout
+
+Keep algorithm and reusable native implementation code in `src/`, public
+interfaces in `include/`, and correctness-only test programs in `tests/`.
+Put experiment code in the experiment directory `bench/`: this includes
+benchmark C entrypoints, Python experiment drivers, manifests, and raw
+measurement outputs. Do not place benchmark entrypoints such as
+`*_exp.c` in `src/`; `src/` is reserved for code that implements a reusable
+algorithm or library API. Keep each experiment's code and result artifact
+clearly named so a result can be traced back to its driver and command.
+
 ## Current Baseline
 
 Treat the following as already available only after rerunning them from the
