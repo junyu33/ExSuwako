@@ -76,6 +76,18 @@ static poly_t poly_shift_right(const poly_t *src, size_t shift) {
     return dst;
 }
 
+static void poly_xor_right_shift(poly_t *dst, const poly_t *src, size_t shift) {
+    size_t whole = shift / WORD_BITS;
+    unsigned bits = (unsigned)(shift % WORD_BITS);
+    for (size_t i = whole; i < src->n; ++i) {
+        size_t j = i - whole;
+        if (j >= dst->n) break;
+        dst->v[j] ^= src->v[i] >> bits;
+        if (bits && i + 1 < src->n && j < dst->n)
+            dst->v[j] ^= src->v[i + 1] << (WORD_BITS - bits);
+    }
+}
+
 static poly_t poly_from_exponents(size_t bits, const size_t *exponents, size_t count) {
     poly_t p = poly_new(poly_words_for_bits(bits));
     for (size_t i = 0; i < count; ++i) poly_set_bit(&p, exponents[i]);
@@ -175,7 +187,7 @@ static poly_t gs_reduce(const poly_t *input, const size_t *taps, size_t s, size_
             size_t factor = (size_t)1 << k;
             size_t delta = m - taps[i];
             if (!taps[i] || factor * delta >= m) continue;
-            poly_xor_shift(&state, &old, factor * delta);
+            poly_xor_right_shift(&state, &old, factor * delta);
         }
     }
     for (size_t i = 0; i < low.n && i < input->n; ++i) low.v[i] = input->v[i];
