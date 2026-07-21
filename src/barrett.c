@@ -1,5 +1,20 @@
 #include "barrett.h"
 
+/*
+ * Barrett is the multiplication-based baseline. Its two products call
+ * gf2x_mul() through poly_mul_gf2x() in poly.h.
+ *
+ * The library path is selected by the Makefile link line:
+ *
+ *     -L$(GF2X_PREFIX)/lib -lgf2x
+ *
+ * With the current default GF2X_PREFIX=/usr/local, this machine has no
+ * /usr/local/lib/libgf2x.a; the linker trace resolves -lgf2x to
+ * /usr/lib/libgf2x.so. To force a static libgf2x.a baseline, point
+ * GF2X_PREFIX at an installation containing $(GF2X_PREFIX)/lib/libgf2x.a
+ * and adjust the link flags accordingly.
+ */
+
 struct barrett_plan {
     const poly_t *modulus;
     const poly_t *mu;

@@ -1,6 +1,34 @@
 #include "GS.h"
 #include "sparse_shift.h"
 
+/*
+ * Generalized Suwako sparse reduction over GF(2).
+ *
+ * For a modulus f = x^m + q(x), split the product input as
+ *
+ *     C = L + x^m H.
+ *
+ * A conventional sparse fold repeatedly applies the high-part feedback
+ *
+ *     U(Y) = sum_{t != 0} Y >> (m - t)
+ *
+ * and accumulates low-part contributions
+ *
+ *     V(Y) = sum_t (Y << t) mod x^m.
+ *
+ * This implementation computes the closed feedback state
+ *
+ *     X = H + U(H) + U^2(H) + ...
+ *
+ * by the doubling identity over GF(2):
+ *
+ *     I + U + U^2 + ... = (I + U)(I + U^2)(I + U^4)...
+ *
+ * Since every U is a sum of right shifts, U^(2^k) is obtained by doubling
+ * the shift distances. The plan stores those per-stage shifts; reduce_into()
+ * reuses one state buffer and then returns L + V(X).
+ */
+
 typedef struct {
     size_t offset;
     size_t count;
@@ -10,12 +38,27 @@ typedef struct {
 struct gs_plan {
     size_t m;
     size_t state_words;
+
+    /*
+     * feedback_shifts is a flat array. Each round_desc selects one contiguous
+     * slice containing the shifts for one doubling stage U^(2^k).
+     */
     size_t round_count;
-    size_t assembly_count;
-    size_t assembly_aligned_count;
     round_desc *rounds;
     shift_desc *feedback_shifts;
+
+    /*
+     * assembly_shifts contains the original taps t for V(X). Unlike feedback
+     * shifts, these are applied once after the closure state has been computed.
+     */
+    size_t assembly_count;
+    size_t assembly_aligned_count;
     shift_desc *assembly_shifts;
+
+    /*
+     * One reusable m-bit state plus one sentinel word. The sentinel lets the
+     * right-shift gather path read state[src + 1] without a boundary branch.
+     */
     poly_t state;
 };
 
@@ -26,6 +69,12 @@ static size_t aligned_shift_count(const shift_desc *shifts, size_t count) {
     return aligned;
 }
 
+/*
+ * Initialize state <- H = input >> m, truncated to m bits.
+ *
+ * This is assignment, not XOR accumulation. It avoids clearing the whole state
+ * before calling the generic poly_xor_right_shift helper.
+ */
 static void extract_high_part(word_t *state, size_t state_words,
                               const poly_t *input, size_t m) {
     size_t word_offset = m / WORD_BITS;
@@ -41,6 +90,7 @@ static void extract_high_part(word_t *state, size_t state_words,
     state[state_words] = 0;
 }
 
+/* Accumulate a set of word-aligned right shifts into one destination word. */
 static inline word_t feedback_aligned_accumulate(
     const word_t *state,
     size_t state_words,
@@ -57,6 +107,12 @@ static inline word_t feedback_aligned_accumulate(
     return acc;
 }
 
+/*
+ * Accumulate non-word-aligned right shifts into one destination word.
+ *
+ * Shifts are sorted by word_offset, so all shifts reading the same adjacent
+ * source pair reuse the same lower/upper loads.
+ */
 static inline word_t feedback_unaligned_accumulate(
     const word_t *state,
     size_t state_words,
@@ -83,6 +139,16 @@ static inline word_t feedback_unaligned_accumulate(
     return acc;
 }
 
+/*
+ * Apply one doubling stage in place:
+ *
+ *     state <- state + U^(2^k)(state).
+ *
+ * The loop writes destination words from low to high. Each right shift reads
+ * the same or a higher source word, so source words needed by later
+ * destinations have not been overwritten yet. This is why the stage can be
+ * in-place without a second full state buffer.
+ */
 static void feedback_stage_in_place(
     word_t *state,
     size_t state_words,
@@ -125,6 +191,7 @@ static void feedback_stage_in_place(
     }
 }
 
+/* Accumulate word-aligned low-part assembly shifts into one output word. */
 static inline word_t assembly_aligned_accumulate(
     const word_t *state,
     size_t state_words,
@@ -142,6 +209,12 @@ static inline word_t assembly_aligned_accumulate(
     return acc;
 }
 
+/*
+ * Accumulate non-word-aligned low-part assembly shifts into one output word.
+ *
+ * Assembly is a left shift of the closed state, truncated mod x^m. From a
+ * destination-word view this gathers from state[src] and state[src - 1].
+ */
 static inline word_t assembly_unaligned_accumulate(
     const word_t *state,
     size_t state_words,
@@ -174,6 +247,12 @@ static inline word_t assembly_unaligned_accumulate(
     return acc;
 }
 
+/*
+ * Compute output <- L + V(state), where state is the closed feedback X.
+ *
+ * The input low words provide L directly; the assembly shifts add q(x) * X
+ * modulo x^m. The final mask clears padding bits above degree m - 1.
+ */
 static void assemble_low_part(
     poly_t *output,
     const poly_t *input,
@@ -242,6 +321,11 @@ gs_plan *gs_plan_create(const size_t *taps, size_t s, size_t m) {
     plan->assembly_count = s;
     plan->state = poly_new(plan->state_words + 1);
 
+    /*
+     * Build the feedback schedule. At stage factor = 2^k, tap t contributes
+     * a right shift by factor * (m - t), as long as that shift can still affect
+     * the m-bit state.
+     */
     for (size_t factor = 1;; factor <<= 1) {
         size_t shift_count = 0;
         for (size_t i = 0; i < s; ++i) {
@@ -277,6 +361,11 @@ gs_plan *gs_plan_create(const size_t *taps, size_t s, size_t m) {
     }
     free(round_shifts);
 
+    /*
+     * Build the final assembly schedule from the original tap positions t.
+     * Taps include t = 0 when the modulus has a constant term, and that shift
+     * is valid for assembly even though it has no high-part feedback.
+     */
     plan->assembly_shifts = s ? malloc(s * sizeof(*plan->assembly_shifts)) : NULL;
     if (s && !plan->assembly_shifts) die("allocation failed");
     for (size_t i = 0; i < s; ++i)
@@ -308,6 +397,7 @@ void gs_reduce_into(const poly_t *input, gs_plan *plan, poly_t *output) {
     extract_high_part(
         plan->state.v, plan->state_words, input, plan->m);
 
+    /* Compute X = product_k (I + U^(2^k)) H. */
     for (size_t i = 0; i < plan->round_count; ++i) {
         const round_desc *round = &plan->rounds[i];
         feedback_stage_in_place(
@@ -318,6 +408,7 @@ void gs_reduce_into(const poly_t *input, gs_plan *plan, poly_t *output) {
             round->aligned_count);
     }
 
+    /* Return L + V(X). */
     assemble_low_part(
         output, input, plan->state.v, plan->state_words,
         plan->assembly_shifts, plan->assembly_count,
