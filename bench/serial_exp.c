@@ -191,16 +191,15 @@ int main(int argc, char **argv) {
         free(pool);
     }
 
-    double gs = median(gs_samples, (size_t)supports);
-    double serial = median(serial_samples, (size_t)supports);
-    double barrett = median(barrett_samples, (size_t)supports);
-    size_t delta_min = delta_values[0];
-    for (int trial = 1; trial < supports; ++trial)
-        if (delta_values[trial] < delta_min) delta_min = delta_values[trial];
-    printf("m,s,h,Delta_min,GS_ns,Serial_ns,BarrettGF2X_ns,Serial/GS,BarrettGF2X/GS\n");
-    printf("%zu,%zu,%zu,%zu,%.1f,%.1f,%.1f,%.3f,%.3f\n",
-           m, s, s + 1, delta_min, gs, serial, barrett,
-           serial / gs, barrett / gs);
+    printf("m,s,h,Delta_min,GS_ns,Serial_ns,BarrettGF2X_ns,Serial/GS,BarrettGF2X/GS,sample\n");
+    for (int trial = 0; trial < supports; ++trial) {
+        double gs = gs_samples[trial];
+        double serial = serial_samples[trial];
+        double barrett = barrett_samples[trial];
+        printf("%zu,%zu,%zu,%zu,%.1f,%.1f,%.1f,%.3f,%.3f,%d\n",
+               m, s, s + 1, delta_values[trial], gs, serial, barrett,
+               serial / gs, barrett / gs, trial);
+    }
     free(gs_samples);
     free(serial_samples);
     free(barrett_samples);

@@ -33,29 +33,29 @@ def main() -> None:
             # exactly the same support and input batch for this row.
             c_seed = rng.getrandbits(64) or 1
             command = [
-                str(args.binary), "1", str(args.inputs), str(args.repeats),
+                str(args.binary), str(args.samples), str(args.inputs), str(args.repeats),
                 str(args.m), str(s), hex(c_seed),
             ]
             completed = subprocess.run(
                 command, check=True, capture_output=True, text=True,
             )
             parsed = list(csv.DictReader(completed.stdout.splitlines()))
-            if len(parsed) != 1:
-                raise RuntimeError(f"expected one row for s={s}")
-            row = dict(parsed[0])
-            row["sample"] = sample
-            row["seed"] = c_seed
-            row["log2_m_over_delta"] = __import__("math").log2(
-                args.m / float(row["Delta_min"])
-            )
-            rows.append(row)
-            print(
-                f"m={args.m} s={s} sample={sample} "
-                f"delta={row['Delta_min']} "
-                f"serial/GS={row['Serial/GS']} "
-                f"barrett/GS={row['BarrettGF2X/GS']}",
-                flush=True,
-            )
+            if len(parsed) != args.samples:
+                raise RuntimeError(f"expected {args.samples} rows for s={s}")
+            for row in parsed:
+                row = dict(row)
+                row["seed"] = c_seed
+                row["log2_m_over_delta"] = __import__("math").log2(
+                    args.m / float(row["Delta_min"])
+                )
+                rows.append(row)
+                print(
+                    f"m={args.m} s={s} sample={row['sample']} "
+                    f"delta={row['Delta_min']} "
+                    f"serial/GS={row['Serial/GS']} "
+                    f"barrett/GS={row['BarrettGF2X/GS']}",
+                    flush=True,
+                )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fields = [
