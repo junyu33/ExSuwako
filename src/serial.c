@@ -98,9 +98,9 @@ static void serial_fold_step(poly_t *output, const word_t *current,
             /* Accumulate (current << tap) mod x^m into R. */
             size_t left_dst = src + tap->assembly.word_offset;
             unsigned left_bits = tap->assembly.bit_offset;
-            if (left_dst < output->n) {
+            if (left_dst < plan->state_words) {
                 output->v[left_dst] ^= value << left_bits;
-                if (left_bits && left_dst + 1 < output->n)
+                if (left_bits && left_dst + 1 < plan->state_words)
                     output->v[left_dst + 1] ^=
                         value >> (WORD_BITS - left_bits);
             }

@@ -20,9 +20,15 @@ static int poly_equal(const poly_t *a, const poly_t *b) {
     return 1;
 }
 
-static void choose_taps(size_t *taps, size_t count, size_t m) {
+static void choose_taps(size_t *taps, size_t count, size_t m,
+                        int force_unit_gap) {
     taps[0] = 0;
-    for (size_t i = 1; i < count; ++i) {
+    size_t first_random = 1;
+    if (force_unit_gap && count > 1) {
+        taps[1] = m - 1;
+        first_random = 2;
+    }
+    for (size_t i = first_random; i < count; ++i) {
         size_t candidate;
         int duplicate;
         do {
@@ -52,7 +58,8 @@ int main(void) {
             if (tap_count > m) tap_count = m;
             size_t *taps = malloc(tap_count * sizeof(*taps));
             if (!taps) die("allocation failed");
-            choose_taps(taps, tap_count, m);
+            /* Half the cases force delta_min=1 and the longest serial chain. */
+            choose_taps(taps, tap_count, m, (trial & 1) == 0);
 
             poly_t modulus = poly_from_exponents(m + 1, taps, tap_count);
             poly_set_bit(&modulus, m);
