@@ -3,7 +3,9 @@ GF2X_PREFIX ?= /usr/local
 CFLAGS ?= -O3 -std=c11 -Wall -Wextra
 
 TARGET = build/barrett_gf2x_benchmark
-SOURCES = src/exp.c src/GS.c src/barrett.c src/naive.c
+SERIAL_CHECK = build/serial_correctness_check
+SOURCES = src/exp.c src/GS.c src/barrett.c src/naive.c src/serial.c
+SERIAL_CHECK_SOURCES = src/check_serial.c src/GS.c src/naive.c src/serial.c
 
 all: $(TARGET)
 
@@ -12,5 +14,13 @@ $(TARGET): $(SOURCES) include/*.h
 	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ $(SOURCES) \
 		-L$(GF2X_PREFIX)/lib -lgf2x
 
+$(SERIAL_CHECK): $(SERIAL_CHECK_SOURCES) include/*.h
+	mkdir -p build
+	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
+		$(SERIAL_CHECK_SOURCES) -L$(GF2X_PREFIX)/lib -lgf2x
+
+check-serial: $(SERIAL_CHECK)
+	$(SERIAL_CHECK)
+
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(SERIAL_CHECK)

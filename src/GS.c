@@ -1,9 +1,5 @@
 #include "GS.h"
-
-typedef struct {
-    size_t word_offset;
-    unsigned bit_offset;
-} shift_desc;
+#include "sparse_shift.h"
 
 typedef struct {
     size_t offset;
@@ -20,15 +16,6 @@ struct gs_plan {
     shift_desc *assembly_shifts;
     poly_t state;
 };
-
-static int compare_shift_desc(const void *left, const void *right) {
-    const shift_desc *a = left;
-    const shift_desc *b = right;
-    if (a->word_offset < b->word_offset) return -1;
-    if (a->word_offset > b->word_offset) return 1;
-    return (a->bit_offset > b->bit_offset)
-         - (a->bit_offset < b->bit_offset);
-}
 
 static void feedback_stage_in_place(
     word_t *state,
@@ -130,7 +117,7 @@ gs_plan *gs_plan_create(const size_t *taps, size_t s, size_t m) {
             };
         }
         if (shift_count == 0) break;
-        qsort(round_shifts, shift_count, sizeof(*round_shifts), compare_shift_desc);
+        qsort(round_shifts, shift_count, sizeof(*round_shifts), shift_desc_compare);
 
         round_desc *rounds = realloc(
             plan->rounds, (plan->round_count + 1) * sizeof(*rounds));
@@ -159,7 +146,7 @@ gs_plan *gs_plan_create(const size_t *taps, size_t s, size_t m) {
         };
     if (s)
         qsort(plan->assembly_shifts, s,
-              sizeof(*plan->assembly_shifts), compare_shift_desc);
+              sizeof(*plan->assembly_shifts), shift_desc_compare);
     return plan;
 }
 
