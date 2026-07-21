@@ -52,6 +52,21 @@ static double median(double *values, size_t count) {
 
 static volatile word_t benchmark_sink;
 
+/*
+ * Measure steady-state reduction, not one-time modulus setup.
+ *
+ * The caller has already constructed gs_plan/barrett_plan and populated the
+ * input batch. In particular, GS tap sorting and schedule construction happen
+ * in gs_plan_create(), before this function is entered. Each reducer therefore
+ * receives the representation and reusable scratch space that an application
+ * would retain while reducing many products modulo one fixed polynomial.
+ *
+ * This boundary is intentional: including plan construction would mix a
+ * per-modulus setup cost with a per-input reduction cost, and would penalize a
+ * method according to the chosen batch size rather than its reduction kernel.
+ * Setup can be benchmarked separately if end-to-end, one-shot latency is the
+ * quantity of interest.
+ */
 static double time_method(int method, const poly_t *inputs, size_t count,
                           gs_plan *gs, barrett_plan *barrett, size_t m,
                           const poly_t *modulus, int repeats) {
@@ -73,12 +88,25 @@ static double time_method(int method, const poly_t *inputs, size_t count,
 
     for (int rep = 0; rep < repeats; ++rep) {
         /*
-         * This is intentionally a batch timer. The first timestamp is taken
-         * immediately before the first reduce_into call and the second one
-         * immediately after the last call returns. Plan construction, output
-         * allocation, deallocation, correctness checks, and result hashing are
-         * excluded. Batching amortizes the two clock_gettime calls while the
-         * same loop overhead is paid by every reducer.
+         * Timed region, exactly:
+         *
+         *     start timestamp
+         *     count calls to one *_reduce_into reduction kernel
+         *     stop timestamp
+         *
+         * gs_reduce_into() is the planned GS kernel: its gs_plan, including
+         * the qsort-derived schedule, already exists. Likewise Barrett's
+         * reciprocal and multiplication scratch are already prepared. The
+         * region excludes input generation, plan/reciprocal construction,
+         * output allocation, correctness comparison, checksum calculation,
+         * and deallocation.
+         *
+         * A batch timer is used because a single reduction at small m can be
+         * comparable to the cost and resolution of clock_gettime itself.
+         * Dividing one batch duration by count amortizes the two timestamps.
+         * The loop and method-selection branch remain inside the region, but
+         * are structurally identical for all three reducers, so the comparison
+         * does not give one implementation a different dispatch path.
          */
         struct timespec start = monotonic_time();
         for (size_t i = 0; i < count; ++i) {
@@ -176,6 +204,12 @@ int main(int argc, char **argv) {
                     if (!skip_naive) poly_free(&naive);
                     poly_free(&gs_result); poly_free(&barrett_result);
                 }
+                /*
+                 * Correctness is checked before timing so a fast but incorrect
+                 * kernel cannot enter the reported data. The same prepared
+                 * plans and inputs are then passed to time_method(); only their
+                 * repeated reduce_into calls fall between its timestamps.
+                 */
                 gs_samples[trial] = time_method(0, inputs, (size_t)inputs_count, gs, barrett, m, &modulus, repeats);
                 naive_samples[trial] = skip_naive ? 0.0 : time_method(1, inputs, (size_t)inputs_count, gs, barrett, m, &modulus, repeats);
                 barrett_samples[trial] = time_method(2, inputs, (size_t)inputs_count, gs, barrett, m, &modulus, repeats);
