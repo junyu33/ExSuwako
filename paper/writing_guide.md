@@ -1382,6 +1382,11 @@ on scalar, SIMD, and hardware platforms?
 uniformly random support, do the measured active-tap work and feedback depth
 follow the predicted $O(s)$ and $O(\log(s+1))$ expectations?
 
+**RQ7: Algorithm-selection phase diagram.** Can the observed choices among
+serial folding, generalized Suwako, and multiplication-based reduction be
+organized by support size and feedback difficulty, while preserving the
+dependence on modulus degree, word size, and implementation platform?
+
 ### 9.2 Parameter Grid
 
 Suggested:
@@ -1419,6 +1424,19 @@ and p99 rather than only the mean. Do not label this model "random
 polynomials" without specifying the fixed weight: unconstrained random
 polynomials are typically dense.
 
+For the algorithm-selection plots, use $s=|T|$ as the primary horizontal
+coordinate and report the corresponding modulus Hamming weight as $h=s+1$.
+Use
+
+$$
+\log_2\left(\frac{m}{\Delta_{\min}}\right)
+$$
+
+as the theorem-facing vertical coordinate for feedback difficulty. Where
+machine-word effects are being studied, also record
+$\Delta_{\min}/W$ (or $\log_2(W/\Delta_{\min})$) rather than treating the
+theoretical coordinate as a complete implementation model.
+
 ### 9.3 Metrics
 
 - cycles per reduction;
@@ -1438,14 +1456,35 @@ polynomials are typically dense.
 
 ### 9.4 Planned Figures
 
-1. Tradeoff map: work, feedback depth, and setup.
-2. Operator diagram: $U,U^2,U^4,\ldots$.
-3. Stage count versus $\Delta_{\min}$.
-4. Crossover heatmaps over $(h,\Delta_{\min})$.
-5. Gap-one scaling as $m$ grows.
-6. Setup amortization over $K$.
-7. Predicted active-tap work versus measured runtime.
-8. Random-support depth and work versus $s$.
+1. **Schematic algorithm-selection phase diagram.** Show support size $s$
+   (with $h=s+1$) horizontally and
+   $\log_2(m/\Delta_{\min})$ vertically. Label the three conceptual regions:
+   serial folding for friendly sparse supports, generalized Suwako for sparse
+   supports with difficult feedback, and Barrett/multiplication-based
+   reduction at higher support sizes.
+2. **Empirical phase-diagram panels.** For several fixed values of $m$, plot
+   sampled supports and color each point by the measured winner among serial,
+   generalized Suwako, and Barrett. Use the same coordinates as the schematic
+   where possible, and retain an auxiliary view using $\Delta_{\min}/W$ when
+   word-granularity effects are material.
+3. Tradeoff map: work, feedback depth, and setup.
+4. Operator diagram: $U,U^2,U^4,\ldots$.
+5. Stage count versus $\Delta_{\min}$.
+6. Crossover heatmaps over $(h,\Delta_{\min})$.
+7. Gap-one scaling as $m$ grows.
+8. Setup amortization over $K$.
+9. Predicted active-tap work versus measured runtime.
+10. Random-support depth and work versus $s$.
+
+The schematic is a conceptual introduction figure, not a theorem giving a
+universal boundary. The empirical panels must be separated by fixed $m$ (and
+should state $W$, implementation, and platform), because Barrett cost depends
+on multiplication-kernel thresholds and memory behavior, while generalized
+Suwako depends on the full active-tap profile
+$r+\sum_k h_k+s$, not only on $s$ and $\Delta_{\min}$. The caption should
+state that exact region boundaries are implementation- and
+platform-dependent. Cells with close timings or inconsistent winners should
+be marked as uncertain rather than forced into a clean region.
 
 ### 9.5 Planned Tables
 
@@ -1565,6 +1604,7 @@ tradeoffs.
 | Stage count independent of $|T|$ for fixed $\Delta_{\min}$ | required | fixed-gap $|T|$-sweep | multi-tap look-ahead |
 | Work sensitive to $h_k$ | required | work/runtime test | dense/generic division |
 | Random-support expected work and depth | required | fixed-weight support sweep | sparse reduction / look-ahead |
+| Three-regime algorithm-selection phase diagram | no universal boundary | fixed-$m$ sampled winner panels | serial folding / multiplication reduction |
 | Lower work than Barrett/Montgomery in sparse regimes | required | heatmap | multiplication reduction |
 | Lightweight setup | precise definition | amortization | reciprocal/matrix |
 | Useful on real moduli | no | required | parameter sources |
@@ -1590,6 +1630,7 @@ tradeoffs.
 - [ ] Portable C.
 - [ ] Baselines.
 - [ ] Parameter sweep.
+- [ ] Schematic and empirical algorithm-selection phase diagrams.
 - [ ] Setup amortization.
 - [ ] Artifact.
 
@@ -1648,6 +1689,10 @@ technical sections.
 - [ ] Measure stage scaling.
 - [ ] Run fixed-weight uniform-support ring experiments.
 - [ ] Produce crossover heatmaps.
+- [ ] Produce the schematic phase diagram with conservative captioning.
+- [ ] Produce fixed-$m$ sampled winner panels over $(s,\log_2(m/\Delta_{\min}))$.
+- [ ] Record $W$, platform, implementation, support placement, and uncertain
+  cells for every phase-diagram panel.
 - [ ] Measure setup amortization.
 - [ ] Document losing regimes.
 - [ ] Package the artifact.
