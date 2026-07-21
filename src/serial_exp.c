@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
     int repeats = argc > 3 ? atoi(argv[3]) : 1;
     size_t m = argc > 4 ? (size_t)strtoull(argv[4], NULL, 10) : 1024;
     size_t s = argc > 5 ? (size_t)strtoull(argv[5], NULL, 10) : 8;
-    if (m == 0 || s == 0 || s >= m) die("invalid m or support size");
+    if (m == 0 || s == 0 || s > m) die("invalid m or support size");
 
     rng_state = 0x9e3779b97f4a7c15ULL;
     double *gs_samples = calloc((size_t)supports, sizeof(*gs_samples));
