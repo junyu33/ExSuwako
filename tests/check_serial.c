@@ -58,7 +58,6 @@ int main(void) {
             if (tap_count > m) tap_count = m;
             size_t *taps = malloc(tap_count * sizeof(*taps));
             if (!taps) die("allocation failed");
-            /* Half the cases force delta_min=1 and the longest serial chain. */
             choose_taps(taps, tap_count, m, (trial & 1) == 0);
 
             poly_t modulus = poly_from_exponents(m + 1, taps, tap_count);
