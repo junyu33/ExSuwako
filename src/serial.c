@@ -112,10 +112,11 @@ static void serial_fold_step(poly_t *output, const word_t *current,
             unsigned right_bits = tap->feedback.bit_offset;
             if (src >= right_words) {
                 size_t right_dst = src - right_words;
-                next[right_dst] ^= value >> right_bits;
+                next[right_dst] ^=
+                    sparse_right_shift_low(value, right_bits);
                 if (right_bits && right_dst > 0)
                     next[right_dst - 1] ^=
-                        value << (WORD_BITS - right_bits);
+                        sparse_right_shift_carry(value, right_bits);
             }
         }
     }
