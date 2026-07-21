@@ -8,6 +8,7 @@ venv/
 *.egg-info/
 build/
 dist/
+compile_commands.json
 bench/*_smoke.csv
 bench/*_tmp.csv
 bench/*.csv
