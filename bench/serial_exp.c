@@ -74,7 +74,7 @@ static volatile word_t benchmark_sink;
  */
 static double time_reducer(int method, const poly_t *inputs, size_t count,
                            gs_plan *gs, serial_plan *serial_plan_value,
-                           barrett_plan *barrett, int repeats) {
+                           barrett_plan *barrett, size_t m, int repeats) {
     double *samples = calloc((size_t)repeats, sizeof(*samples));
     poly_t *outputs = calloc(count, sizeof(*outputs));
     if (!samples || !outputs) die("allocation failed");
@@ -174,11 +174,11 @@ int main(int argc, char **argv) {
         }
 
         gs_samples[trial] = time_reducer(
-            0, inputs, (size_t)inputs_count, gs, serial, barrett, repeats);
+            0, inputs, (size_t)inputs_count, gs, serial, barrett, m, repeats);
         serial_samples[trial] = time_reducer(
-            1, inputs, (size_t)inputs_count, gs, serial, barrett, repeats);
+            1, inputs, (size_t)inputs_count, gs, serial, barrett, m, repeats);
         barrett_samples[trial] = time_reducer(
-            2, inputs, (size_t)inputs_count, gs, serial, barrett, repeats);
+            2, inputs, (size_t)inputs_count, gs, serial, barrett, m, repeats);
 
         for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
         free(inputs);
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
     for (int trial = 1; trial < supports; ++trial)
         if (delta_values[trial] < delta_min) delta_min = delta_values[trial];
     printf("m,s,h,Delta_min,GS_ns,Serial_ns,BarrettGF2X_ns,Serial/GS,BarrettGF2X/GS\n");
-    printf("%zu,%zu,%zu,%.0f,%.1f,%.1f,%.1f,%.3f,%.3f\n",
+    printf("%zu,%zu,%zu,%zu,%.1f,%.1f,%.1f,%.3f,%.3f\n",
            m, s, s + 1, delta_min, gs, serial, barrett,
            serial / gs, barrett / gs);
     free(gs_samples);
