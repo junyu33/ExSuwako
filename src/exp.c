@@ -50,23 +50,64 @@ static double median(double *values, size_t count) {
     return (values[count / 2 - 1] + values[count / 2]) / 2.0;
 }
 
+static volatile word_t benchmark_sink;
+
 static double time_method(int method, const poly_t *inputs, size_t count,
-                          gs_plan *plan, size_t m,
-                          const poly_t *modulus, const poly_t *mu, int repeats) {
+                          gs_plan *gs, barrett_plan *barrett, size_t m,
+                          const poly_t *modulus, int repeats) {
     double *samples = calloc((size_t)repeats, sizeof(double));
-    if (!samples) die("allocation failed");
+    poly_t *outputs = calloc(count, sizeof(*outputs));
+    if (!samples || !outputs) die("allocation failed");
+
+    /*
+     * Reducers have different internal workspace requirements. Allocate every
+     * output before taking a timestamp so allocator behavior cannot move the
+     * apparent crossover. GS and Barrett scratch buffers live in their plans;
+     * naive long division needs an input-sized destination for in-place work.
+     */
+    size_t output_words = method == 1
+        ? inputs[0].n
+        : poly_words_for_bits(m);
+    for (size_t i = 0; i < count; ++i)
+        outputs[i] = poly_new(output_words);
+
     for (int rep = 0; rep < repeats; ++rep) {
+        /*
+         * This is intentionally a batch timer. The first timestamp is taken
+         * immediately before the first reduce_into call and the second one
+         * immediately after the last call returns. Plan construction, output
+         * allocation, deallocation, correctness checks, and result hashing are
+         * excluded. Batching amortizes the two clock_gettime calls while the
+         * same loop overhead is paid by every reducer.
+         */
         struct timespec start = monotonic_time();
         for (size_t i = 0; i < count; ++i) {
-            poly_t out;
-            if (method == 0) out = gs_reduce_planned(&inputs[i], plan);
-            else if (method == 1) out = naive_reduce(&inputs[i], modulus, m);
-            else out = barrett_reduce(&inputs[i], modulus, mu, m);
-            poly_free(&out);
+            if (method == 0)
+                gs_reduce_into(&inputs[i], gs, &outputs[i]);
+            else if (method == 1)
+                naive_reduce_into(&inputs[i], modulus, m, &outputs[i]);
+            else
+                barrett_reduce_into(&inputs[i], barrett, &outputs[i]);
         }
         samples[rep] = elapsed_ns(start, monotonic_time()) / (double)count;
+
+        /*
+         * Consume output only after stopping the timer. This makes the results
+         * observably live without charging either reducer for benchmark-only
+         * checksum work. The reducers are separate translation units, so the
+         * calls also remain opaque to the compiler without link-time inlining.
+         */
+        word_t checksum = 0;
+        for (size_t i = 0; i < count; ++i) {
+            checksum ^= outputs[i].v[0];
+            checksum ^= outputs[i].v[outputs[i].n - 1];
+        }
+        benchmark_sink ^= checksum;
     }
+
     double result = median(samples, (size_t)repeats);
+    for (size_t i = 0; i < count; ++i) poly_free(&outputs[i]);
+    free(outputs);
     free(samples);
     return result;
 }
@@ -114,30 +155,33 @@ int main(int argc, char **argv) {
                 poly_t modulus = poly_from_exponents(m + 1, taps, s);
                 poly_set_bit(&modulus, m);
                 poly_t mu = barrett_setup(&modulus, m);
-                gs_plan *plan = gs_plan_create(taps, s, m);
+                gs_plan *gs = gs_plan_create(taps, s, m);
+                barrett_plan *barrett = barrett_plan_create(&modulus, &mu, m);
                 poly_t *inputs = calloc((size_t)inputs_count, sizeof(poly_t));
                 if (!inputs) die("allocation failed");
                 for (int i = 0; i < inputs_count; ++i) {
                     inputs[i] = poly_new(poly_words_for_bits(2 * m));
                     random_input(&inputs[i], m);
-                    poly_t gs = gs_reduce_planned(&inputs[i], plan);
-                    poly_t barrett = barrett_reduce(&inputs[i], &modulus, &mu, m);
-                    int correct = poly_equal(&gs, &barrett);
+                    poly_t gs_result = poly_new(poly_words_for_bits(m));
+                    poly_t barrett_result = poly_new(poly_words_for_bits(m));
+                    gs_reduce_into(&inputs[i], gs, &gs_result);
+                    barrett_reduce_into(&inputs[i], barrett, &barrett_result);
+                    int correct = poly_equal(&gs_result, &barrett_result);
                     poly_t naive = {NULL, 0};
                     if (!skip_naive) {
                         naive = naive_reduce(&inputs[i], &modulus, m);
-                        correct = correct && poly_equal(&naive, &gs);
+                        correct = correct && poly_equal(&naive, &gs_result);
                     }
                     if (!correct) die("correctness mismatch");
                     if (!skip_naive) poly_free(&naive);
-                    poly_free(&gs); poly_free(&barrett);
+                    poly_free(&gs_result); poly_free(&barrett_result);
                 }
-                gs_samples[trial] = time_method(0, inputs, (size_t)inputs_count, plan, m, &modulus, &mu, repeats);
-                naive_samples[trial] = skip_naive ? 0.0 : time_method(1, inputs, (size_t)inputs_count, plan, m, &modulus, &mu, repeats);
-                barrett_samples[trial] = time_method(2, inputs, (size_t)inputs_count, plan, m, &modulus, &mu, repeats);
+                gs_samples[trial] = time_method(0, inputs, (size_t)inputs_count, gs, barrett, m, &modulus, repeats);
+                naive_samples[trial] = skip_naive ? 0.0 : time_method(1, inputs, (size_t)inputs_count, gs, barrett, m, &modulus, repeats);
+                barrett_samples[trial] = time_method(2, inputs, (size_t)inputs_count, gs, barrett, m, &modulus, repeats);
                 for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
-                free(inputs); gs_plan_destroy(plan); poly_free(&modulus);
-                poly_free(&mu); free(pool); free(taps);
+                free(inputs); gs_plan_destroy(gs); barrett_plan_destroy(barrett);
+                poly_free(&modulus); poly_free(&mu); free(pool); free(taps);
             }
             double gs = median(gs_samples, (size_t)supports);
             double naive = skip_naive ? 0.0 : median(naive_samples, (size_t)supports);

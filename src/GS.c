@@ -172,7 +172,10 @@ void gs_plan_destroy(gs_plan *plan) {
     free(plan);
 }
 
-poly_t gs_reduce_planned(const poly_t *input, gs_plan *plan) {
+void gs_reduce_into(const poly_t *input, gs_plan *plan, poly_t *output) {
+    if (output->n < plan->state_words)
+        die("GS output buffer is too small");
+
     memset(plan->state.v, 0, plan->state.n * sizeof(word_t));
     poly_xor_right_shift(&plan->state, input, plan->m);
     plan->state.v[plan->state_words] = 0;
@@ -186,10 +189,14 @@ poly_t gs_reduce_planned(const poly_t *input, gs_plan *plan) {
             round->count);
     }
 
-    poly_t low = poly_new(plan->state_words);
     assemble_low_part(
-        &low, input, plan->state.v, plan->state_words,
+        output, input, plan->state.v, plan->state_words,
         plan->assembly_shifts, plan->assembly_count, plan->m);
+}
+
+poly_t gs_reduce_planned(const poly_t *input, gs_plan *plan) {
+    poly_t low = poly_new(plan->state_words);
+    gs_reduce_into(input, plan, &low);
     return low;
 }
 
