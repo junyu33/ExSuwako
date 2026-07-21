@@ -271,10 +271,14 @@ int main(int argc, char **argv) {
     int supports = argc > 1 ? atoi(argv[1]) : 12;
     int inputs_count = argc > 2 ? atoi(argv[2]) : 64;
     int repeats = argc > 3 ? atoi(argv[3]) : 5;
+    int custom_m = argc > 4;
+    int skip_naive = argc > 5 && strcmp(argv[5], "no-naive") == 0;
+    if (custom_m) m_values[0] = (size_t)strtoull(argv[4], NULL, 10);
     rng_state = 0x9e3779b97f4a7c15ULL;
     printf("m,s,h,GS_ns,naive_ns,BarrettGF2X_ns,naive/GS,BarrettGF2X/GS\n");
 
-    for (size_t mi = 0; mi < sizeof(m_values) / sizeof(m_values[0]); ++mi) {
+    size_t m_count = custom_m ? 1 : sizeof(m_values) / sizeof(m_values[0]);
+    for (size_t mi = 0; mi < m_count; ++mi) {
         size_t m = m_values[mi];
         for (size_t si = 0; si < sizeof(s_values) / sizeof(s_values[0]); ++si) {
             size_t s = s_values[si];
@@ -298,30 +302,37 @@ int main(int argc, char **argv) {
                 for (int i = 0; i < inputs_count; ++i) {
                     inputs[i] = poly_new(poly_words_for_bits(2 * m));
                     random_input(&inputs[i], m);
-                    poly_t a = naive_reduce(&inputs[i], &modulus, m);
                     poly_t b = gs_reduce(&inputs[i], taps, s, m);
                     poly_t c = barrett_reduce(&inputs[i], &modulus, &mu, m);
-                    if (!poly_equal(&a, &b) || !poly_equal(&a, &c)) {
+                    poly_t a = {NULL, 0};
+                    int correct = poly_equal(&b, &c);
+                    if (!skip_naive) {
+                        a = naive_reduce(&inputs[i], &modulus, m);
+                        correct = correct && poly_equal(&a, &b);
+                    }
+                    if (!correct) {
                         fprintf(stderr, "correctness mismatch m=%zu s=%zu trial=%d input=%d gs=%d barrett=%d\n",
-                                m, s, trial, i, poly_equal(&a, &b), poly_equal(&a, &c));
+                                m, s, trial, i, poly_equal(&a, &b), poly_equal(&b, &c));
                         fprintf(stderr, "degrees input=%ld modulus=%ld a=%ld b=%ld c=%ld\n",
                                 poly_degree(&inputs[i]), poly_degree(&modulus),
-                                poly_degree(&a), poly_degree(&b), poly_degree(&c));
+                                skip_naive ? -1 : poly_degree(&a), poly_degree(&b), poly_degree(&c));
                         die("correctness mismatch");
                     }
-                    poly_free(&a); poly_free(&b); poly_free(&c);
+                    if (!skip_naive) poly_free(&a);
+                    poly_free(&b); poly_free(&c);
                 }
                 gs_samples[trial] = time_method(0, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
-                naive_samples[trial] = time_method(1, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
+                naive_samples[trial] = skip_naive ? 0.0 : time_method(1, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
                 barrett_samples[trial] = time_method(2, inputs, (size_t)inputs_count, taps, s, m, &modulus, &mu, repeats);
                 for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
                 free(inputs); poly_free(&modulus); poly_free(&mu); free(pool); free(taps);
             }
             double gs = median(gs_samples, (size_t)supports);
-            double naive = median(naive_samples, (size_t)supports);
+            double naive = skip_naive ? 0.0 : median(naive_samples, (size_t)supports);
             double barrett = median(barrett_samples, (size_t)supports);
             free(gs_samples); free(naive_samples); free(barrett_samples);
-            printf("%zu,%zu,%zu,%.1f,%.1f,%.1f,%.3f,%.3f\n", m, s, s + 1, gs, naive, barrett, naive / gs, barrett / gs);
+            printf("%zu,%zu,%zu,%.1f,%.1f,%.1f,%.3f,%.3f\n", m, s, s + 1, gs,
+                   naive, barrett, skip_naive ? 0.0 : naive / gs, barrett / gs);
         }
     }
     return 0;
