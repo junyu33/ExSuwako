@@ -8,3 +8,5 @@ venv/
 *.egg-info/
 build/
 dist/
+bench/*_smoke.csv
+bench/*_tmp.csv

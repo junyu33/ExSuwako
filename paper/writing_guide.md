@@ -5,9 +5,15 @@ reduction.
 
 Central thesis:
 
-> Sparse binary modular reduction need not choose between sparsity-sensitive
-> work, a short sequential feedback chain, and lightweight modulus-specific
-> preprocessing.
+> Binary modular reduction can support arbitrary moduli while preserving
+> sparsity-sensitive work, logarithmic feedback depth, and lightweight setup
+> when the non-leading part of the modulus is sparse.
+
+Keep the claims separate throughout the paper:
+
+- correctness is claimed for arbitrary degree-$m$ binary moduli;
+- sparsity-sensitive work and favorable crossover regimes target sparse or
+  moderately sparse non-leading parts.
 
 This document is a writing plan, not a final paper draft. Keep unsupported
 novelty, importance, and performance claims behind TODO markers until the
@@ -62,8 +68,15 @@ sparse work, logarithmic feedback depth, and lightweight modulus setup.
 We present generalized Suwako reduction for moduli
 
 $$
-g(x)=x^m+1+\bigoplus_{t\in T}x^t.
+g(x)=x^m+q(x)
+    =x^m+\bigoplus_{t\in T}x^t,
+\qquad
+T\subseteq\{0,\ldots,m-1\}.
 $$
+
+The set $T$ may be empty; no condition is imposed on the constant
+coefficient, and irreducibility is not required. Sparsity affects the work but
+not correctness.
 
 The construction expresses reduction through the sparse feedback operator
 
@@ -80,10 +93,14 @@ U^{2^k}
 \bigoplus_{t\in T}S_{2^k(m-t)}.
 $$
 
-Consequently, $(I+U)^{-1}$ admits a sparse product factorization that does not
-generate mixed combinations of tap distances.
+Consequently, $(I+U)^{-1}$ admits a product factorization whose individual
+factors remain sparse and contain only doubled original tap distances. Mixed
+tap combinations are realized implicitly through factor composition and never
+need to be materialized. The key algorithmic consequence is that every factor
+remains expressible using only shifts at doubled original tap distances.
 
-The resulting algorithm is correct for arbitrary Hamming weight and uses
+The resulting algorithm is correct for arbitrary binary moduli. When $q\ne0$,
+it uses
 
 $$
 r=
@@ -92,7 +109,10 @@ r=
 \right\rceil
 $$
 
-dependent feedback stages, independently of the number of taps. Its word-level
+dependent feedback stages. When $q=0$, it uses $r=0$ stages. For fixed $m$ and
+$\Delta_{\min}$, the stage count is independent of the number of taps; tap
+placement affects the stage count only through $\Delta_{\min}$, whereas active
+tap counts control work within each stage. Its word-level
 work is
 
 $$
@@ -148,10 +168,17 @@ Do not open with AES, HQC, Binius, CNOT, or another narrow application.
 
 ### 1.2 Sparse Reduction
 
+The construction below is correct for arbitrary binary moduli. We first
+motivate it in the sparse setting, where its computational tradeoffs are most
+favorable.
+
 Consider
 
 $$
-g(x)=x^m+1+\bigoplus_{t\in T}x^t.
+g(x)=x^m+q(x)
+    =x^m+\bigoplus_{t\in T}x^t,
+\qquad
+T\subseteq\{0,\ldots,m-1\}.
 $$
 
 From
@@ -159,7 +186,7 @@ From
 $$
 x^m
 \equiv
-1+\bigoplus_{t\in T}x^t
+q(x)
 \pmod g,
 $$
 
@@ -177,13 +204,17 @@ Advantages:
 
 The central limitation is not Hamming weight alone.
 
-For an internal exponent $t$, define
+For $q\ne0$ and each $t\in T$, define
 
 $$
 \Delta_t=m-t,
 \qquad
-\Delta_{\min}=\min_{t\in T}\Delta_t.
+\Delta_{\min}=\min_{t\in T}\Delta_t=m-\deg q.
 $$
+
+The tap $t=0$, when present, has $\Delta_t=m$: it contributes to low-part
+assembly but never becomes an active feedback tap. The case $q=0$ is handled
+separately with zero feedback depth.
 
 When a tap lies close to the leading term, each fold lowers the relevant degree
 by only approximately $\Delta_{\min}$. Conventional folding may therefore
@@ -258,7 +289,6 @@ and
 $$
 V(X)
 =
-X\oplus
 \bigoplus_{t\in T}
 \left((X\ll t)\bmod x^m\right).
 $$
@@ -280,8 +310,9 @@ U^{2^k}(X)
 (X\gg 2^k(m-t)).
 $$
 
-Thus repeated squaring doubles the original shift distances without creating
-pairwise or higher-order combinations of taps.
+Thus repeated squaring doubles the original shift distances. Mixed tap
+combinations are realized implicitly by factor composition and never need to
+be materialized.
 
 Moreover,
 
@@ -300,16 +331,24 @@ r=
 \right\rceil.
 $$
 
+For $q=0$, use $r=0$ and omit $\Delta_{\min}$.
+
 **Complexity guarantees.** Establish:
 
-1. correctness for arbitrary Hamming weight;
+1. correctness for arbitrary binary moduli;
 2. logarithmic feedback-dependency depth;
-3. feedback-stage count independent of Hamming weight;
+3. stage count determined by $\Delta_{\min}$, not directly by Hamming weight;
 4. work sensitive to the active tap set;
 5. linear working space;
-6. sparse schedule generation without a dense reciprocal or matrix;
+6. sparse schedule generation without materializing a dense reciprocal
+   polynomial or reduction matrix;
 7. lower asymptotic reduction work than multiplication-based methods in
    specified sparse regimes.
+
+**Relation to reciprocal doubling.** The inverse identity is classical
+truncated reciprocal doubling in characteristic two. The contribution claimed
+here is its sparsity-preserving realization: each factor remains directly
+executable from the original modulus support.
 
 **Implementations and evaluation.** Provide:
 
@@ -356,7 +395,9 @@ U^{2^k}
 \bigoplus_{t\in T}S_{2^k\Delta_t}.
 $$
 
-The geometric inverse can therefore be factorized as
+The Frobenius identity itself is standard. Its consequence here is that
+repeated inverse-doubling stages do not require the explicit construction of
+mixed tap combinations. The geometric inverse can therefore be factorized as
 
 $$
 (I+U)^{-1}
@@ -380,7 +421,8 @@ $$
 
 Generalized Suwako removes the linear feedback-depth penalty of unfriendly
 sparse moduli without replacing sparse reduction by a dense linear map or a
-multiplication-based reducer.
+multiplication-based reducer. Correctness is arbitrary in the modulus, while
+the work advantage is sparsity-sensitive.
 
 It separates two effects of the modulus:
 
@@ -392,9 +434,18 @@ $$
 while
 
 $$
-|T|
-\quad\text{and the active taps control within-stage work.}
+h_k
+\quad\text{determines the work in stage }k.
 $$
+
+The total modulus Hamming weight is
+
+$$
+h=\operatorname{wt}(g)=1+|T|,
+$$
+
+and gives only a coarse work parameter; the accurate schedule cost uses
+$\sum_k h_k$.
 
 The result changes the traditional parameter-selection tradeoff: efficient
 sparse reduction no longer inherently requires friendly tap placement.
@@ -402,8 +453,8 @@ sparse reduction no longer inherently requires friendly tap placement.
 ### 1.9 Technical Overview
 
 1. Split the input as $C=L+x^mH$.
-2. Let $f(x)=1+\bigoplus_{t\in T}x^t$.
-3. Prove $fX=V(X)+x^mU(X)$.
+2. Let $q(x)=\bigoplus_{t\in T}x^t$.
+3. Prove $qX=V(X)+x^mU(X)$.
 4. Define $\rho(H)=x^mH\bmod g$ and derive $\rho(H)=V(H)+\rho(UH)$.
 5. Iterate the recurrence:
 
@@ -437,27 +488,34 @@ Define:
 Let
 
 $$
-g=x^m+1+\bigoplus_{t\in T}x^t.
+g=x^m+q=x^m+\bigoplus_{t\in T}x^t,
+\qquad
+T\subseteq\{0,\ldots,m-1\}.
 $$
 
 Define
 
 $$
-s=|T|,
-\qquad
-h=s+2,
-\qquad
 \Delta_t=m-t,
 \qquad
-\Delta_{\min}=\min_t\Delta_t.
+h=\operatorname{wt}(g)=1+|T|.
 $$
+
+If $q\ne0$, define
+
+$$
+\Delta_{\min}=\min_{t\in T}\Delta_t=m-\deg q.
+$$
+
+If $q=0$, do not define $\deg q$ or $\Delta_{\min}$ and set the feedback
+depth to $0$.
 
 Assumptions:
 
 - $g$ is monic;
-- its constant coefficient is one;
+- the constant coefficient may be either zero or one;
 - taps are distinct;
-- $0<t<m$;
+- $T\subseteq\{0,\ldots,m-1\}$;
 - irreducibility is not required for the reduction theorem.
 
 ### 2.3 Shift Operators
@@ -580,34 +638,61 @@ circuit size/work, and whether sparse divisor descriptions remain sparse.
 
 ### 3.6 Missing Combination
 
-| Method | Sparse-sensitive work | Short feedback chain | Lightweight setup | Arbitrary sparse taps |
-|---|---:|---:|---:|---:|
-| Serial sparse folding | yes | no | yes | yes |
-| Fixed unrolled reducer | sometimes | yes | no | fixed |
-| Dense matrix | no | yes | no | yes |
-| Barrett/Montgomery | not generally | multiplication-dependent | moderate | yes |
-| Generic parallel division | not necessarily | yes | not sparse-specific | yes |
-| Generalized Suwako | yes | yes | yes | yes |
+| Method | Sparse-sensitive work | Short feedback chain | Lightweight setup | Arbitrary modulus | Modulus agility / lightweight setup |
+|---|---:|---:|---:|---:|---:|
+| Serial sparse folding | yes | no | yes | yes | yes |
+| Fixed unrolled reducer | sometimes | yes | no | yes | no, regenerated per modulus |
+| Dense matrix | no | yes | no | yes | no |
+| Barrett/Montgomery | not generally | multiplication-dependent | moderate | yes | reciprocal-dependent |
+| Generic parallel division | not necessarily | yes | not sparse-specific | yes | divisor-dependent |
+| Reciprocal/Newton division | not generally | yes | reciprocal-dependent | yes | reciprocal-dependent |
+| Generalized Suwako | yes when $q$ is sparse | yes | yes | yes | yes |
 
 TODO: attach primary citations and precise assumptions to every row.
+
+The comparison must distinguish arbitrary-modulus correctness from
+sparsity-sensitive efficiency. The method is not limited to arbitrary sparse
+moduli; it is correct for arbitrary binary moduli and exploits sparsity when
+the non-leading support is sparse.
 
 ## 4. Sparse Feedback Operators
 
 ### 4.1 Definition of $U$ and $V$
 
-Define the feedback and low-assembly operators.
+For $X$ in the truncated $m$-bit coefficient space, define
+
+$$
+U(X)
+=
+\bigoplus_{t\in T}
+\left(X\gg(m-t)\right)
+$$
+
+and
+
+$$
+V(X)
+=
+q(x)X(x)\bmod x^m
+=
+\bigoplus_{t\in T}
+\left((X\ll t)\bmod x^m\right).
+$$
+
+When $0\in T$, the corresponding term in $V$ is exactly $X$. No separate
+constant-term XOR is present.
 
 ### 4.2 One-Step Decomposition
 
-**Lemma 1.** For every $\deg X<m$,
+**Lemma 1.** For every $X$ with $\deg X<m$,
 
 $$
-\left(
-1+\bigoplus_{t\in T}x^t
-\right)X
+q(x)X(x)
 =
 V(X)+x^mU(X).
 $$
+
+The identity holds with no assumption on $q(0)$, irreducibility, or sparsity.
 
 Give a coefficient proof and an operator proof.
 
@@ -624,6 +709,10 @@ $$
 $$
 \rho(H)=V(H)+\rho(UH).
 $$
+
+Here $x^m\equiv q(x)\pmod g$ in $\mathbb F_2[x]$. The recurrence uses neither
+$q(0)=1$ nor irreducibility; sparsity affects only how cheaply $U$ and $V$ are
+applied.
 
 Iterating gives
 
@@ -665,11 +754,13 @@ U^{2^k}
 \bigoplus_{t\in T}S_{2^k\Delta_t}.
 $$
 
-Explain explicitly why no terms of the form $S_{\Delta_i+\Delta_j}$ remain.
+Explain that mixed terms such as $S_{\Delta_i+\Delta_j}$ are not absent from
+the fully expanded product; they are realized implicitly through factor
+composition and never need to be materialized in the schedule.
 
 ### 4.7 Sparse Inverse Factorization
 
-**Theorem 2.** Let
+**Theorem 2.** If $q\ne0$, let
 
 $$
 r=
@@ -686,7 +777,36 @@ $$
 \prod_{k=0}^{r-1}(I+U^{2^k}).
 $$
 
-### 4.8 Why Characteristic Two Matters
+If $q=0$, then $U=0$, $V=0$, $r=0$, and $C\bmod x^m=L$.
+
+### 4.8 Relation to Truncated Reciprocal Doubling
+
+The identity
+
+$$
+(I+U)^{-1}
+=
+\prod_{k=0}^{r-1}(I+U^{2^k})
+$$
+
+is a characteristic-two instance of truncated reciprocal doubling for a
+nilpotent perturbation of the identity. We do not claim the inverse identity
+itself as new.
+
+The relevant property for binary modular reduction is that the feedback
+operator induced by the modulus satisfies
+
+$$
+U^{2^k}
+=
+\bigoplus_{t\in T}S_{2^k(m-t)}.
+$$
+
+Thus every factor remains directly applicable from the original tap
+description. No dense reciprocal polynomial or reduction matrix needs to be
+materialized.
+
+### 4.9 Why Characteristic Two Matters
 
 State:
 
@@ -715,10 +835,7 @@ for k = 0, ..., r - 1:
         if d < m:
             X <- X XOR (old >> d)
 
-R <- L XOR X
-
-for t in T:
-    R <- R XOR ((X << t) mod x^m)
+R <- L XOR V(X)
 
 return R
 ```
@@ -750,6 +867,10 @@ $$
 \{(k,2^k\Delta_t):t\in T_k\}.
 $$
 
+The definition automatically excludes $t=0$, since
+$2^k(m-0)\ge m$. The total modulus weight $h=1+|T|$ and the active-tap count
+$h_k=|T_k|$ are distinct quantities.
+
 Discuss runtime generation, compile-time generation, storage, and public
 control flow.
 
@@ -760,10 +881,15 @@ For
 $$
 g=x^m+x^t+1,
 \qquad
+T=\{0,t\},
+\qquad
 \Delta=m-t,
 $$
 
-the iteration becomes
+the tap $t=0$ contributes $X$ to $V$ and has feedback distance $m$, so it
+never enters a feedback stage. The internal tap $t$ contributes the shifted
+low assembly term and the feedback distance $\Delta$. Thus the iteration
+becomes
 
 $$
 X\leftarrow X\oplus(X\gg\Delta),
@@ -806,7 +932,7 @@ State that native code still requires a standard constant-time audit.
 
 ### 6.1 Feedback Depth
 
-**Theorem 4.**
+**Theorem 4.** If $q\ne0$,
 
 $$
 D_{\mathrm{fb}}
@@ -816,19 +942,21 @@ D_{\mathrm{fb}}
 \right\rceil.
 $$
 
-State separately:
+If $q=0$, then $D_{\mathrm{fb}}=0$. For fixed $m$ and $\Delta_{\min}$, state
+separately:
 
 $$
 D_{\mathrm{fb}}
 \text{ is independent of }|T|.
 $$
 
-Hamming weight affects work inside a stage, not the number of dependent
-feedback stages.
+Tap placement affects the stage count only through $\Delta_{\min}$, whereas
+the number of active taps controls the work within each stage.
 
 ### 6.2 Active-Tap Work
 
-Let $h_k=|T_k|$.
+Let $h_k=|T_k|$. The modulus Hamming weight is $h=\operatorname{wt}(g)=1+|T|$;
+do not use $h$ for the per-stage active-tap count.
 
 Target exact bound:
 
@@ -856,7 +984,7 @@ r+\sum_kh_k+|T|
 \right).
 $$
 
-Coarse bound:
+Coarse bound, using $h=1+|T|$, is:
 
 $$
 W_{\mathrm{Ex}}=O(nhr).
@@ -864,7 +992,7 @@ $$
 
 ### 6.3 Constant-Weight Families
 
-For $h=O(1)$,
+For constant-weight families with $h=\operatorname{wt}(g)=O(1)$,
 
 $$
 W_{\mathrm{Ex}}
@@ -890,7 +1018,113 @@ $$
 W_{\mathrm{Ex}}=O(n).
 $$
 
-### 6.4 Space
+### 6.4 Random-Support Analysis
+
+This analysis uses a broad ring setting rather than a finite-field-only
+setting. Fix $m$ and $s\ge1$, choose $T$ uniformly from the $s$-subsets of
+$\{0,\ldots,m-1\}$, and define
+
+$$
+g(x)=x^m+\bigoplus_{t\in T}x^t.
+$$
+
+The polynomial is monic and binary, but it may be reducible and its constant
+coefficient may be zero or one. This is the primary random-support model. It
+should not be described as an unconstrained random polynomial, since such a
+polynomial is usually dense and does not target the sparse-sensitive regime.
+
+Equivalently, the distances $\Delta_t=m-t$ form a uniformly random
+$s$-subset of $\{1,\ldots,m\}$. Let
+
+$$
+h_k=\left|\{t\in T:2^k\Delta_t<m\}\right|.
+$$
+
+Then
+
+$$
+\mathbb E[h_k]
+=
+\frac{s}{m}
+\left|\{\delta\in\{1,\ldots,m\}:2^k\delta<m\}\right|
+\le \frac{s}{2^k},
+$$
+
+and therefore
+
+$$
+\mathbb E\left[\sum_k h_k\right]
+<
+\sum_{k\ge0}\frac{s}{2^k}
+=2s.
+$$
+
+Thus the expected schedule size is $O(s)$, even though a worst-case schedule
+can have $O(s\log m)$ entries.
+
+For $s\ge1$, let $\Delta_{\min}=\min_{t\in T}\Delta_t$. Since
+
+$$
+D_{\mathrm{fb}}
+=
+\sum_{k\ge0}\mathbf 1\{2^k\Delta_{\min}<m\},
+$$
+
+a union bound gives
+
+$$
+\Pr[2^k\Delta_{\min}<m]
+\le
+\min\left(1,\frac{s}{2^k}\right).
+$$
+
+Consequently,
+
+$$
+\mathbb E[D_{\mathrm{fb}}]
+=O(\log(s+1)).
+$$
+
+The order-statistic identity
+
+$$
+\mathbb E[\Delta_{\min}]=\frac{m+1}{s+1}
+$$
+
+provides intuition for this logarithmic depth, but the depth bound should be
+derived from the tail probability above rather than by substituting an
+expectation into a logarithm.
+
+Combining the active-tap work bound with the random-support estimates gives
+
+$$
+\mathbb E[W_{\mathrm{Ex}}]
+=
+O\bigl(n(s+\log(s+1))\bigr)
+=
+O(ns)
+\qquad(s\ge1).
+$$
+
+Compared with a multiplication-based reducer of cost $\Theta(M_W(n))$, the
+random-support asymptotic condition is
+
+$$
+s=o\left(\frac{M_W(n)}{n}\right).
+$$
+
+This gives $s=o(n)$ for schoolbook multiplication,
+$s=o(n^{\log_2 3-1})$ for Karatsuba, and $s=o(\log n)$ for quasi-linear
+multiplication. These are asymptotic work comparisons; native experiments
+must determine the practical crossover.
+
+The random-support model is separate from a uniformly sampled irreducible
+model. Irreducibility is not required by the algorithm and is not imposed in
+the primary analysis. A later cryptographic-relevance experiment may sample
+irreducible polynomials, but its support distribution must not be assumed to
+follow the uniform-support formulas above.
+
+### 6.5 Space
 
 With ping-pong buffers,
 
@@ -900,7 +1134,7 @@ $$
 
 Give an exact number of temporary words.
 
-### 6.5 Setup
+### 6.6 Setup
 
 The explicit schedule has size
 
@@ -913,7 +1147,7 @@ Alternatively, it can be generated online from the tap list.
 Compare with reciprocal constants, dense matrices, and fixed XOR-network
 synthesis.
 
-### 6.6 Serial Sparse Comparison
+### 6.7 Serial Sparse Comparison
 
 Compare separately:
 
@@ -925,7 +1159,7 @@ Compare separately:
 Do not infer an equal-factor improvement in total work merely from the
 stage-count improvement.
 
-### 6.7 Barrett/Montgomery Comparison
+### 6.8 Barrett/Montgomery Comparison
 
 Let
 
@@ -976,7 +1210,7 @@ $$
 
 For quasi-linear multiplication, universal asymptotic dominance can disappear.
 
-### 6.8 Complete Field Multiplication
+### 6.9 Complete Field Multiplication
 
 The complete cost is
 
@@ -1030,17 +1264,35 @@ and preservation of a sparse divisor representation.
 Record exact partial products, reciprocal/precomputation requirements,
 characteristic-two variants, and word-complexity assumptions.
 
-### 7.7 Dense Linear-Circuit Synthesis
+### 7.7 Truncated Reciprocal and Newton/Hensel Doubling
+
+Compare the construction against:
+
+- general reciprocal iteration;
+- Newton/Hensel precision doubling;
+- characteristic-two specializations;
+- whether a reciprocal is materialized or only represented implicitly;
+- whether general polynomial multiplication is required;
+- whether tap sparsity is preserved under application;
+- whether the method gives a $\Delta_{\min}$-sensitive stage bound.
+
+The comparison should distinguish a reciprocal algorithm's algebraic identity
+from the sparse shift/XOR realization used here.
+
+### 7.8 Dense Linear-Circuit Synthesis
 
 Compare XOR count, gate depth, storage, matrix synthesis cost, and fixed-modulus
 assumptions.
 
-### 7.8 Provisional Novelty Statement
+### 7.9 Provisional Novelty Statement
 
-> To our knowledge, prior methods do not simultaneously provide arbitrary
-> sparse-modulus support, work sensitive to the sparse tap set, logarithmic
-> sequential feedback depth, and a schedule generated directly from the sparse
-> modulus without constructing a dense linear map or reciprocal.
+> To our knowledge, prior methods do not simultaneously provide:
+>
+> - correctness for arbitrary binary moduli;
+> - work sensitive to the support of the non-leading part when it is sparse;
+> - logarithmic sequential feedback depth; and
+> - an execution schedule generated directly from the modulus support,
+>   without materializing a dense reciprocal polynomial or reduction matrix.
 
 TODO: revise after completing the audit.
 
@@ -1051,7 +1303,10 @@ TODO: revise after completing the audit.
 - naive long division;
 - Python/Sage generalized Suwako;
 - exhaustive small-$m$ validation;
-- randomized differential tests.
+- randomized differential tests;
+- dedicated cases for $q=0$, $q=1$, $q=x^t$, constant coefficient zero,
+  constant coefficient one, dense $q$, reducible $g$, and non-word-aligned
+  $m$.
 
 ### 8.2 Portable C
 
@@ -1060,6 +1315,7 @@ Requirements:
 - arbitrary $m$;
 - arbitrary public taps;
 - non-word-aligned degrees;
+- no assumption that the constant coefficient is present;
 - explicit ping-pong buffers;
 - no undefined shifts;
 - constant-time field-element handling.
@@ -1067,7 +1323,9 @@ Requirements:
 ### 8.3 Fixed-Modulus Code Generation
 
 Generate active tap lists, unrolled stages, final low assembly, and optional
-in-place specializations. Measure code size.
+in-place specializations. Iterate uniformly over $t\in T$; do not hard-code an
+extra XOR for $X$. The $t=0$ term is an ordinary low-assembly tap. Measure code
+size.
 
 ### 8.4 SIMD
 
@@ -1079,7 +1337,9 @@ Potential targets:
 - ARM SVE.
 
 Discuss cross-limb shifts, cross-vector shifts, XOR fan-in, memory traffic, and
-stage barriers.
+stage barriers. Distinguish $t=0$, which participates only in final low
+assembly, from $t>0$, which may participate in both feedback and low assembly.
+After $2^k(m-t)\ge m$, a tap is inactive in later feedback stages.
 
 ### 8.5 Baselines
 
@@ -1108,7 +1368,7 @@ for arbitrary tap sets?
 **RQ2: Feedback chain.** Does latency scale with
 $1+\log(m/\Delta_{\min})$ rather than $m/\Delta_{\min}$?
 
-**RQ3: Crossover.** For which triples $(m,h,\Delta_{\min})$ does generalized
+**RQ3: Crossover.** For which triples $(m,s,\Delta_{\min})$ does generalized
 Suwako outperform serial folding and Barrett/Montgomery?
 
 **RQ4: Modulus agility.** How does
@@ -1117,6 +1377,10 @@ reductions per modulus changes?
 
 **RQ5: Architecture dependence.** Do the same parameter regions remain useful
 on scalar, SIMD, and hardware platforms?
+
+**RQ6: Random-support behavior.** For fixed non-leading support size $s$ and
+uniformly random support, do the measured active-tap work and feedback depth
+follow the predicted $O(s)$ and $O(\log(s+1))$ expectations?
 
 ### 9.2 Parameter Grid
 
@@ -1128,8 +1392,8 @@ m\in
 $$
 
 $$
-h\in
-\{3,5,9,17,33\},
+s\in
+\{0,1,2,4,8,16,32,64,128,\ldots\},
 $$
 
 $$
@@ -1140,9 +1404,20 @@ $$
 
 Include:
 
-- synthetic controlled families;
-- real irreducible sparse moduli;
-- non-irreducible moduli for structural stress testing.
+- fixed-weight monic binary polynomials with support sampled uniformly from
+  $\{0,\ldots,m-1\}$;
+- synthetic controlled families for worst-case and friendly tap placement;
+- non-irreducible moduli as the primary ring-level stress tests;
+- $0\in T$ and $0\notin T$ cases;
+- $T=\varnothing$ and the resulting $q=0$ case;
+- constant-free, constant-one, and dense-$q$ cases;
+- reducible moduli and non-word-aligned degrees.
+
+Here $s=0$ is the separate $q=0$ boundary case. For each $(m,s)$ with
+$s\ge1$, sample enough independent supports to report median, p90,
+and p99 rather than only the mean. Do not label this model "random
+polynomials" without specifying the fixed weight: unconstrained random
+polynomials are typically dense.
 
 ### 9.3 Metrics
 
@@ -1158,6 +1433,8 @@ Include:
 - modulus-specific bytes;
 - generated code size;
 - temporary memory.
+- median, p90, and p99 for runtime, $\Delta_{\min}$, $D_{\mathrm{fb}}$, and
+  $\sum_k h_k$.
 
 ### 9.4 Planned Figures
 
@@ -1168,6 +1445,7 @@ Include:
 5. Gap-one scaling as $m$ grows.
 6. Setup amortization over $K$.
 7. Predicted active-tap work versus measured runtime.
+8. Random-support depth and work versus $s$.
 
 ### 9.5 Planned Tables
 
@@ -1238,13 +1516,15 @@ tradeoffs.
 
 ## 12. Conclusion
 
-1. Restate the old sparse-work versus serial-depth constraint.
-2. Introduce the sparse feedback operator.
-3. State the characteristic-two Frobenius factorization.
-4. State logarithmic feedback depth.
-5. State sparse work and lightweight setup.
-6. State the experimentally identified useful regimes.
-7. Close with:
+1. State correctness for arbitrary binary moduli.
+2. Restate the sparse-work versus serial-depth constraint.
+3. Introduce the sparse feedback operator.
+4. State the characteristic-two Frobenius factorization and its classical
+   reciprocal-doubling relation.
+5. State logarithmic feedback depth.
+6. State sparse-sensitive work and lightweight setup.
+7. State the experimentally identified useful regimes.
+8. Close with:
 
    > Characteristic-two structure can shorten a feedback chain without first
    > densifying the operator that created it.
@@ -1280,10 +1560,11 @@ tradeoffs.
 
 | Claim | Formal proof | Experiment | Prior-art audit |
 |---|---:|---:|---:|
-| Correct for arbitrary sparse moduli | required | required | sparse reduction |
+| Correct for arbitrary binary moduli | required | required | sparse reduction |
 | Logarithmic feedback depth | required | scaling test | serial/LFSR |
-| Stage count independent of $h$ | required | fixed-gap $h$-sweep | multi-tap look-ahead |
+| Stage count independent of $|T|$ for fixed $\Delta_{\min}$ | required | fixed-gap $|T|$-sweep | multi-tap look-ahead |
 | Work sensitive to $h_k$ | required | work/runtime test | dense/generic division |
+| Random-support expected work and depth | required | fixed-weight support sweep | sparse reduction / look-ahead |
 | Lower work than Barrett/Montgomery in sparse regimes | required | heatmap | multiplication reduction |
 | Lightweight setup | precise definition | amortization | reciprocal/matrix |
 | Useful on real moduli | no | required | parameter sources |
@@ -1330,6 +1611,7 @@ technical sections.
 - [ ] Prove sparse Frobenius powers.
 - [ ] Prove inverse factorization.
 - [ ] Derive exact active-tap work.
+- [ ] Prove the random-support active-work and feedback-depth bounds.
 - [ ] Derive exact space and setup.
 - [ ] Formalize the Barrett/Montgomery comparison.
 
@@ -1340,6 +1622,10 @@ technical sections.
 - [ ] LFSR look-ahead.
 - [ ] Parallel CRC.
 - [ ] Parallel prefix.
+- [ ] Newton/Hensel power-series inversion in characteristic two.
+- [ ] Factored reciprocal representations.
+- [ ] Sparse application of reciprocal-doubling factors.
+- [ ] Nilpotent-operator inversion over $\mathbb F_2$.
 - [ ] Sparse finite-field reduction.
 - [ ] Barrett/Montgomery over $\mathbb F_2[x]$.
 - [ ] Dense XOR-network synthesis.
@@ -1360,6 +1646,7 @@ technical sections.
 - [ ] Select real moduli.
 - [ ] Finalize parameter grid.
 - [ ] Measure stage scaling.
+- [ ] Run fixed-weight uniform-support ring experiments.
 - [ ] Produce crossover heatmaps.
 - [ ] Measure setup amortization.
 - [ ] Document losing regimes.
@@ -1371,10 +1658,11 @@ technical sections.
 
 No prior method found that simultaneously gives:
 
-- arbitrary sparse taps;
-- sparsity-sensitive work;
+- correctness for arbitrary binary moduli;
+- sparsity-sensitive work when the non-leading part is sparse;
 - logarithmic feedback depth;
-- lightweight setup.
+- lightweight setup without materializing a dense reciprocal polynomial or
+  reduction matrix.
 
 ### Gate 2: Theorems
 
