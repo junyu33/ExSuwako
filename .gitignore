@@ -10,3 +10,4 @@ build/
 dist/
 bench/*_smoke.csv
 bench/*_tmp.csv
+src/native/barrett_gf2x_benchmark
