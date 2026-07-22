@@ -28,8 +28,8 @@ def main() -> None:
     rows: list[dict[str, object]] = []
     fields = [
         "m", "s", "h", "Delta_min", "log2_m_over_delta", "GS_ns",
-        "Serial_ns", "BarrettGF2X_ns", "Serial/GS", "BarrettGF2X/GS",
-        "sample", "seed",
+        "Serial_ns", "Naive_ns", "BarrettGF2X_ns", "Serial/GS",
+        "Naive/GS", "BarrettGF2X/GS", "sample", "seed",
     ]
 
     def save_rows() -> None:

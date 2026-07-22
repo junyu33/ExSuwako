@@ -11,5 +11,6 @@ dist/
 compile_commands.json
 bench/*_smoke.csv
 bench/*_tmp.csv
+bench/**/*.csv
 bench/*.csv
 src/native/barrett_gf2x_benchmark

@@ -1,6 +1,4 @@
-#include "GS.h"
-#include "naive.h"
-#include "serial.h"
+#include "reduction.h"
 
 static uint64_t check_rng = 0xd1b54a32d192ed03ULL;
 
@@ -48,6 +46,32 @@ static void random_input(poly_t *input, size_t m) {
         if (next_random() & 1) poly_set_bit(input, i);
 }
 
+static void check_methods(const reduction_method *methods,
+                          size_t method_count, const poly_t *input,
+                          size_t m, size_t trial, size_t tap_count) {
+    poly_t *outputs = calloc(method_count, sizeof(*outputs));
+    if (!outputs) die("allocation failed");
+
+    for (size_t i = 0; i < method_count; ++i) {
+        outputs[i] = poly_new(methods[i].output_words);
+        methods[i].reduce_into(input, methods[i].context, &outputs[i]);
+    }
+
+    for (size_t i = 1; i < method_count; ++i) {
+        if (!poly_equal(&outputs[0], &outputs[i])) {
+            fprintf(stderr,
+                    "reduction mismatch: m=%zu trial=%zu taps=%zu "
+                    "left=%s right=%s\n",
+                    m, trial, tap_count, methods[0].name, methods[i].name);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (size_t i = 0; i < method_count; ++i)
+        poly_free(&outputs[i]);
+    free(outputs);
+}
+
 int main(void) {
     const size_t degrees[] = {8, 31, 64, 65, 127, 128, 257};
 
@@ -65,30 +89,23 @@ int main(void) {
             poly_t input = poly_new(poly_words_for_bits(2 * m));
             random_input(&input, m);
 
-            gs_plan *gs = gs_plan_create(taps, tap_count, m);
-            serial_plan *serial = serial_plan_create(taps, tap_count, m);
-            poly_t gs_result = gs_reduce_planned(&input, gs);
-            poly_t serial_result = serial_reduce_planned(&input, serial);
-            poly_t naive_result = naive_reduce(&input, &modulus, m);
+            reduction_method methods[] = {
+                reduction_make_gs(taps, tap_count, m),
+                reduction_make_serial(taps, tap_count, m),
+                reduction_make_naive(&modulus, m, input.n),
+                reduction_make_barrett(&modulus, m),
+            };
+            size_t method_count = sizeof(methods) / sizeof(methods[0]);
+            check_methods(methods, method_count, &input, m, trial, tap_count);
 
-            if (!poly_equal(&serial_result, &gs_result)
-                    || !poly_equal(&serial_result, &naive_result)) {
-                fprintf(stderr, "serial mismatch: m=%zu trial=%zu taps=%zu\n",
-                        m, trial, tap_count);
-                return EXIT_FAILURE;
-            }
-
-            poly_free(&naive_result);
-            poly_free(&serial_result);
-            poly_free(&gs_result);
-            serial_plan_destroy(serial);
-            gs_plan_destroy(gs);
+            for (size_t i = 0; i < method_count; ++i)
+                reduction_method_destroy(&methods[i]);
             poly_free(&input);
             poly_free(&modulus);
             free(taps);
         }
     }
 
-    puts("serial sparse folding correctness: ok");
+    puts("reduction correctness: ok");
     return EXIT_SUCCESS;
 }

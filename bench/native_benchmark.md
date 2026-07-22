@@ -1,7 +1,15 @@
 # Native gf2x benchmark
 
-The native benchmark is split into `src/GS.c`, `src/naive.c`, `src/barrett.c`,
-and `src/exp.c`; public headers are under `include/`.
+The native reducer implementations live in `src/`; public headers are under
+`include/`; benchmark scripts and entrypoints live under `bench/scripts/`.
+
+`bench/scripts/reduction_benchmark.c` drives the reduction-only microbenchmark
+through the common `reduction_method` API in `include/reduction.h`. GS, serial sparse
+folding, naive long division, and Barrett all expose the same timed
+`reduce_into(input, context, output)` contract to the benchmark. Method setup,
+input generation, output allocation, correctness checks, and checksum
+consumption are outside the timed region.
+
 The two Barrett products call the upstream `gf2x_mul` API. The reciprocal
 polynomial is precomputed outside the timed reduction path.
 
@@ -10,23 +18,16 @@ installation prefix and build with MinGW or GCC:
 
 ```text
 make GF2X_PREFIX=/path/to/gf2x
-build/barrett_gf2x_benchmark 12 64 5 > bench/barrett_gf2x_benchmark.csv
+build/reduction_benchmark 12 64 5
 ```
 
-Arguments are `supports`, `inputs`, and `repeats`. The output is reduction-only
-timing in nanoseconds per input. Correctness is checked against both reducers
-before each timed trial.
+Arguments are `supports`, `inputs`, `repeats`, `m`, `s`, `seed`, and an
+optional `no-naive` flag. The output is reduction-only timing in nanoseconds
+per input. Correctness is checked across all enabled reducers before each timed
+trial.
 
-For a large `m` run that skips naive long division, pass a custom `m` and the
-`no-naive` flag:
-
-```text
-build/barrett_gf2x_benchmark 6 8 5 1000000 no-naive > bench/barrett_gf2x_1e6.csv
-```
-
-An optional final argument replaces the power-of-two support sweep with the
-linear range `1..s_max`:
+For a large `m` run that skips naive long division, pass the `no-naive` flag:
 
 ```text
-build/barrett_gf2x_benchmark 12 128 7 1024 no-naive 32
+build/reduction_benchmark 6 8 5 1000000 8 0x9e3779b97f4a7c15 no-naive
 ```

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import csv
 import os
+import statistics
 import subprocess
 from pathlib import Path
 
@@ -24,7 +25,7 @@ def run_point(binary: Path, gf2x_lib: Path | None, m: int, s: int,
               supports: int, inputs: int, repeats: int) -> dict[str, object]:
     command = [
         str(binary), str(supports), str(inputs), str(repeats), str(m),
-        "no-naive", str(s), str(s),
+        str(s), "0x9e3779b97f4a7c15", "no-naive",
     ]
     environment = os.environ.copy()
     if gf2x_lib is not None:
@@ -36,15 +37,19 @@ def run_point(binary: Path, gf2x_lib: Path | None, m: int, s: int,
         command, check=True, capture_output=True, text=True, env=environment
     )
     rows = list(csv.DictReader(completed.stdout.splitlines()))
-    if len(rows) != 1:
-        raise RuntimeError(f"expected one benchmark row for m={m}, s={s}")
-    row = rows[0]
+    if len(rows) != supports:
+        raise RuntimeError(f"expected {supports} benchmark rows for m={m}, s={s}")
     return {
         "m": m,
         "s": s,
-        "GS_ns": float(row["GS_ns"]),
-        "BarrettGF2X_ns": float(row["BarrettGF2X_ns"]),
-        "BarrettGF2X/GS": float(row["BarrettGF2X/GS"]),
+        "GS_ns": statistics.median(float(row["GS_ns"]) for row in rows),
+        "BarrettGF2X_ns": statistics.median(
+            float(row["BarrettGF2X_ns"]) for row in rows
+        ),
+        "BarrettGF2X/GS": statistics.median(
+            float(row["BarrettGF2X/GS"]) for row in rows
+        ),
+        "seed": rows[0]["seed"],
     }
 
 
@@ -99,7 +104,10 @@ def main() -> None:
         print(f"m={m}: candidate boundary between s={low} and s={high}")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["m", "s", "phase", "GS_ns", "BarrettGF2X_ns", "BarrettGF2X/GS"]
+    fields = [
+        "m", "s", "phase", "GS_ns", "BarrettGF2X_ns",
+        "BarrettGF2X/GS", "seed",
+    ]
     with args.output.open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()

@@ -2,34 +2,29 @@ CC ?= gcc
 GF2X_PREFIX ?= /usr/local
 CFLAGS ?= -O3 -std=c11 -Wall -Wextra
 
-TARGET = build/barrett_gf2x_benchmark
-SERIAL_CHECK = build/serial_correctness_check
-SERIAL_TARGET = build/gs_serial_benchmark
-SOURCES = src/exp.c src/GS.c src/barrett.c src/naive.c src/serial.c
-SERIAL_CHECK_SOURCES = tests/check_serial.c src/GS.c src/naive.c src/serial.c
-SERIAL_SOURCES = bench/serial_exp.c src/GS.c src/serial.c src/barrett.c
+TARGET = build/reduction_benchmark
+CHECK_TARGET = build/reduction_correctness_check
+BENCH_SOURCES = bench/scripts/reduction_benchmark.c src/reduction.c src/GS.c src/barrett.c src/naive.c src/serial.c
+CHECK_SOURCES = tests/check_reduction.c src/reduction.c src/GS.c src/barrett.c src/naive.c src/serial.c
 
 all: $(TARGET)
 
-$(TARGET): $(SOURCES) include/*.h
+$(TARGET): $(BENCH_SOURCES) include/*.h
 	mkdir -p build
-	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ $(SOURCES) \
+	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ $(BENCH_SOURCES) \
 		-L$(GF2X_PREFIX)/lib -lgf2x
 
-$(SERIAL_CHECK): $(SERIAL_CHECK_SOURCES) include/*.h
+$(CHECK_TARGET): $(CHECK_SOURCES) include/*.h
 	mkdir -p build
 	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
-		$(SERIAL_CHECK_SOURCES) -L$(GF2X_PREFIX)/lib -lgf2x
+		$(CHECK_SOURCES) -L$(GF2X_PREFIX)/lib -lgf2x
 
-$(SERIAL_TARGET): $(SERIAL_SOURCES) include/*.h
-	mkdir -p build
-	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
-		$(SERIAL_SOURCES) -L$(GF2X_PREFIX)/lib -lgf2x
+serial-benchmark: $(TARGET)
 
-serial-benchmark: $(SERIAL_TARGET)
+check: $(CHECK_TARGET)
+	$(CHECK_TARGET)
 
-check-serial: $(SERIAL_CHECK)
-	$(SERIAL_CHECK)
+check-serial: check
 
 clean:
-	rm -f $(TARGET) $(SERIAL_CHECK) $(SERIAL_TARGET)
+	rm -f $(TARGET) $(CHECK_TARGET)

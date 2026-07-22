@@ -23,7 +23,9 @@ $$
 
 The current implementation operates over $\mathbb F_2[x]$ and reduces inputs
 of degree less than $2m$, which is the usual degree range produced by
-multiplying two polynomials of degree less than $m$.
+multiplying two polynomials of degree less than $m$. The repository now has a
+portable C reduction API, a Python reference implementation, correctness tests,
+and exploratory benchmark drivers.
 
 ## Status
 
@@ -169,7 +171,44 @@ $$
 
 ## Files
 
-### `src/reference/generalized_suwako_poc.py`
+### Source Layout
+
+- `include/`: public C headers and small shared word-level primitives.
+- `src/`: reusable native reducer implementations.
+- `src/reference/`: independent Python reference code.
+- `tests/`: correctness-only test programs.
+- `bench/scripts/`: benchmark entrypoints and experiment drivers.
+- `bench/data/`: local benchmark CSV outputs. These are ignored by Git during
+  the exploratory phase.
+- `bench/*.md`: benchmark notes and command documentation.
+- `paper/`: writing plan, claim boundaries, and experimental TODOs.
+
+The native reducers share the `reduction_method` wrapper in
+`include/reduction.h`. A method owns reducer-specific setup state, exposes its
+required output size, and provides the common timed contract
+
+```c
+reduce_into(input, context, output)
+```
+
+This wrapper is intentionally small: it lets correctness tests and benchmark
+drivers call GS, serial sparse folding, naive long division, and Barrett
+through the same API without hiding each algorithm's real setup and scratch
+requirements.
+
+### Native Reducers
+
+- `src/GS.c`: generalized Suwako reduction. It precomputes the sparse doubling
+  schedule and computes
+  $L+V((I+U)^{-1}H)$ with one reusable state buffer.
+- `src/serial.c`: word-oriented serial sparse folding baseline. It propagates
+  high-part feedback one round at a time.
+- `src/naive.c`: simple long-division reference baseline.
+- `src/barrett.c`: Barrett-style GF(2) polynomial reduction using `gf2x_mul`
+  through `poly_mul_gf2x`.
+- `src/reduction.c`: common wrapper API used by tests and native benchmarks.
+
+### Python Reference
 
 Contains:
 
@@ -185,13 +224,51 @@ vectors. Bit $i$ represents the coefficient of $x^i$.
 
 ## Requirements
 
-Only Python 3 and its standard library are required.
+For the Python reference:
 
-No third-party Python packages are needed.
+- Python 3 and its standard library.
+
+For the native C implementation and benchmarks:
+
+- a C11 compiler;
+- `make`;
+- a native `gf2x` installation providing `gf2x.h` and `-lgf2x`.
+
+The Makefile defaults to
+
+```make
+GF2X_PREFIX=/usr/local
+```
+
+and links with
+
+```text
+-I$(GF2X_PREFIX)/include -L$(GF2X_PREFIX)/lib -lgf2x
+```
+
+On the current development machine, this resolves `-lgf2x` to
+`/usr/lib/libgf2x.so`; no `/usr/local/lib/libgf2x.a` is present.
 
 ## Running the validation
 
-Run the default validation suite with:
+Run the native correctness suite with:
+
+```bash
+make check
+```
+
+This builds and runs `tests/check_reduction.c`, which compares GS, serial,
+naive, and Barrett through the common `reduction_method` API on randomized
+sparse moduli and product-range inputs. It includes word-boundary degrees and
+forced $\Delta_{\min}=1$ cases.
+
+The older alias is kept for now:
+
+```bash
+make check-serial
+```
+
+Run the Python reference validation suite with:
 
 ```bash
 python3 src/reference/generalized_suwako_poc.py
@@ -209,12 +286,58 @@ The default suite includes:
 For a reproducible run with a fixed random seed:
 
 ```bash
-python3 -c \
+PYTHONPATH=src/reference python3 -c \
   'from generalized_suwako_poc import run_validation; run_validation(seed=0)'
 ```
 
 The generalized result is compared against the bit-by-bit reference reducer
 for every test case.
+
+## Building and Benchmarking
+
+Build the native benchmark with:
+
+```bash
+make
+```
+
+or with an explicit gf2x prefix:
+
+```bash
+make GF2X_PREFIX=/path/to/gf2x
+```
+
+The benchmark binary is:
+
+```bash
+build/reduction_benchmark
+```
+
+Its arguments are:
+
+```text
+supports inputs repeats m s seed [no-naive]
+```
+
+Example:
+
+```bash
+build/reduction_benchmark 4 16 3 1024 8 0x9e3779b97f4a7c15
+```
+
+The output is CSV with reduction-only timing in nanoseconds per input:
+
+```text
+m,s,h,Delta_min,GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,...
+```
+
+Setup, input generation, output allocation, correctness checks, and checksum
+consumption are outside the timed region. This is a steady-state fixed-modulus
+microbenchmark, not an end-to-end multiplication benchmark.
+
+Experiment drivers live in `bench/scripts/`. Local CSV outputs should go under
+`bench/data/`; they are ignored by Git while the measurements remain
+exploratory.
 
 ## Scope and assumptions
 

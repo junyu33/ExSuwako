@@ -1,8 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 
-#include "barrett.h"
-#include "GS.h"
-#include "serial.h"
+#include "reduction.h"
+
 #include <time.h>
 
 static uint64_t rng_state;
@@ -66,36 +65,27 @@ static double median(double *values, size_t count) {
 static volatile word_t benchmark_sink;
 
 /*
- * This benchmark intentionally compares only the two sparse reducers. Plans,
- * input batches, and output buffers are prepared before the timestamp. The
- * timed region contains repeated calls to one reducer, so it measures the
- * steady-state distinction between serial U-propagation and GS doubling.
- * Correctness and checksum consumption are outside the timed region.
+ * Steady-state reduction timing for one method.
+ *
+ * The method object owns all reducer-specific plan/scratch state. The timed
+ * region contains only repeated calls to method->reduce_into(); setup,
+ * allocation, correctness checks, and checksum consumption happen outside.
  */
-static double time_reducer(int method, const poly_t *inputs, size_t count,
-                           gs_plan *gs, serial_plan *serial_plan_value,
-                           barrett_plan *barrett, size_t m, int repeats) {
+static double time_reducer(const reduction_method *method,
+                           const poly_t *inputs, size_t count, int repeats) {
     double *samples = calloc((size_t)repeats, sizeof(*samples));
     poly_t *outputs = calloc(count, sizeof(*outputs));
     if (!samples || !outputs) die("allocation failed");
 
-    size_t output_words = poly_words_for_bits(m);
     for (size_t i = 0; i < count; ++i)
-        outputs[i] = poly_new(output_words);
+        outputs[i] = poly_new(method->output_words);
 
     for (int repeat = 0; repeat < repeats; ++repeat) {
         struct timespec start = monotonic_time();
-        for (size_t i = 0; i < count; ++i) {
-            if (method == 1)
-                serial_reduce_into(&inputs[i], serial_plan_value, &outputs[i]);
-            else if (method == 2)
-                barrett_reduce_into(&inputs[i], barrett, &outputs[i]);
-            else
-                gs_reduce_into(&inputs[i], gs, &outputs[i]);
-        }
+        for (size_t i = 0; i < count; ++i)
+            method->reduce_into(&inputs[i], method->context, &outputs[i]);
         samples[repeat] = elapsed_ns(start, monotonic_time()) / (double)count;
 
-        /* Keep output observably live without charging checksum work. */
         word_t checksum = 0;
         for (size_t i = 0; i < count; ++i) {
             checksum ^= outputs[i].v[0];
@@ -111,6 +101,28 @@ static double time_reducer(int method, const poly_t *inputs, size_t count,
     return result;
 }
 
+static void check_reducers(const reduction_method *methods, size_t method_count,
+                           const poly_t *inputs, size_t input_count) {
+    poly_t *outputs = calloc(method_count, sizeof(*outputs));
+    if (!outputs) die("allocation failed");
+    for (size_t method = 0; method < method_count; ++method)
+        outputs[method] = poly_new(methods[method].output_words);
+
+    for (size_t i = 0; i < input_count; ++i) {
+        for (size_t method = 0; method < method_count; ++method)
+            methods[method].reduce_into(
+                &inputs[i], methods[method].context, &outputs[method]);
+
+        for (size_t method = 1; method < method_count; ++method)
+            if (!poly_equal(&outputs[0], &outputs[method]))
+                die("reduction correctness mismatch");
+    }
+
+    for (size_t method = 0; method < method_count; ++method)
+        poly_free(&outputs[method]);
+    free(outputs);
+}
+
 int main(int argc, char **argv) {
     int supports = argc > 1 ? atoi(argv[1]) : 1;
     int inputs_count = argc > 2 ? atoi(argv[2]) : 1;
@@ -120,13 +132,16 @@ int main(int argc, char **argv) {
     uint64_t seed = argc > 6
         ? (uint64_t)strtoull(argv[6], NULL, 0)
         : 0x9e3779b97f4a7c15ULL;
+    int skip_naive = argc > 7 && strcmp(argv[7], "no-naive") == 0;
     if (m == 0 || s == 0 || s > m) die("invalid m or support size");
 
     rng_state = seed;
     double *gs_samples = calloc((size_t)supports, sizeof(*gs_samples));
     double *serial_samples = calloc((size_t)supports, sizeof(*serial_samples));
+    double *naive_samples = calloc((size_t)supports, sizeof(*naive_samples));
     double *barrett_samples = calloc((size_t)supports, sizeof(*barrett_samples));
-    if (!gs_samples || !serial_samples || !barrett_samples) die("allocation failed");
+    if (!gs_samples || !serial_samples || !naive_samples || !barrett_samples)
+        die("allocation failed");
     size_t *delta_values = calloc((size_t)supports, sizeof(*delta_values));
     if (!delta_values) die("allocation failed");
 
@@ -147,61 +162,62 @@ int main(int argc, char **argv) {
 
         poly_t modulus = poly_from_exponents(m + 1, taps, s);
         poly_set_bit(&modulus, m);
-        poly_t mu = barrett_setup(&modulus, m);
-        gs_plan *gs = gs_plan_create(taps, s, m);
-        serial_plan *serial = serial_plan_create(taps, s, m);
-        barrett_plan *barrett = barrett_plan_create(&modulus, &mu, m);
+
+        size_t input_words = poly_words_for_bits(2 * m);
+        reduction_method methods[4];
+        size_t method_count = 0;
+        methods[method_count++] = reduction_make_gs(taps, s, m);
+        methods[method_count++] = reduction_make_serial(taps, s, m);
+        if (!skip_naive)
+            methods[method_count++] =
+                reduction_make_naive(&modulus, m, input_words);
+        methods[method_count++] = reduction_make_barrett(&modulus, m);
+
         poly_t *inputs = calloc((size_t)inputs_count, sizeof(*inputs));
         if (!inputs) die("allocation failed");
         for (int i = 0; i < inputs_count; ++i) {
-            inputs[i] = poly_new(poly_words_for_bits(2 * m));
+            inputs[i] = poly_new(input_words);
             random_input(&inputs[i], m);
         }
 
-        for (int i = 0; i < inputs_count; ++i) {
-            poly_t gs_result = poly_new(poly_words_for_bits(m));
-            poly_t serial_result = poly_new(poly_words_for_bits(m));
-            poly_t barrett_result = poly_new(poly_words_for_bits(m));
-            gs_reduce_into(&inputs[i], gs, &gs_result);
-            serial_reduce_into(&inputs[i], serial, &serial_result);
-            barrett_reduce_into(&inputs[i], barrett, &barrett_result);
-            if (!poly_equal(&gs_result, &serial_result)
-                || !poly_equal(&gs_result, &barrett_result))
-                die("GS/serial correctness mismatch");
-            poly_free(&gs_result);
-            poly_free(&serial_result);
-            poly_free(&barrett_result);
-        }
+        check_reducers(methods, method_count, inputs, (size_t)inputs_count);
 
         gs_samples[trial] = time_reducer(
-            0, inputs, (size_t)inputs_count, gs, serial, barrett, m, repeats);
+            &methods[0], inputs, (size_t)inputs_count, repeats);
         serial_samples[trial] = time_reducer(
-            1, inputs, (size_t)inputs_count, gs, serial, barrett, m, repeats);
+            &methods[1], inputs, (size_t)inputs_count, repeats);
+        if (!skip_naive)
+            naive_samples[trial] = time_reducer(
+                &methods[2], inputs, (size_t)inputs_count, repeats);
         barrett_samples[trial] = time_reducer(
-            2, inputs, (size_t)inputs_count, gs, serial, barrett, m, repeats);
+            &methods[method_count - 1], inputs, (size_t)inputs_count, repeats);
 
         for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
         free(inputs);
-        serial_plan_destroy(serial);
-        gs_plan_destroy(gs);
-        barrett_plan_destroy(barrett);
+        for (size_t method = 0; method < method_count; ++method)
+            reduction_method_destroy(&methods[method]);
         poly_free(&modulus);
-        poly_free(&mu);
         free(taps);
         free(pool);
     }
 
-    printf("m,s,h,Delta_min,GS_ns,Serial_ns,BarrettGF2X_ns,Serial/GS,BarrettGF2X/GS,sample\n");
+    printf("m,s,h,Delta_min,GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
+           "Serial/GS,Naive/GS,BarrettGF2X/GS,sample,seed\n");
     for (int trial = 0; trial < supports; ++trial) {
         double gs = gs_samples[trial];
         double serial = serial_samples[trial];
+        double naive = naive_samples[trial];
         double barrett = barrett_samples[trial];
-        printf("%zu,%zu,%zu,%zu,%.1f,%.1f,%.1f,%.3f,%.3f,%d\n",
-               m, s, s + 1, delta_values[trial], gs, serial, barrett,
-               serial / gs, barrett / gs, trial);
+        printf("%zu,%zu,%zu,%zu,%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
+               m, s, s + 1, delta_values[trial],
+               gs, serial, naive, barrett,
+               serial / gs, skip_naive ? 0.0 : naive / gs, barrett / gs,
+               trial, (unsigned long long)seed);
     }
+
     free(gs_samples);
     free(serial_samples);
+    free(naive_samples);
     free(barrett_samples);
     free(delta_values);
     return 0;

@@ -1346,7 +1346,8 @@ After $2^k(m-t)\ge m$, a tap is inactive in later feedback stages.
 Implement or integrate:
 
 1. serial sparse folding;
-2. optimized trinomial/pentanomial folding;
+2. optimized trinomial/pentanomial folding, including the Lopez--Dahab
+   word-level reduction algorithm when its $\deg g<m-W$ assumption holds;
 3. Barrett;
 4. Montgomery;
 5. dense linear reduction;

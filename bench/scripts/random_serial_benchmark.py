@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import random
+import statistics
 import subprocess
 from pathlib import Path
 
@@ -37,9 +38,20 @@ def main() -> None:
             command, check=True, capture_output=True, text=True
         )
         benchmark_rows = list(csv.DictReader(completed.stdout.splitlines()))
-        if len(benchmark_rows) != 1:
-            raise RuntimeError(f"expected one row for m={m}, h={h}")
+        if len(benchmark_rows) != args.supports:
+            raise RuntimeError(f"expected {args.supports} rows for m={m}, h={h}")
         row = dict(benchmark_rows[0])
+        for field in [
+            "GS_ns", "Serial_ns", "Naive_ns", "BarrettGF2X_ns",
+            "Serial/GS", "Naive/GS", "BarrettGF2X/GS",
+        ]:
+            row[field] = statistics.median(
+                float(sample[field]) for sample in benchmark_rows
+            )
+        row["Delta_min"] = statistics.median(
+            int(sample["Delta_min"]) for sample in benchmark_rows
+        )
+        row.pop("sample", None)
         row["power"] = power
         row["seed"] = args.seed
         rows.append(row)
@@ -53,7 +65,8 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fields = [
         "power", "m", "s", "h", "Delta_min", "GS_ns", "Serial_ns",
-        "BarrettGF2X_ns", "Serial/GS", "BarrettGF2X/GS", "seed",
+        "Naive_ns", "BarrettGF2X_ns", "Serial/GS", "Naive/GS",
+        "BarrettGF2X/GS", "seed",
     ]
     with args.output.open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
