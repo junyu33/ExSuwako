@@ -1,5 +1,9 @@
 # Extensions, Limitations, and Research Management
 
+The mathematical and prior-art TODOs remain in this document.  All
+implementation, evaluation, application, circuit-counting, and artifact tasks
+are maintained in [the experimental TODO](../exp_todo.md).
+
 ## 10. Extensions
 
 ### 10.1 Coefficient Algebras
@@ -121,12 +125,7 @@ tradeoffs.
 
 ### Phase 3: Implementation and Evidence
 
-- [ ] Portable C.
-- [ ] Baselines.
-- [ ] Parameter sweep.
-- [ ] Schematic and empirical algorithm-selection phase diagrams.
-- [ ] Setup amortization.
-- [ ] Artifact.
+Execute [the experimental TODO](../exp_todo.md) in evidence-gate order.
 
 ### Phase 4: Flagship Narrative
 
@@ -165,31 +164,11 @@ technical sections.
 - [ ] Barrett/Montgomery over $\mathbb F_2[x]$.
 - [ ] Dense XOR-network synthesis.
 
-### Implementation
+### Experimental Work
 
-- [ ] Portable C.
-- [ ] Serial sparse baseline.
-- [ ] Barrett baseline.
-- [ ] Montgomery baseline.
-- [ ] Dense matrix baseline.
-- [ ] Code generator.
-- [ ] SIMD implementation.
-- [ ] Optional RTL.
-
-### Evaluation
-
-- [ ] Select real moduli.
-- [ ] Finalize parameter grid.
-- [ ] Measure stage scaling.
-- [ ] Run fixed-weight uniform-support ring experiments.
-- [ ] Produce crossover heatmaps.
-- [ ] Produce the schematic phase diagram with conservative captioning.
-- [ ] Produce fixed-$m$ sampled winner panels over $(s,\log_2(m/\Delta_{\min}))$.
-- [ ] Record $W$, platform, implementation, support placement, and uncertain
-  cells for every phase-diagram panel.
-- [ ] Measure setup amortization.
-- [ ] Document losing regimes.
-- [ ] Package the artifact.
+Implementation, classical evaluation, repeated modular squaring, modulus
+selection, reversible-circuit evaluation, and artifact packaging are tracked
+only in [exp_todo.md](../exp_todo.md).
 
 ## Submission Gates
 

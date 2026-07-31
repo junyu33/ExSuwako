@@ -45,11 +45,11 @@ This is credible only if all arrows are measured. The benchmark must include the
 
 ### Required Validation
 
-- Select large, irreducible candidate pentanomials and more general low-weight supports, including cases with \(\Delta_{\min}\) close to one.
-- Compare generalized Suwako with serial folding, a specialized reducer when one exists, and an appropriate multiplication-based baseline.
-- Measure modular squaring separately from complete DDF, irreducibility, or primitive-polynomial-search workloads.
-- Report the reduction/squaring fraction of end-to-end time and the final speedup under fixed machine, compiler, input distribution, and seed.
-- Treat a negative result as informative: a specialized formula, reciprocal representation, or multiplication routine may dominate on a given family.
+The authoritative execution checklist is
+[Gate 4A of the experimental TODO](../exp_todo.md#gate-4a-repeated-modular-squaring).
+It separates reduction-only, complete modular-square, and end-to-end
+factorization or irreducibility evidence, and requires the strongest
+specialized squaring baseline.
 
 ## Coupled Direction: Platform-Specific Modulus Selection
 
@@ -78,11 +78,11 @@ An affirmative result would expand the practically viable modulus space rather t
 
 ### Required Validation
 
-- Enumerate or sample irreducible sparse moduli at fixed \(m\) and bounded weight, stratified by \(\Delta_{\min}\) and full tap geometry.
-- Define the target operation explicitly: reduction alone, modular squaring, multiplication, inversion, or an application-level workload.
-- Measure each stated platform with identical multiplication backends and fixed public moduli; do not transfer conclusions across ISAs.
-- Compare against the conventional choice rule and report whether its selected modulus changes.
-- Keep irreducibility-search cost separate from steady-state arithmetic unless the intended application changes moduli online.
+The authoritative execution checklist is
+[Gate 4B of the experimental TODO](../exp_todo.md#gate-4b-platform-specific-modulus-selection).
+It covers candidate provenance, fixed objectives, architecture-specific
+ranking, representation constraints, and coupling to repeated modular
+squaring.
 
 ## High-Risk Direction: Quantum Binary-Field Arithmetic
 
@@ -96,7 +96,28 @@ It is nevertheless a separate circuit problem. Software feedback stages do not d
 - in-place versus out-of-place computation; and
 - uncomputation within the enclosing inversion or multiplication circuit.
 
-Until such a construction and comparison exist, quantum arithmetic is a high-upside research branch, not an application claim of the current reducer.
+Outside the restricted family below, the explicit circuit problem remains open. Even for that family, a comparison with the strongest existing circuits is still required before quantum arithmetic can become an application claim of the current reducer.
+
+One restricted but nontrivial family now has a candidate clean construction. For
+
+$$
+f=x^m+x^{m-\delta}+1+\sum_{e\in B}x^e,
+\qquad
+B\subseteq\{1,\ldots,\lfloor m/2\rfloor\},
+$$
+
+the feedback inverse factors into one in-place suffix scan and a square-zero cross-half correction. This gives, for fixed weight, a candidate zero-ancilla reversible reduction shear with $O(m)$ CNOT count and $O(\log(m/\delta))$ CNOT depth, together with matching asymptotic lower bounds in the all-to-all two-qubit model. The derivation and its precise claim boundary are recorded in [the two-cluster construction note](../raw/cnot_4.md).
+
+This family also contains irreducible pentanomials of the form
+
+$$
+x^m+x^{m-1}+x^a+x+1,
+$$
+
+for which both the polynomial and its reciprocal have nearest feedback distance one. Exact Sage checks found examples at degrees $128$, $163$, $233$, $283$, $409$, and $571$. These examples make the branch more concrete, but they do not replace comparison with the strongest existing CNOT synthesis or finite-field arithmetic circuits.
+
+The circuit-model, synthesis, comparison, and embedding tasks are maintained in
+[Gate 5 of the experimental TODO](../exp_todo.md#gate-5-reversible-and-quantum-circuits).
 
 ## Deliberately Secondary Direction: CRC and Rabin Fingerprints
 
@@ -122,7 +143,7 @@ The first two directions should be pursued together: a cost model and a search o
 | Sparse high-tap moduli can be hostile to serial feedback | Proved at the feedback-depth level. |
 | Generalized Suwako improves modular squaring for pentanomials | Open experimental hypothesis. |
 | The platform-optimal irreducible modulus changes under generalized Suwako | Open experimental hypothesis. |
-| A generalized-Suwako CNOT network improves quantum resources | Open circuit-construction and evaluation problem. |
+| A generalized-Suwako CNOT network improves quantum resources | Candidate matching asymptotic bounds for the restricted two-cluster family; prior-art and comparative evaluation remain open. |
 | CRC/Rabin is a compelling primary application | Currently unsupported. |
 
 ## Source Ledger to Verify

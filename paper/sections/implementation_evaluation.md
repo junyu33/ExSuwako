@@ -1,5 +1,10 @@
 # Implementation and Evaluation Draft
 
+This document defines the paper-facing implementation model, research
+questions, parameter grid, metrics, and figures.  Execution order, checkbox
+status, application experiments, and artifact requirements are maintained only
+in [the experimental TODO](../exp_todo.md).
+
 ## 8. Implementations
 
 ### 8.1 Reference Implementation
@@ -129,16 +134,18 @@ and p99 rather than only the mean. Do not label this model "random
 polynomials" without specifying the fixed weight: unconstrained random
 polynomials are typically dense.
 
-For the algorithm-selection plots, use $s=|T|$ as the primary horizontal
-coordinate and report the corresponding modulus Hamming weight as $h=s+1$.
-Use
+For the algorithm-selection plots, use the modulus Hamming weight $h=s+1$ as
+the primary horizontal coordinate and report $s=|T|$ as the secondary support
+coordinate.  Use
 
 $$
-\log_2\left(\frac{m}{\Delta_{\min}}\right)
+\frac{m}{\Delta_{\min}}
 $$
 
-as the theorem-facing vertical coordinate for feedback difficulty. Where
-machine-word effects are being studied, also record
+as the vertical coordinate for feedback difficulty, plotted on a base-two
+logarithmic scale.  This is equivalent to spacing points by
+$\log_2(m/\Delta_{\min})$ while keeping the axis label directly interpretable.
+Where machine-word effects are being studied, also record
 $\Delta_{\min}/W$ (or $\log_2(W/\Delta_{\min})$) rather than treating the
 theoretical coordinate as a complete implementation model.
 
@@ -161,12 +168,12 @@ theoretical coordinate as a complete implementation model.
 
 ### 9.4 Planned Figures
 
-1. **Schematic algorithm-selection phase diagram.** Show support size $s$
-   (with $h=s+1$) horizontally and
-   $\log_2(m/\Delta_{\min})$ vertically. Label the three conceptual regions:
-   serial folding for friendly sparse supports, generalized Suwako for sparse
-   supports with difficult feedback, and Barrett/multiplication-based
-   reduction at higher support sizes.
+1. **Schematic classical algorithm-selection phase diagram.** For a fixed
+   $m$, show modulus Hamming weight $h$ horizontally and
+   $m/\Delta_{\min}$ vertically on a logarithmic scale. Label the three
+   conceptual regions: serial sparse folding (shift/XOR) for friendly sparse
+   supports, generalized Suwako for sparse supports with difficult feedback,
+   and Barrett/multiplication-based reduction at higher support sizes.
 2. **Empirical phase-diagram panels.** For several fixed values of $m$, plot
    sampled supports and color each point by the measured winner among serial,
    generalized Suwako, and Barrett. Use the same coordinates as the schematic
