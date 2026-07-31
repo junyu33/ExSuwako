@@ -40,6 +40,24 @@ quadratic towers without evidence.
 Discuss balanced XOR trees, fanout, stage pipelining, and area-latency
 tradeoffs.
 
+### 10.4 Restricted Reversible-Circuit Family
+
+Record the candidate two-cluster result separately from the general reduction
+theorem.  For
+
+$$
+f=x^m+x^{m-\delta}+1+\sum_{e\in B}x^e,
+\qquad
+B\subseteq\{1,\ldots,\lfloor m/2\rfloor\},
+$$
+
+the feedback inverse admits a suffix-scan factor followed by a square-zero
+cross-half correction.  The candidate clean CNOT construction has, for fixed
+weight, $\Theta(m)$ size, $\Theta(\log(m/\delta))$ depth, and zero ancilla in
+the stated all-to-all two-qubit model.  Keep the formal circuit definition,
+matching lower bounds, irreducible examples, and open prior-art comparison
+together; do not generalize the result to arbitrary tap geometry.
+
 ## 11. Limitations
 
 1. Feedback depth is not bounded-fan-in gate depth.
@@ -47,7 +65,9 @@ tradeoffs.
 3. Dense moduli may be poor targets.
 4. Practical crossover depends on shift throughput and memory traffic.
 5. Barrett/Montgomery may win at small degrees.
-6. No lower bound or optimality result is currently claimed.
+6. No general lower bound or optimality result is currently claimed; matching
+   bounds are only a candidate extension for the restricted two-cluster CNOT
+   family.
 7. The coefficient-algebra extension lacks a compelling direct application.
 8. Novelty remains conditional on the LFSR, CRC, and parallel-division audit.
 
@@ -70,7 +90,7 @@ tradeoffs.
 
 - Appendix A: Full correctness proof
 - Appendix B: Exact word-operation and memory counts
-- Appendix C: Trinomial reduction and parallel prefix
+- Appendix C: Trinomial and two-cluster reduction via parallel prefix
 - Appendix D: Coefficient-algebra extension
 - Appendix E: Exhaustive and randomized validation
 - Appendix F: Native implementation details
@@ -103,6 +123,8 @@ tradeoffs.
 | Work sensitive to $h_k$ | required | work/runtime test | dense/generic division |
 | Random-support expected work and depth | required | fixed-weight support sweep | sparse reduction / look-ahead |
 | Three-regime algorithm-selection phase diagram | no universal boundary | fixed-$m$ sampled winner panels | serial folding / multiplication reduction |
+| Cluster-separation $\kappa$ size--depth--space partition | recursive theorem with an explicit clustering rule | exact circuit counts and Pareto panels | prefix/scan and linear-circuit synthesis |
+| Quantum resource phase diagram | circuit model and resource objective | fixed-$m$ Pareto panels over $(h,m/\Delta_{\min})$, faceted by $\kappa$ and ancilla budget | finite-field CNOT circuits and generic synthesis |
 | Lower work than Barrett/Montgomery in sparse regimes | required | heatmap | multiplication reduction |
 | Lightweight setup | precise definition | amortization | reciprocal/matrix |
 | Useful on real moduli | no | required | parameter sources |
@@ -148,6 +170,13 @@ technical sections.
 - [ ] Prove the random-support active-work and feedback-depth bounds.
 - [ ] Derive exact space and setup.
 - [ ] Formalize the Barrett/Montgomery comparison.
+- [ ] Define the cluster split, separation $\beta$, and
+      $\kappa=\lceil m/\beta\rceil$ without treating a split-dependent value
+      as an intrinsic modulus invariant.
+- [ ] Prove a parameterized size--depth--space upper bound in $\kappa$, with
+      the two-cluster construction as the exact $\kappa=2$ endpoint.
+- [ ] Determine which lower bounds survive for $\kappa>2$ and which resource
+      must grow when source and target intervals overlap.
 
 ### Prior Art
 

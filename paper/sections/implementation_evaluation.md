@@ -97,6 +97,11 @@ serial folding, generalized Suwako, and multiplication-based reduction be
 organized by support size and feedback difficulty, while preserving the
 dependence on modulus degree, word size, and implementation platform?
 
+**RQ8: Reversible-circuit phase diagram.** For fixed $m$, how do modulus
+Hamming weight, feedback difficulty, cluster separation, and the ancilla
+budget determine the Pareto frontier among direct CNOT synthesis,
+stage-register generalized Suwako, and structured scan/cluster circuits?
+
 ### 9.2 Parameter Grid
 
 Suggested:
@@ -149,6 +154,18 @@ Where machine-word effects are being studied, also record
 $\Delta_{\min}/W$ (or $\log_2(W/\Delta_{\min})$) rather than treating the
 theoretical coordinate as a complete implementation model.
 
+For reversible-circuit plots, define a cluster split $U=A+B$, let $\beta$ be
+the minimum shift distance in the remote cluster $B$, and record
+
+$$
+\kappa=\left\lceil\frac m\beta\right\rceil.
+$$
+
+The value of $\kappa$ is split-dependent.  The experiment must therefore state
+the clustering rule, or optimize it under an explicitly defined circuit-cost
+objective, rather than treating $\kappa$ as an intrinsic scalar invariant of
+the modulus.
+
 ### 9.3 Metrics
 
 - cycles per reduction;
@@ -179,14 +196,21 @@ theoretical coordinate as a complete implementation model.
    generalized Suwako, and Barrett. Use the same coordinates as the schematic
    where possible, and retain an auxiliary view using $\Delta_{\min}/W$ when
    word-granularity effects are material.
-3. Tradeoff map: work, feedback depth, and setup.
-4. Operator diagram: $U,U^2,U^4,\ldots$.
-5. Stage count versus $\Delta_{\min}$.
-6. Crossover heatmaps over $(h,\Delta_{\min})$.
-7. Gap-one scaling as $m$ grows.
-8. Setup amortization over $K$.
-9. Predicted active-tap work versus measured runtime.
-10. Random-support depth and work versus $s$.
+3. **Quantum size--depth--space Pareto panels.** For fixed $m$, use the same
+   $(h,m/\Delta_{\min})$ coordinates, facet by $\kappa$ and ancilla budget,
+   and plot nondominated CNOT-count/CNOT-depth points. Compare at least the
+   direct dense shear, the clean stage-register generalized-Suwako circuit,
+   the $\kappa=2$ two-cluster scan circuit when applicable, and the strongest
+   relevant external synthesis baseline. Do not color a point by a single
+   winner unless a scalar resource objective has first been fixed.
+4. Tradeoff map: work, feedback depth, and setup.
+5. Operator diagram: $U,U^2,U^4,\ldots$.
+6. Stage count versus $\Delta_{\min}$.
+7. Crossover heatmaps over $(h,\Delta_{\min})$.
+8. Gap-one scaling as $m$ grows.
+9. Setup amortization over $K$.
+10. Predicted active-tap work versus measured runtime.
+11. Random-support depth and work versus $s$.
 
 The schematic is a conceptual introduction figure, not a theorem giving a
 universal boundary. The empirical panels must be separated by fixed $m$ (and
@@ -197,6 +221,12 @@ $r+\sum_k h_k+s$, not only on $s$ and $\Delta_{\min}$. The caption should
 state that exact region boundaries are implementation- and
 platform-dependent. Cells with close timings or inconsistent winners should
 be marked as uncertain rather than forced into a clean region.
+
+The quantum panels are likewise model-dependent.  Their captions must state
+the connectivity model, whether qubits may participate in more than one gate
+per layer, clean versus dirty ancilla rules, in-place versus clean-shear
+interfaces, and whether synthesis/setup cost is included.  Classical runtime
+boundaries must not be reused as CNOT-resource boundaries.
 
 ### 9.5 Planned Tables
 

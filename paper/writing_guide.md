@@ -93,7 +93,9 @@ CNOT upper bound into hardware depth without fixing the model.
 | Generic bounded-fan-in depth lower bound | Formal model and proof | Candidate theorem |
 | Native scalar speed regions | Reproducible matched experiments | Exploratory |
 | Platform-optimal modulus changes | Search plus end-to-end measurements | Open hypothesis |
-| CNOT size-depth-space tradeoff | Circuit construction, model, and prior-art audit | Open hypothesis |
+| CNOT size-depth-space tradeoff | Circuit construction, model, and prior-art audit | Candidate matching bounds for the restricted two-cluster family; general case open |
+| Cluster-separation $\kappa$ partition | Recursive circuit theorem and matching constructions or lower bounds | Open; the two-cluster family is the $\kappa=2$ endpoint |
+| Classical and quantum algorithm-selection diagrams | Fixed-$m$ measurements or exact circuit-resource counts under stated models | Planned; classical winner panels and quantum Pareto panels must remain separate |
 | Novelty | Hostile primary-source audit | Provisional |
 
 Never use “first,” “optimal,” “practical,” “constant-time,” or “significant
@@ -110,7 +112,11 @@ speedup” unless the matching row is discharged.
 7. Add random-support and multiplication-based corollaries only under their
    stated models.
 8. Treat coefficient-algebra, prefix-scan, and reversible-CNOT statements as
-   extensions with their own hypotheses.
+   extensions with their own hypotheses.  In particular, keep the two-cluster
+   CNOT theorem separate from claims about arbitrary tap geometry.
+9. Develop a cluster-separation parameter $\kappa$ and a size--depth--space
+   partition theorem, using the two-cluster family as the exact $\kappa=2$
+   endpoint rather than extrapolating it to arbitrary tap sets.
 
 ## Writing and Validation Order
 
