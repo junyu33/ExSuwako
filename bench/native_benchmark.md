@@ -1,5 +1,10 @@
 # Native gf2x benchmark
 
+This file documents the current native reduction-only benchmark.  Planned
+input distributions, application benchmarks, formal evidence gates, and
+artifact requirements are tracked in
+[the experimental TODO](../paper/exp_todo.md).
+
 The native reducer implementations live in `src/`; public headers are under
 `include/`; benchmark scripts and entrypoints live under `bench/scripts/`.
 

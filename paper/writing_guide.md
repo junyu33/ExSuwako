@@ -38,7 +38,8 @@ Use *feedback depth* unless a Boolean or CNOT gate model is explicitly fixed.
 | Prior-art boundary | [sections/related_work.md](sections/related_work.md) | Paper-facing novelty boundary. |
 | Prior-art audit plan | [notes/prior_art_plan.md](notes/prior_art_plan.md) | Coverage checklist and provisional comparison matrix. |
 | Applications | [notes/application.md](notes/application.md) | Hypotheses and end-to-end validation plans. |
-| Implementation and evaluation | [sections/implementation_evaluation.md](sections/implementation_evaluation.md) | Baselines, experiments, and reporting rules. |
+| Implementation and evaluation | [sections/implementation_evaluation.md](sections/implementation_evaluation.md) | Paper-facing research questions, models, metrics, and figures. |
+| Experimental execution | [exp_todo.md](exp_todo.md) | Authoritative experiment checklist, evidence gates, priorities, and artifact status. |
 | Extensions and appendices | [sections/extensions_appendices.md](sections/extensions_appendices.md) | Extensions, limitations, appendices, and detailed research management. |
 | Venue framing | [notes/venue_choice.md](notes/venue_choice.md) | Submission strategy; not manuscript content. |
 | Exploratory records | [raw/](raw/) | Preserve reasoning and leads; never cite as final evidence. |
@@ -119,6 +120,10 @@ speedup” unless the matching row is discharged.
 3. Stabilize the portable implementation and correctness checks.
 4. Run matched reduction-only experiments, then end-to-end application tests.
 5. Draft the introduction, abstract, and conclusion from discharged claims.
+
+Use [exp_todo.md](exp_todo.md) as the sole execution checklist for Steps 3--4.
+Topic documents define why an experiment is needed, but they do not maintain
+independent copies of its task list.
 
 Run git diff --check after every paper edit. Preserve the separation between
 correctness checks, reduction microbenchmarks, and end-to-end workloads.

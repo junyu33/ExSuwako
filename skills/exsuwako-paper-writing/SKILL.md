@@ -14,7 +14,9 @@ Treat the following files as the local writing references:
 - `paper/templates/2024-339.pdf`: rhetorical model for the abstract and
   introduction;
 - `paper/templates/2024-313.pdf`: theorem-driven model for the technical body;
-- `paper/writing_guide.md`: current ExSuwako outline and TODO inventory;
+- `paper/writing_guide.md`: current ExSuwako outline, claim status, and
+  submission gates;
+- `paper/exp_todo.md`: sole authoritative experimental execution checklist;
 - `README.md`: current notation, scope, and conservative research status.
 
 Do not copy sentences, distinctive phrasing, or paper-specific claims from the
@@ -23,8 +25,9 @@ logic only.
 
 ## Workflow
 
-1. Read the relevant section of `paper/writing_guide.md` and inspect the actual
-   PDF reference before drafting.
+1. Read the relevant section of `paper/writing_guide.md`, consult
+   `paper/exp_todo.md` before writing an experimental claim, and inspect the
+   actual PDF reference before drafting.
 2. Build a short claim ledger. Mark each statement as proved, experimentally
    supported, planned, or unresolved.
 3. Build a terminology ledger before changing prose. Choose one canonical term
@@ -116,7 +119,8 @@ Preserve its high-level division:
   technical body;
 - separate prior-art, implementation, evaluation, limitations, and appendix
   sections;
-- experimental TODOs and submission gates maintained in the guide itself.
+- submission gates maintained in the guide and experimental TODOs maintained
+  only in `paper/exp_todo.md`.
 
 ## Terminology and Consistency
 
