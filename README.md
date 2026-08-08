@@ -176,7 +176,8 @@ $$
 - `include/`: public C headers and small shared word-level primitives.
 - `src/`: reusable native reducer implementations.
 - `src/reference/`: independent Python reference code.
-- `tests/`: correctness-only test programs.
+- `tests/`: native and Python correctness-only test programs.  `make check`
+  runs the native reducer check and the two theorem-falsification suites.
 - `bench/scripts/`: benchmark entrypoints and experiment drivers.
 - `bench/data/`: local benchmark CSV outputs. These are ignored by Git during
   the exploratory phase.
