@@ -41,15 +41,15 @@ or as a new inverse identity.
 
 The older structured-linear-system literature makes this boundary still
 sharper. Chen and Kuck study time and processor bounds for linear recurrence
-systems and relate them to triangular solves [11]. Morf explicitly develops
-``doubling algorithms'' for Toeplitz and related equations [12]. Most
+systems and relate them to triangular solves [10]. Morf explicitly develops
+``doubling algorithms'' for Toeplitz and related equations [11]. Most
 directly, Bini solves an \(n\times n\) triangular Toeplitz system in
 \(7\log n+7\) parallel steps for exact computation in his arithmetic model;
 the processor bound is \(\frac52n^2\), or \(\frac52n(k+1)\) when the matrix
-has bandwidth \(k\) [13]. Murphy later restates the equivalence between
+has bandwidth \(k\) [12]. Murphy later restates the equivalence between
 reciprocal computation modulo \(z^n\), polynomial division, and triangular
 Toeplitz inversion, with polynomial degree corresponding to matrix bandwidth
-[15]. Thus neither recursive doubling, logarithmic-depth triangular Toeplitz
+[14]. Thus neither recursive doubling, logarithmic-depth triangular Toeplitz
 inversion, nor the reciprocal--Toeplitz--bandwidth correspondence is a
 contribution of this work.
 
@@ -132,7 +132,7 @@ Ho and Lee provide an even closer generic sparse baseline. They transform a
 sparse triangular system into a directed graph and solve it by edge
 elimination and recursive doubling, with reported worst-case
 \(O(\log^2 n)\) time on a CREW PRAM and \(O(\log m\log n)\) time for bandwidth
-\(m\) [14]. This rules out novelty claims based merely on applying recursive
+\(m\) [13]. This rules out novelty claims based merely on applying recursive
 doubling to a sparse triangular dependency graph. Their bounds are expressed
 for general sparsity and bandwidth, however, rather than for the explicit
 support evolution available here: Frobenius powering retains one shifted
@@ -143,7 +143,7 @@ prior sparse triangular solvers remains a source-level audit obligation.
 Parallel LFSR and CRC architectures supply a second relevant baseline.
 Ayinala and Parhi construct equivalent state-space formulations for all CRC
 and BCH generator polynomials, obtaining a full speed-up over a serial LFSR
-at increased hardware cost [10].  Such constructions may materialize or
+at increased hardware cost [9].  Such constructions may materialize or
 implicitly implement a general state transition.  They therefore rule out a
 claim of first parallelization of arbitrary feedback, but do not by themselves
 provide a support-preserving sparse reciprocal realization for fixed-length
@@ -153,7 +153,7 @@ polynomial reduction.
 
 Sparse polynomial-basis arithmetic has a substantial earlier literature,
 including word-oriented reduction, Mastrovito-style constructions, and
-bit-parallel polynomial-basis arithmetic [9].  Most directly, Niehues, Custodio, and
+bit-parallel polynomial-basis arithmetic [8].  Most directly, Niehues, Custodio, and
 Panario give a uniform top-down reduction procedure for arbitrary low-weight
 binary moduli.  Their procedure folds high coefficients through the
 non-leading support one coefficient at a time.  Their circuit discussion also
@@ -214,7 +214,7 @@ reduction schedule.  This is a candidate theorem, not yet a priority claim.
 Parallel finite-field hardware also predates this work. Meher derives
 systolic and non-systolic polynomial-basis multipliers using modular reduction
 across multiple degrees, logic-level subexpression sharing, and balanced-tree
-organization [16]. This rules out broad claims of first multi-degree parallel
+organization [15]. This rules out broad claims of first multi-degree parallel
 reduction or first balanced XOR realization. The comparison still has to
 separate a fixed multiplier architecture and its logic synthesis from the
 uniform arbitrary-modulus schedule and complete tap-geometry analysis claimed
@@ -229,7 +229,7 @@ a reciprocal or an inverse.  Earlier work also considers variants without a
 separate precomputation phase by restricting the modulus family so that the
 needed constants can be derived from the modulus itself.  In particular,
 Knezevic, Sakiyama, Fan, and Verbauwhede give precomputation-free Barrett or
-Montgomery reductions for two specific characteristic-two modulus families [8],
+Montgomery reductions for two specific characteristic-two modulus families [7],
 rather than for arbitrary binary moduli.
 
 Thus, ``without precomputation'' is not an appropriate novelty claim.  The
@@ -238,27 +238,6 @@ dense reciprocal or reduction matrix while allowing arbitrary binary monic
 moduli.  Sparse support affects the work favorably, but is not a correctness
 assumption.  Any comparison must state the modulus class, required partial
 products, stored constants, and setup-amortization model.
-
-## Quantum and Reversible Circuits
-
-There is extensive prior work on CNOT realizations of binary-field arithmetic,
-including squaring, multiplication, and reduction circuits.  In particular,
-Vandaele gives a construction for primitive trinomials in which the reduction
-matrix decomposes into CNOT ladders indexed by residue classes modulo the tap
-distance.  The ladders admit a logarithmic-depth implementation.  This is
-closely aligned with the chain decomposition obtained from a trinomial
-\(x^m+x^t+1\), where \(\Delta=m-t\) [7].
-
-Accordingly, this work must not claim the first linear-size or logarithmic
-depth CNOT construction for trinomial reduction.  The trinomial upper-bound
-construction is prior art.  A reversible-circuit contribution would require a
-separate, explicit result beyond that construction, for example a
-model-specific lower bound, a sharp \(\Delta\)-parameterized resource bound
-not implied by the known ladder construction, or a multi-tap extension with a
-clear size--depth--space comparison.  Classical correctness and scalar
-software measurements alone do not establish any such circuit claim.
-A zero-ancilla shear formulation or exact CNOT constants would likewise
-require a direct comparison with the ladder construction before being claimed.
 
 ## Current Novelty Boundary
 
@@ -305,45 +284,41 @@ the literature.
 - [6] K. S. K. Kalorkoti, ``Inverting Polynomials and Formal Power Series,''
   *SIAM Journal on Computing* 22(3), 1993, DOI: 10.1137/0222037.
   [Publisher record](https://epubs.siam.org/doi/10.1137/0222037).
-- [7] V. Vandaele, ``Quantum Binary Field Multiplication with Subquadratic
-  Toffoli Gate Count and Low Space-Time Cost,'' arXiv:2501.16136, 2025.
-  [arXiv record](https://arxiv.org/abs/2501.16136).
-
 The following additional audit entries complete the numbered list.
 
-- [8] M. Knezevic, K. Sakiyama, J. Fan, and I. Verbauwhede, ``Modular Reduction in \(\operatorname{GF}(2^n)\) without Pre-computational Phase,'' *WAIFI 2008*, LNCS 5130, pp. 77--87. [Author-hosted PDF](https://www.esat.kuleuven.be/cosic/publications/article-1115.pdf).
+- [7] M. Knezevic, K. Sakiyama, J. Fan, and I. Verbauwhede, ``Modular Reduction in \(\operatorname{GF}(2^n)\) without Pre-computational Phase,'' *WAIFI 2008*, LNCS 5130, pp. 77--87. [Author-hosted PDF](https://www.esat.kuleuven.be/cosic/publications/article-1115.pdf).
 
-- [9] H. Wu, ``Low Complexity Bit-Parallel Finite Field Arithmetic Using Polynomial Basis,'' *CHES 1999*, pp. 280--291. [Bibliographic record](https://dblp.org/rec/conf/ches/Wu99).
+- [8] H. Wu, ``Low Complexity Bit-Parallel Finite Field Arithmetic Using Polynomial Basis,'' *CHES 1999*, pp. 280--291. [Bibliographic record](https://dblp.org/rec/conf/ches/Wu99).
 
-- [10] M. Ayinala and K. K. Parhi, ``High-Speed Parallel Architectures for Linear Feedback Shift Registers,'' *IEEE Transactions on Signal Processing* 59(9), pp. 4459--4469, 2011, DOI: 10.1109/TSP.2011.2159495. [Institutional record](https://experts.umn.edu/en/publications/high-speed-parallel-architectures-for-linear-feedback-shift-regis/).
+- [9] M. Ayinala and K. K. Parhi, ``High-Speed Parallel Architectures for Linear Feedback Shift Registers,'' *IEEE Transactions on Signal Processing* 59(9), pp. 4459--4469, 2011, DOI: 10.1109/TSP.2011.2159495. [Institutional record](https://experts.umn.edu/en/publications/high-speed-parallel-architectures-for-linear-feedback-shift-regis/).
 
-- [11] S.-C. Chen and D. J. Kuck, ``Time and Parallel Processor Bounds for
+- [10] S.-C. Chen and D. J. Kuck, ``Time and Parallel Processor Bounds for
   Linear Recurrence Systems,'' *IEEE Transactions on Computers* C-24(7),
   pp. 701--717, 1975, DOI: 10.1109/T-C.1975.224291.
   [DBLP record](https://dblp.org/rec/journals/tc/ChenK75).
 
-- [12] M. Morf, ``Doubling Algorithms for Toeplitz and Related Equations,''
+- [11] M. Morf, ``Doubling Algorithms for Toeplitz and Related Equations,''
   *Proceedings of ICASSP 1980*, pp. 954--959, DOI:
   10.1109/ICASSP.1980.1171074.
   [DBLP record](https://dblp.org/rec/conf/icassp/Morf80).
 
-- [13] D. Bini, ``Parallel Solution of Certain Toeplitz Linear Systems,''
+- [12] D. Bini, ``Parallel Solution of Certain Toeplitz Linear Systems,''
   *SIAM Journal on Computing* 13(2), pp. 268--276, 1984, DOI:
   10.1137/0213019.
   [Publisher record](https://epubs.siam.org/doi/10.1137/0213019).
 
-- [14] C.-W. Ho and R. C. T. Lee, ``A Parallel Algorithm for Solving Sparse
+- [13] C.-W. Ho and R. C. T. Lee, ``A Parallel Algorithm for Solving Sparse
   Triangular Systems,'' *IEEE Transactions on Computers* 39(6), pp. 848--852,
   1990, DOI: 10.1109/12.53610.
   [Institutional record](https://scholars.ncu.edu.tw/en/publications/a-parallel-algorithm-for-solving-sparse-triangular-systems/).
 
-- [15] B. J. Murphy, ``Acceleration of the Inversion of Triangular Toeplitz
+- [14] B. J. Murphy, ``Acceleration of the Inversion of Triangular Toeplitz
   Matrices and Polynomial Division,'' in *Computer Algebra in Scientific
   Computing*, LNCS 6885, pp. 321--332, 2011, DOI:
   10.1007/978-3-642-23568-9_25.
   [DBLP record](https://dblp.org/rec/conf/casc/Murphy11).
 
-- [16] P. K. Meher, ``Systolic and Non-Systolic Scalable Modular Designs of
+- [15] P. K. Meher, ``Systolic and Non-Systolic Scalable Modular Designs of
   Finite Field Multipliers for Reed--Solomon Codec,'' *IEEE Transactions on
   Very Large Scale Integration (VLSI) Systems* 17(6), pp. 747--757, 2009,
   DOI: 10.1109/TVLSI.2008.2006080.

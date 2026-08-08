@@ -167,8 +167,8 @@ technical sections.
 ### Experimental Work
 
 Implementation, classical evaluation, repeated modular squaring, modulus
-selection, reversible-circuit evaluation, and artifact packaging are tracked
-only in [exp_todo.md](../exp_todo.md).
+selection, and artifact packaging are tracked only in
+[exp_todo.md](../exp_todo.md).
 
 ## Submission Gates
 

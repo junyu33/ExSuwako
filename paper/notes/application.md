@@ -84,41 +84,6 @@ It covers candidate provenance, fixed objectives, architecture-specific
 ranking, representation constraints, and coupling to repeated modular
 squaring.
 
-## High-Risk Direction: Quantum Binary-Field Arithmetic
-
-Binary-field squaring and reduction are linear reversible maps, and Itoh--Tsujii inversion contains many squarings. Structured sparse-feedback CNOT networks are therefore an appealing target. Existing quantum work also uses modulus selection to reduce finite-field resources, so this direction overlaps with the modulus-selection question above.
-
-It is nevertheless a separate circuit problem. Software feedback stages do not directly translate into CNOT count or quantum depth. A quantum claim requires an explicit reversible construction and a comparison under a fixed model for:
-
-- CNOT count and CNOT depth;
-- fanout realization;
-- clean or dirty ancillae;
-- in-place versus out-of-place computation; and
-- uncomputation within the enclosing inversion or multiplication circuit.
-
-Outside the restricted family below, the explicit circuit problem remains open. Even for that family, a comparison with the strongest existing circuits is still required before quantum arithmetic can become an application claim of the current reducer.
-
-One restricted but nontrivial family now has a candidate clean construction. For
-
-$$
-f=x^m+x^{m-\delta}+1+\sum_{e\in B}x^e,
-\qquad
-B\subseteq\{1,\ldots,\lfloor m/2\rfloor\},
-$$
-
-the feedback inverse factors into one in-place suffix scan and a square-zero cross-half correction. This gives, for fixed weight, a candidate zero-ancilla reversible reduction shear with $O(m)$ CNOT count and $O(\log(m/\delta))$ CNOT depth, together with matching asymptotic lower bounds in the all-to-all two-qubit model. The derivation and its precise claim boundary are recorded in [the two-cluster construction note](../raw/cnot_4.md).
-
-This family also contains irreducible pentanomials of the form
-
-$$
-x^m+x^{m-1}+x^a+x+1,
-$$
-
-for which both the polynomial and its reciprocal have nearest feedback distance one. Exact Sage checks found examples at degrees $128$, $163$, $233$, $283$, $409$, and $571$. These examples make the branch more concrete, but they do not replace comparison with the strongest existing CNOT synthesis or finite-field arithmetic circuits.
-
-The circuit-model, synthesis, comparison, and embedding tasks are maintained in
-[Gate 5 of the experimental TODO](../exp_todo.md#gate-5-reversible-and-quantum-circuits).
-
 ## Deliberately Secondary Direction: CRC and Rabin Fingerprints
 
 CRC and Rabin fingerprinting are genuine polynomial-reduction workloads, but they are unlikely to be decisive first applications. Typical moduli are small, rolling updates and table-based methods are heavily optimized, and the best content-defined chunking implementations may avoid Rabin-style reduction entirely. A table-free programmable reducer could be an interesting case study, but should not drive the main narrative without a clear end-to-end result.
@@ -129,7 +94,6 @@ CRC and Rabin fingerprinting are genuine polynomial-reduction workloads, but the
 |---|---:|---:|---:|
 | Repeated modular squaring for sparse factorization and irreducibility testing | High | High | Medium |
 | Platform-specific selection of irreducible sparse moduli | High | High | Medium |
-| Quantum binary-field squaring and inversion | High | Very high | High |
 | CRC and Rabin fingerprinting | High | Limited | Medium |
 | Attaching the method directly to an existing PQC or ZK scheme | Unclear | Limited | High |
 
@@ -143,7 +107,6 @@ The first two directions should be pursued together: a cost model and a search o
 | Sparse high-tap moduli can be hostile to serial feedback | Proved at the feedback-depth level. |
 | Generalized Suwako improves modular squaring for pentanomials | Open experimental hypothesis. |
 | The platform-optimal irreducible modulus changes under generalized Suwako | Open experimental hypothesis. |
-| A generalized-Suwako CNOT network improves quantum resources | Candidate matching asymptotic bounds for the restricted two-cluster family; prior-art and comparative evaluation remain open. |
 | CRC/Rabin is a compelling primary application | Currently unsupported. |
 
 ## Source Ledger to Verify
@@ -152,7 +115,6 @@ The first two directions should be pursued together: a cost model and a search o
 - Work on reduction and squaring for special irreducible pentanomials. [arXiv:1806.00432](https://arxiv.org/abs/1806.00432).
 - Discussion of platform-dependent choices of irreducible polynomials for \(\operatorname{GF}(2^m)\) arithmetic. [Ask Cryptography pointer](https://askcryp.to/t/resource-topic-2007-192-optimal-irreducible-polynomials-for-gf-2-m-arithmetic/2173).
 - High-tap irreducible-pentanomial implementation work. [IET record](https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/el.2014.0006).
-- Quantum finite-field multiplication/division and modulus selection. [arXiv:2511.20618](https://arxiv.org/abs/2511.20618).
 - Rabin-fingerprint content-defined chunking and FastCDC. [USENIX 2004 record](https://www.usenix.org/legacy/publications/library/proceedings/usenix04/tech/general/full_papers/policroniades/policroniades_html/index.html), [FastCDC record](https://www.usenix.org/conference/atc16/technical-sessions/presentation/xia).
 
 This is a search ledger rather than a final bibliography. Before using it in a paper, replace each entry with verified primary-source metadata and check that every performance or resource claim is supported by the cited source.
