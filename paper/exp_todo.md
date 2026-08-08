@@ -89,6 +89,15 @@ input. Keep its results separate from the application experiments below.
 
 - [ ] Run make check from the experiment commit and archive its output.
 - [ ] Exhaust all tap sets and all inputs for small $m$ where feasible.
+- [x] Run the deterministic theorem-falsification suites through `make check`:
+      20,000 GF(2) random trials with $m\le128$, 299,592 exhaustive binary
+      modulus/input pairs for $m\le6$, 266,304 exhaustive dual-number cases
+      for $m\le3$, and the recorded randomized \(\mathbb F_4\) and
+      \(\mathbb F_3\) differential checks.  Sources:
+      [round 1](../tests/check_theory_round1_gf2.py),
+      [round 2](../tests/check_theory_round2_algebras.py), and
+      [validation record](raw/math_3.md).  This is computational
+      falsification, not a proof.
 - [ ] Cover $\Delta_{\min}=1$, taps at both ends, mixed aligned and unaligned
       shifts, dense supports, constant-free moduli, reducible moduli, and
       non-word-aligned degrees.
@@ -115,6 +124,11 @@ input. Keep its results separate from the application experiments below.
       $r=\lceil\log_2(m/\Delta_{\min})\rceil$.
 - [ ] Validate the predicted sums of active taps, affected coefficients, word
       shifts, XORs, reads, writes, and temporary words.
+- [x] Validate the formal scheduled coefficient-work sum
+      $\sum_{r,k}[m-2^kd_r]_+$ against every generated binary schedule and
+      exhaustively enumerate support geometry for $2\le m\le18$; see
+      [math_3.md](raw/math_3.md).  This does not validate an instruction-count
+      or minimal-circuit model.
 - [ ] Separate logical shifts from cross-word and cross-vector shifts.
 - [ ] Validate setup time and stored schedule size independently of steady
       state reduction time.

@@ -13,6 +13,8 @@ in [the experimental TODO](../exp_todo.md).
 - Python/Sage generalized Suwako;
 - exhaustive small-$m$ validation;
 - randomized differential tests;
+- deterministic theorem-falsification suites covering GF(2), GF(4), dual
+  numbers, support geometry, and the positive-characteristic sign check;
 - dedicated cases for $q=0$, $q=1$, $q=x^t$, constant coefficient zero,
   constant coefficient one, dense $q$, reducible $g$, and non-word-aligned
   $m$.
@@ -74,6 +76,12 @@ depth.
 
 **RQ1: Correctness.** Does generalized Suwako agree with independent reducers
 for arbitrary tap sets?
+
+The current validation record establishes agreement for the binary core by
+randomized and exhaustive tests, and separately tests the coefficient-algebra
+identity over GF(4) and \(\mathbb F_2[\varepsilon]/(\varepsilon^2)\).  These
+tests can falsify an implementation or a stated identity; they do not replace
+the correctness proof.
 
 **RQ2: Feedback chain.** Does latency scale with
 $1+\log(m/\Delta_{\min})$ rather than $m/\Delta_{\min}$?

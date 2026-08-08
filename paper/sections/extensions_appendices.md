@@ -28,7 +28,16 @@ U^{2^k}
 \sum_ta_t^{2^k}S_{2^k(m-t)}.
 $$
 
+The formal scheduled support contains the taps satisfying
+\(2^k(m-t)<m\); the actual nonzero support additionally requires
+\(a_t^{2^k}\ne0\).  The latter qualification is essential over non-reduced
+algebras, as verified by the dual-number tests in [math_3.md](../raw/math_3.md).
 Place the full result in an appendix unless it becomes central.
+
+For the positive-characteristic extension, retain the signs in the reduction
+identity: solving \(H=(I+T)Y\) gives \(L-S(Y)\), whose binary specialization
+is \(L+S(Y)\).  The \(\mathbb F_3\) check in the same record is validation of
+this sign convention, not a positive-characteristic main theorem.
 
 ### 10.2 Tower Fields
 
@@ -73,6 +82,10 @@ tradeoffs.
 - Appendix C: Trinomial reduction and parallel prefix
 - Appendix D: Coefficient-algebra extension
 - Appendix E: Exhaustive and randomized validation
+- Appendix E records the GF(2), GF(4), dual-number, support-geometry, and
+  \(\mathbb F_3\) test domains, oracle paths, deterministic seeds, and case
+  counts from [math_3.md](../raw/math_3.md), labelled as computational
+  falsification rather than proof.
 - Appendix F: Native implementation details
 - Appendix G: Complete benchmark results
 - Appendix H: Prior-art comparison matrix

@@ -336,6 +336,14 @@ Thus every factor remains directly applicable from the original tap
 description. No dense reciprocal polynomial or reduction matrix needs to be
 materialized.
 
+For the coefficient-algebra extension, the corresponding stage has formal
+support \(\{r:2^kd_r<m\}\), with coefficient \(a_r^{2^k}\).  Its actual
+nonzero support additionally requires \(a_r^{2^k}\ne0\).  These agree over a
+reduced characteristic-two algebra, including every field; over a general
+commutative characteristic-two algebra the geometric schedule remains valid,
+but its scheduled work can exceed the work after zero coefficients are
+eliminated.
+
 ### 4.9 Why Characteristic Two Matters
 
 State:
