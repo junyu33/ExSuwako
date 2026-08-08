@@ -95,6 +95,15 @@ input. Keep its results separate from the application experiments below.
 
 - [ ] Run make check from the experiment commit and archive its output.
 - [ ] Exhaust all tap sets and all inputs for small $m$ where feasible.
+- [x] Run the deterministic theorem-falsification suites through `make check`:
+      20,000 GF(2) random trials with $m\le128$, 299,592 exhaustive binary
+      modulus/input pairs for $m\le6$, 266,304 exhaustive dual-number cases
+      for $m\le3$, and the recorded randomized \(\mathbb F_4\) and
+      \(\mathbb F_3\) differential checks.  Sources:
+      [round 1](../tests/check_theory_round1_gf2.py),
+      [round 2](../tests/check_theory_round2_algebras.py), and
+      [validation record](raw/math_3.md).  This is computational
+      falsification, not a proof.
 - [ ] Cover $\Delta_{\min}=1$, taps at both ends, mixed aligned and unaligned
       shifts, dense supports, constant-free moduli, reducible moduli, and
       non-word-aligned degrees.
