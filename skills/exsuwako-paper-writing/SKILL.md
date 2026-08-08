@@ -5,6 +5,14 @@ description: Draft, revise, and review ExSuwako cryptography papers with the 202
 
 # ExSuwako Paper Writing
 
+## Branch Scope
+
+This workflow applies only on a curated venue branch that contains
+`paper/writing_guide.md` and `paper/exp_todo.md`.  `main` intentionally omits
+those manuscript-planning files; use it only for factual mathematical or
+prior-art maintenance, then carry a confirmed correction to the appropriate
+venue branch.
+
 Use this skill when drafting or revising `paper/writing_guide.md`, a future
 ExSuwako paper, its abstract or introduction, theorem and complexity sections,
 or paper-facing terminology and claim wording.

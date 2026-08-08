@@ -181,9 +181,9 @@ $$
 - `bench/data/`: local benchmark CSV outputs. These are ignored by Git during
   the exploratory phase.
 - `bench/*.md`: benchmark notes and command documentation.
-- `paper/`: writing plan and claim boundaries;
-  [`paper/exp_todo.md`](paper/exp_todo.md) is the authoritative experimental
-  execution checklist.
+- `paper/`: mathematical notes, verified prior-art facts, and provenance.
+  Venue-specific writing plans and experiment checklists live only on their
+  corresponding paper branches.
 
 The native reducers share the `reduction_method` wrapper in
 `include/reduction.h`. A method owns reducer-specific setup state, exposes its

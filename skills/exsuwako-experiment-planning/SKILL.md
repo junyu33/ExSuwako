@@ -5,6 +5,13 @@ description: Plan, execute, and review ExSuwako correctness, cost-model, baselin
 
 # ExSuwako Experiments
 
+## Branch Scope
+
+This workflow applies only on a curated venue branch that contains
+`paper/exp_todo.md`.  `main` intentionally has no authoritative manuscript
+experiment checklist; record only reusable code, tests, and factual results
+there, then plan paper integration on the target venue branch.
+
 Use [paper/exp_todo.md](../../paper/exp_todo.md) as the sole authoritative
 experiment checklist. Read it completely before planning or changing an
 experiment, then read only the topic documents needed for the current gate:
