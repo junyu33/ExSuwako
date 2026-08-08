@@ -28,12 +28,11 @@ actionable experimental content is covered:
 |---|---|---|
 | [README.md](../README.md) and [native_benchmark.md](../bench/native_benchmark.md) | Current inventory, benchmark contract, gf2x provenance, and artifact rules in Current Inventory, P0, and Gate 6 | The source files as implementation documentation |
 | [writing_guide.md](writing_guide.md) | Evidence levels and completion criteria in all gates | Paper structure, claim status, and submission gates |
-| [implementation_evaluation.md](sections/implementation_evaluation.md) | Implementations, baselines, RQ1--RQ8, parameter sweeps, metrics, figures, tables, and negative results in Gates 1--3, 5, and 6 | Paper-facing evaluation design |
+| [implementation_evaluation.md](sections/implementation_evaluation.md) | Implementations, baselines, RQ1--RQ7, parameter sweeps, metrics, figures, tables, and negative results in Gates 1--4 and 6 | Paper-facing evaluation design |
 | [extensions_appendices.md](sections/extensions_appendices.md) | Claim-to-evidence experiments and former implementation/evaluation TODOs in Gates 1--6 | Mathematical, prior-art, appendix, and submission planning |
-| [application.md](notes/application.md) | Repeated squaring, modulus selection, and quantum validation in Gates 4A, 4B, and 5 | Application motivation and evidence ledger |
-| [cnot_1.md](raw/cnot_1.md), [cnot_2.md](raw/cnot_2.md), [cnot_3.md](raw/cnot_3.md), and [cnot_4.md](raw/cnot_4.md) | Reversible interface, fanout/uncomputation, exact resource counting, scan alternatives, basis tests, two-cluster examples, and external comparison in Gates 1, 4B, and 5 | The successive GPT-assisted derivations and their claim ledgers |
-| [math_1.md](raw/math_1.md) and [math_2.md](raw/math_2.md) | Optional coefficient-algebra checks and the circuit-boundary tests in Gates 1, 2, and 5 | General algebraic derivations, proofs, and open problems |
-| [related_1.md](raw/related_1.md) and [related_2.md](raw/related_2.md) | Only their demands for matched software/circuit comparisons enter Gates 3 and 5 | Hostile-search records summarized in [related_work.md](sections/related_work.md) and tracked in [prior_art_plan.md](notes/prior_art_plan.md) |
+| [application.md](notes/application.md) | Repeated squaring and modulus selection in Gates 4A and 4B | Application motivation and evidence ledger |
+| [math_1.md](raw/math_1.md) and [math_2.md](raw/math_2.md) | Optional coefficient-algebra checks in Gates 1 and 2 | General algebraic derivations, proofs, and open problems |
+| [related_1.md](raw/related_1.md), [related_2.md](raw/related_2.md), and [related_3.md](raw/related_3.md) | Their demands for matched classical comparisons enter Gate 3 | Hostile-search records summarized in [related_work.md](sections/related_work.md) and tracked in [prior_art_plan.md](notes/prior_art_plan.md) |
 | [math_comp.md](notes/math_comp.md), [technical_body.md](sections/technical_body.md), [intro_draft.md](sections/intro_draft.md), and [venue_choice.md](notes/venue_choice.md) | Any evidence requirements are represented by Gates 1--6; these files define no independent experiment queue | Mathematical synthesis, manuscript prose, and venue strategy |
 | [experiment-planning skill](../skills/exsuwako-experiment-planning/SKILL.md) and [paper-writing skill](../skills/exsuwako-paper-writing/SKILL.md) | Both skills route experimental work to this file and deliberately contain no duplicate checklist | Workflow instructions in the skill files |
 
@@ -249,40 +248,6 @@ This is Application 2 in
       moduli are tested in repeated modular squaring and at least one
       end-to-end workload.
 
-## Gate 5: Reversible and Quantum Circuits
-
-The paper-facing model and plot definition are in
-[Implementation and Evaluation, RQ8](sections/implementation_evaluation.md#91-research-questions)
-and the construction is recorded in
-[the two-cluster raw note](raw/cnot_4.md).
-
-- [ ] Freeze connectivity, gate library, layer-conflict rule, clean and dirty
-      ancilla conventions, and the in-place or clean-shear interface.
-- [ ] Formalize the clean stage-register generalized-Suwako circuit for
-      arbitrary tap sets.
-- [ ] Formalize and compare the in-place trinomial suffix-scan, bounded-order
-      affine-state scan, clean stage-register generalized-Suwako circuit, and
-      zero-ancilla two-cluster circuit; derive exact CNOT constants wherever
-      the construction is claimed.
-- [ ] Verify generated circuits by exhaustive basis tests for small $m$ and
-      randomized basis tests at larger $m$.
-- [ ] Version the Sage search and basis-test scripts behind the concrete
-      two-cluster irreducible examples; reproduce the listed degrees and keep
-      failure cases.
-- [ ] Define the cluster split, remote separation $\beta$, and
-      $\kappa=\lceil m/\beta\rceil$ together with the clustering rule.
-- [ ] Compare direct dense shear, stage-register generalized Suwako,
-      $\kappa=2$ scan circuits, and the strongest external linear-synthesis and
-      finite-field baselines.
-- [ ] Produce fixed-$m$ CNOT-count/CNOT-depth Pareto panels over
-      $(h,m/\Delta_{\min})$, faceted by $\kappa$ and ancilla budget.
-- [ ] Do not declare a single winner without first fixing a scalar objective
-      or resource budget.
-- [ ] Embed the reduction network into modular squaring, multiplication, or
-      Itoh--Tsujii inversion before making an application-level quantum claim.
-- [ ] Keep classical runtime boundaries separate from CNOT-resource
-      boundaries.
-
 ## Gate 6: Reproducibility and Artifact
 
 - [ ] Keep benchmark entrypoints and drivers under bench/scripts/.
@@ -301,8 +266,7 @@ and the construction is recorded in
 
 ## Completion Gates
 
-- [ ] Every claimed reducer and circuit passes an independent correctness
-      check.
+- [ ] Every claimed reducer passes an independent correctness check.
 - [ ] Every complexity claim is tied to a stated operation or gate model.
 - [ ] Every speed claim uses matched inputs, outputs, setup policy, and timing
       boundaries.
@@ -310,8 +274,6 @@ and the construction is recorded in
 - [ ] Repeated modular squaring passes a specialized-baseline comparison.
 - [ ] Any modulus-selection claim demonstrates a changed winner under a fixed
       objective, or is reported as a negative result.
-- [ ] Any quantum application claim survives comparison under a complete
-      size--depth--space model.
 - [ ] At least one end-to-end workload connects the result to real
       cryptographic or computational arithmetic.
 - [ ] A fresh checkout reproduces every result used by the paper.

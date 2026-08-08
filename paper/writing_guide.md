@@ -26,7 +26,7 @@ Keep the following distinct:
 
 > Generalized Suwako: Sparse Modular Reduction with Logarithmic Feedback Depth
 
-Use *feedback depth* unless a Boolean or CNOT gate model is explicitly fixed.
+Use *feedback depth* unless a Boolean gate model is explicitly fixed.
 
 ## Topic Documents
 
@@ -81,7 +81,7 @@ claims it summarizes have stabilized.
 
 Call an ISA an ISA; call a concrete evaluation target a platform or machine.
 Do not turn word work into instruction count, XOR count into gate count, or a
-CNOT upper bound into hardware depth without fixing the model.
+Boolean-circuit upper bound into hardware depth without fixing the model.
 
 ## Claim Ledger
 
@@ -93,7 +93,6 @@ CNOT upper bound into hardware depth without fixing the model.
 | Generic bounded-fan-in depth lower bound | Formal model and proof | Candidate theorem |
 | Native scalar speed regions | Reproducible matched experiments | Exploratory |
 | Platform-optimal modulus changes | Search plus end-to-end measurements | Open hypothesis |
-| CNOT size-depth-space tradeoff | Circuit construction, model, and prior-art audit | Open hypothesis |
 | Novelty | Hostile primary-source audit | Provisional |
 
 Never use “first,” “optimal,” “practical,” “constant-time,” or “significant
@@ -109,8 +108,8 @@ speedup” unless the matching row is discharged.
 6. Derive active-tap work, space, and setup.
 7. Add random-support and multiplication-based corollaries only under their
    stated models.
-8. Treat coefficient-algebra, prefix-scan, and reversible-CNOT statements as
-   extensions with their own hypotheses.
+8. Treat coefficient-algebra and prefix-scan statements as extensions with
+   their own hypotheses.
 
 ## Writing and Validation Order
 
