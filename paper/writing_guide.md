@@ -1,9 +1,10 @@
-# Generalized Suwako Writing Guide
+# Mathematics of Computation Writing Guide
 
-This file is the single source of truth for the paper's scope, terminology,
-section order, claim status, and submission gates. It is deliberately not a
-repository for full proofs, prior-art notes, benchmark plans, or application
-speculation; those live in the linked topic documents below.
+This file is the single source of truth for the `math-comp` manuscript's
+scope, terminology, section order, claim status, and submission gates. It is
+deliberately not a repository for full proofs, prior-art notes, benchmark
+plans, or application speculation; those live in the linked topic documents
+below.
 
 ## Central Thesis
 
@@ -22,6 +23,15 @@ Keep the following distinct:
 - novelty and practical impact remain conditional on the prior-art audit and
   matched experiments.
 
+## Branch Boundary
+
+This manuscript is theorem-first.  Its relevance claim is to finite-field and
+computational-algebra workloads, especially repeated modular squaring,
+irreducibility testing, and sparse-polynomial search.  It does not require a
+protocol deployment, a constant-time claim, a Koblitz-curve case study, or a
+reversible-circuit result.  Those cryptographic and circuit directions belong
+to the `eurocrypt` branch and must not be imported as contributions here.
+
 ## Working Title
 
 > Generalized Suwako: Sparse Modular Reduction with Logarithmic Feedback Depth
@@ -37,11 +47,11 @@ Use *feedback depth* unless a Boolean gate model is explicitly fixed.
 | Technical body assembly | [sections/technical_body.md](sections/technical_body.md) | Manuscript section plan and proof interfaces. |
 | Prior-art boundary | [sections/related_work.md](sections/related_work.md) | Paper-facing novelty boundary. |
 | Prior-art audit plan | [notes/prior_art_plan.md](notes/prior_art_plan.md) | Coverage checklist and provisional comparison matrix. |
-| Applications | [notes/application.md](notes/application.md) | Hypotheses and end-to-end validation plans. |
+| Applications | [notes/application.md](notes/application.md) | Computational-algebra workload hypotheses and validation plans. |
 | Implementation and evaluation | [sections/implementation_evaluation.md](sections/implementation_evaluation.md) | Paper-facing research questions, models, metrics, and figures. |
 | Experimental execution | [exp_todo.md](exp_todo.md) | Authoritative experiment checklist, evidence gates, priorities, and artifact status. |
 | Extensions and appendices | [sections/extensions_appendices.md](sections/extensions_appendices.md) | Extensions, limitations, appendices, and detailed research management. |
-| Venue framing | [notes/venue_choice.md](notes/venue_choice.md) | Submission strategy; not manuscript content. |
+| Venue framing | [notes/venue_choice.md](notes/venue_choice.md) | Private submission strategy; not manuscript content. |
 | Exploratory records | [raw/](raw/) | Preserve reasoning and leads; never cite as final evidence. |
 
 A topic document may refine a claim, but it may not silently alter this guide's
@@ -57,7 +67,7 @@ scope or final section order.
 6. Complexity analysis
 7. Prior art and novelty boundary
 8. Implementations and evaluation
-9. Applications and limitations
+9. Computational-algebra consequences and limitations
 10. Conclusion
 
 The technical body follows a definition-first order. The introduction is
@@ -117,7 +127,8 @@ speedup” unless the matching row is discharged.
 2. Close the prior-art boundary for reciprocal, Toeplitz, LFSR, CRC, parallel
    prefix, sparse reduction, Barrett/Montgomery, and linear-circuit synthesis.
 3. Stabilize the portable implementation and correctness checks.
-4. Run matched reduction-only experiments, then end-to-end application tests.
+4. Run matched reduction-only experiments, then repeated-squaring and
+   irreducibility-testing workloads.
 5. Draft the introduction, abstract, and conclusion from discharged claims.
 
 Use [exp_todo.md](exp_todo.md) as the sole execution checklist for Steps 3--4.
@@ -147,5 +158,6 @@ compiler, modulus, input distribution, and timing boundary.
 
 ### Gate 4: Relevance
 
-At least one application direction has a defensible connection to a real
-workload. A reduction-only speedup is not presented as application impact.
+At least one repeated-squaring, irreducibility-testing, factorization, or
+sparse-polynomial-search workload demonstrates the computational consequence
+of the result.  A reduction-only speedup is not presented as workload impact.
