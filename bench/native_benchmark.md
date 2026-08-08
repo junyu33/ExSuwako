@@ -8,6 +8,22 @@ artifact requirements are tracked in
 The native reducer implementations live in `src/`; public headers are under
 `include/`; benchmark scripts and entrypoints live under `bench/scripts/`.
 
+The deterministic quantum reduction-shear resource experiment is separate
+from native timing.  Run
+
+```text
+make check-quantum-resources
+python3 bench/scripts/quantum_reduction_resources.py --preset 283
+```
+
+It independently verifies each emitted suffix scan, verifies every complete
+two-cluster circuit on all high-register basis vectors, and reports CNOT
+count, explicit all-to-all CNOT schedule depth, and ancilla count.  The output
+retains `two_cluster_sequential_scan` as the size-oriented baseline and adds
+`two_cluster_parallel_prefix`, an in-place zero-ancilla Brent--Kung schedule
+with logarithmic depth.  The construction and proof are recorded in
+[the parallel-prefix circuit note](../paper/notes/cnot_parallel_prefix.md).
+
 `bench/scripts/reduction_benchmark.c` drives the reduction-only microbenchmark
 through the common `reduction_method` API in `include/reduction.h`. GS, serial sparse
 folding, naive long division, and Barrett all expose the same timed

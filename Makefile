@@ -1,4 +1,5 @@
 CC ?= gcc
+PYTHON ?= python3
 GF2X_PREFIX ?= /usr/local
 CFLAGS ?= -O3 -std=c11 -Wall -Wextra
 
@@ -25,6 +26,10 @@ check: $(CHECK_TARGET)
 	$(CHECK_TARGET)
 
 check-serial: check
+
+check-quantum-resources:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) \
+		bench/scripts/quantum_reduction_resources.py --preset all > /dev/null
 
 clean:
 	rm -f $(TARGET) $(CHECK_TARGET)

@@ -84,6 +84,92 @@ It covers candidate provenance, fixed objectives, architecture-specific
 ranking, representation constraints, and coupling to repeated modular
 squaring.
 
+## EUROCRYPT Case Study: Koblitz Scalar Multiplication
+
+Koblitz curves provide a direct cryptographic composition of repeated modular
+squaring and reducer-aware field representation.  Over $\mathbb F_{2^m}$,
+they have the form
+
+$$
+E_a:y^2+xy=x^3+ax^2+1,
+\qquad a\in\{0,1\},
+$$
+
+and their Frobenius endomorphism is
+
+$$
+\tau(x,y)=(x^2,y^2).
+$$
+
+A $\tau$-adic scalar multiplication therefore invokes field squaring
+repeatedly.  In a polynomial basis, each coordinate square requires modular
+reduction, so this is a complete cryptographic workload whose hot path may
+expose the reduction behavior studied here.
+
+There is also a clean representation argument.  For any two irreducible
+degree-$m$ binary polynomials $f_0$ and $f_1$, a field isomorphism
+
+$$
+\phi:\mathbb F_2[z]/(f_0)\longrightarrow\mathbb F_2[z]/(f_1)
+$$
+
+fixes the prime-field coefficients $a$ and $1$.  Coordinate-wise application
+of $\phi$ therefore maps the same abstract Koblitz curve and group into the
+new representation.  This permits a comparison between a standard polynomial
+basis and an ExSuwako-oriented modulus without changing the abstract group or
+ECDLP instance.  Base points, external coordinates, and any precomputed tables
+must be converted explicitly, and implementation security must be evaluated
+again.
+
+### First Target: K-283
+
+Degree $283$ is the first proposed target because it combines a standard
+pentanomial representation, a verified same-degree two-cluster candidate, and
+an existing high-performance implementation literature.  The paper-facing
+hypothesis is not merely that generalized Suwako reduces one square faster,
+but that field-representation/reducer co-design changes the winner for a
+complete $\tau$-adic scalar multiplication.
+
+The comparison should use four representation/backend classes:
+
+1. the standard K-283 polynomial with the strongest fixed-modulus unrolled
+   reducer;
+2. a verified irreducible two-cluster degree-283 polynomial with generalized
+   Suwako and any justified generated specialization;
+3. a strong normal-basis implementation, for which Frobenius is a coordinate
+   rotation but multiplication may be more expensive;
+4. table-based or hybrid multi-squaring where it is a credible strongest
+   baseline.
+
+The measurement ladder is:
+
+1. field square, multiply, and invert;
+2. one $\tau$;
+3. short and long $\tau^k$, separating repeated squaring from table-based
+   multi-squaring;
+4. random-point and fixed-point scalar multiplication;
+5. complete ECDH, ECDSA signing, and ECDSA verification when matched
+   reproducible entrypoints are available.
+
+All representations must use the same abstract points and scalars.  Results
+must agree after conversion to a common representation.  Isomorphism setup,
+boundary conversion, precomputation, tables, and memory must be reported under
+an explicit amortization policy.
+
+### Claim Boundary
+
+Koblitz curves are an unusually clean case study but have limited modern
+deployment relevance because binary-field curves are reported as deprecated
+by current NIST guidance.  This status and the historical implementation
+claims about reduction-dominated K-283 squaring and multi-squaring thresholds
+still require primary-source verification.  Koblitz can establish that the
+method changes a complete cryptographic algorithm, but should not be the only
+argument for contemporary relevance.
+
+The complete source record and verification leads are preserved in
+[crypto_1.md](../raw/crypto_1.md).  The authoritative executable checklist is
+[Gate 4C of the experimental TODO](../exp_todo.md#gate-4c-koblitz-scalar-multiplication).
+
 ## High-Risk Direction: Quantum Binary-Field Arithmetic
 
 Binary-field squaring and reduction are linear reversible maps, and Itoh--Tsujii inversion contains many squarings. Structured sparse-feedback CNOT networks are therefore an appealing target. Existing quantum work also uses modulus selection to reduce finite-field resources, so this direction overlaps with the modulus-selection question above.
@@ -116,8 +202,54 @@ $$
 
 for which both the polynomial and its reciprocal have nearest feedback distance one. Exact Sage checks found examples at degrees $128$, $163$, $233$, $283$, $409$, and $571$. These examples make the branch more concrete, but they do not replace comparison with the strongest existing CNOT synthesis or finite-field arithmetic circuits.
 
-The circuit-model, synthesis, comparison, and embedding tasks are maintained in
-[Gate 5 of the experimental TODO](../exp_todo.md#gate-5-reversible-and-quantum-circuits).
+The circuit-model and structured-synthesis tasks are maintained in
+[Gate 5A of the experimental TODO](../exp_todo.md#gate-5a-reversible-reduction-circuits).
+
+### Executable Route B: Binary-ECDLP Resource Re-estimation
+
+The concrete attack target is the Garn--Kan fault-tolerant implementation of
+Shor's algorithm for binary elliptic-curve discrete logarithms.  It provides
+exact point addition, windowed phase estimation, logical gate and qubit
+counts, active volume, and physical extrapolations for
+$m\in\{163,233,283,571\}$.  Its discussion explicitly identifies the large
+CNOT population of binary-field multiplication as a source of high active
+volume.
+
+The attacker may map the public curve, base point, and public point through a
+field isomorphism before compiling the quantum circuit.  Route B must
+therefore optimize over field representations rather than compare only with
+the standardized polynomial.  The attack-level question is:
+
+> Does a structured ExSuwako reduction survive attacker-optimal modulus and
+> circuit selection, complete multiplication and inversion, exact point
+> addition, window re-optimization, and the published physical cost model?
+
+The executable kernel test is available as
+`bench/scripts/quantum_reduction_resources.py`.  It emits both sequential and
+zero-ancilla Brent--Kung parallel-prefix realizations, validates every
+conflict-free layer, independently basis-checks each scan, and checks the
+complete clean shear against polynomial long division.  At degree 283, the
+sequential construction reduces the two-cluster modulus from 39,342
+direct-shear CNOTs to 1,741 CNOTs at depth 702.  The parallel-prefix variant
+uses 2,513 CNOTs at an explicit conflict-free schedule depth of 82, with zero
+ancilla.  This remains an adverse cross-representation result because the
+standard NIST pentanomial's direct shear uses 1,166 CNOTs at depth 8.  The
+current evidence therefore supports an executable falsification experiment,
+not an attack-level improvement claim.  The parallel construction and proof
+are recorded in [the circuit note](cnot_parallel_prefix.md).
+
+The next stages are to reproduce the published resource tables, search for the
+attacker-optimal irreducible modulus and circuit, embed each winner into
+squaring, multiplication and FLT inversion, and then recompute ECPointAdd,
+phase estimation, active volume and physical runtime.  CNOT count, CNOT depth,
+swaps, Toffolis, ancillae and connectivity must all remain visible.  A change
+only to a cheap Clifford subroutine is insufficient unless it affects a
+complete attack resource.
+
+The complete reasoning, primary baseline, initial output and kill criteria are
+recorded in [crypto_2.md](../raw/crypto_2.md).  The executable attack-resource
+checklist is
+[Gate 5B of the experimental TODO](../exp_todo.md#gate-5b-binary-ecdlp-quantum-resource-re-estimation).
 
 ## Deliberately Secondary Direction: CRC and Rabin Fingerprints
 
@@ -127,13 +259,17 @@ CRC and Rabin fingerprinting are genuine polynomial-reduction workloads, but the
 
 | Direction | Real workload | Potentially decisive role | Risk |
 |---|---:|---:|---:|
+| Koblitz $\tau$-adic scalar multiplication with reducer-aware representation | Very high | Very high | Medium-high: deprecated family and strong normal-basis baseline |
 | Repeated modular squaring for sparse factorization and irreducibility testing | High | High | Medium |
 | Platform-specific selection of irreducible sparse moduli | High | High | Medium |
-| Quantum binary-field squaring and inversion | High | Very high | High |
+| Binary-ECDLP quantum resource re-estimation | Very high | Very high | Very high: first kernel comparison favors the standard modulus |
 | CRC and Rabin fingerprinting | High | Limited | Medium |
 | Attaching the method directly to an existing PQC or ZK scheme | Unclear | Limited | High |
 
-The first two directions should be pursued together: a cost model and a search over irreducible sparse moduli generate candidates, and repeated modular-squaring workloads decide whether the candidates produce a meaningful end-to-end gain.
+K-283 should be the first cryptographic case study.  It composes the first two
+general directions: a cost model and a search over irreducible sparse moduli
+generate representations, and $\tau$-adic scalar multiplication decides
+whether the representation changes an end-to-end cryptographic workload.
 
 ## Evidence Ledger
 
@@ -143,7 +279,10 @@ The first two directions should be pursued together: a cost model and a search o
 | Sparse high-tap moduli can be hostile to serial feedback | Proved at the feedback-depth level. |
 | Generalized Suwako improves modular squaring for pentanomials | Open experimental hypothesis. |
 | The platform-optimal irreducible modulus changes under generalized Suwako | Open experimental hypothesis. |
+| A field-isomorphic K-283 representation improves complete $\tau$-adic scalar multiplication | Open experimental hypothesis; normal-basis and multi-squaring comparisons required. |
+| Koblitz field-representation changes preserve the abstract curve group | Mathematical claim to formalize; implementation and side-channel properties are not preserved automatically. |
 | A generalized-Suwako CNOT network improves quantum resources | Candidate matching asymptotic bounds for the restricted two-cluster family; prior-art and comparative evaluation remain open. |
+| ExSuwako lowers the best binary-ECDLP quantum attack estimate | Open and currently adverse at the reduction kernel: structured two-cluster reduction beats its dense realization but not the standard degree-283 modulus. |
 | CRC/Rabin is a compelling primary application | Currently unsupported. |
 
 ## Source Ledger to Verify
@@ -153,6 +292,20 @@ The first two directions should be pursued together: a cost model and a search o
 - Discussion of platform-dependent choices of irreducible polynomials for \(\operatorname{GF}(2^m)\) arithmetic. [Ask Cryptography pointer](https://askcryp.to/t/resource-topic-2007-192-optimal-irreducible-polynomials-for-gf-2-m-arithmetic/2173).
 - High-tap irreducible-pentanomial implementation work. [IET record](https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/el.2014.0006).
 - Quantum finite-field multiplication/division and modulus selection. [arXiv:2511.20618](https://arxiv.org/abs/2511.20618).
+- Garn and Kan's exact binary-ECDLP logical and physical resource model.
+  [arXiv:2503.02984](https://arxiv.org/abs/2503.02984),
+  [IEEE DOI](https://doi.org/10.1109/TQE.2025.3586541).
+- Vandaele's subquadratic-Toffoli binary-field multiplication and specialized
+  low-depth reduction circuits.
+  [arXiv:2501.16136](https://arxiv.org/abs/2501.16136).
+- Primary Koblitz-curve standards and $\tau$-adic scalar-multiplication
+  specifications; verify the exact equations, parameters, base points, and
+  polynomial/normal-basis representations.
+- NIST SP 800-186; verify the exact binary-curve deprecation language and its
+  scope.
+- High-performance Koblitz implementations reporting K-283 field-operation
+  costs and table-based multi-squaring thresholds; identify the exact papers
+  before citing the bottleneck claims.
 - Rabin-fingerprint content-defined chunking and FastCDC. [USENIX 2004 record](https://www.usenix.org/legacy/publications/library/proceedings/usenix04/tech/general/full_papers/policroniades/policroniades_html/index.html), [FastCDC record](https://www.usenix.org/conference/atc16/technical-sessions/presentation/xia).
 
 This is a search ledger rather than a final bibliography. Before using it in a paper, replace each entry with verified primary-source metadata and check that every performance or resource claim is supported by the cited source.

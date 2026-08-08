@@ -52,11 +52,13 @@ B\subseteq\{1,\ldots,\lfloor m/2\rfloor\},
 $$
 
 the feedback inverse admits a suffix-scan factor followed by a square-zero
-cross-half correction.  The candidate clean CNOT construction has, for fixed
-weight, $\Theta(m)$ size, $\Theta(\log(m/\delta))$ depth, and zero ancilla in
-the stated all-to-all two-qubit model.  Keep the formal circuit definition,
-matching lower bounds, irreducible examples, and open prior-art comparison
-together; do not generalize the result to arbitrary tap geometry.
+cross-half correction.  An explicit zero-ancilla Brent--Kung implementation
+now realizes the clean CNOT construction with, for fixed weight, $O(m)$ size
+and $O(\log(m/\delta))$ scheduled depth in the stated all-to-all two-qubit
+model.  The matching lower bounds remain candidate proof material.  Keep the
+formal circuit definition, lower bounds, irreducible examples, and open
+prior-art comparison together; do not generalize the result to arbitrary tap
+geometry.
 
 ## 11. Limitations
 
@@ -125,6 +127,7 @@ together; do not generalize the result to arbitrary tap geometry.
 | Three-regime algorithm-selection phase diagram | no universal boundary | fixed-$m$ sampled winner panels | serial folding / multiplication reduction |
 | Cluster-separation $\kappa$ size--depth--space partition | recursive theorem with an explicit clustering rule | exact circuit counts and Pareto panels | prefix/scan and linear-circuit synthesis |
 | Quantum resource phase diagram | circuit model and resource objective | fixed-$m$ Pareto panels over $(h,m/\Delta_{\min})$, faceted by $\kappa$ and ancilla budget | finite-field CNOT circuits and generic synthesis |
+| Lower binary-ECDLP attack resources | no new theorem required beyond circuit bounds | reproduced logical-to-physical resource propagation with attacker-optimal representation | binary-ECDLP quantum resource estimates and field-arithmetic circuits |
 | Lower work than Barrett/Montgomery in sparse regimes | required | heatmap | multiplication reduction |
 | Lightweight setup | precise definition | amortization | reciprocal/matrix |
 | Useful on real moduli | no | required | parameter sources |

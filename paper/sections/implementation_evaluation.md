@@ -102,6 +102,11 @@ Hamming weight, feedback difficulty, cluster separation, and the ancilla
 budget determine the Pareto frontier among direct CNOT synthesis,
 stage-register generalized Suwako, and structured scan/cluster circuits?
 
+**RQ9: Binary-ECDLP attack resources.** After optimizing the attacker's field
+representation and reversible arithmetic, does structured reduction change a
+complete binary-ECDLP estimate in CNOTs, swaps, Toffolis, logical depth,
+qubits, active volume, physical footprint, or projected runtime?
+
 ### 9.2 Parameter Grid
 
 Suggested:
@@ -179,7 +184,10 @@ the modulus.
 - setup time;
 - modulus-specific bytes;
 - generated code size;
-- temporary memory.
+- temporary memory;
+- CNOT, swap, Toffoli/CCZ, and non-Clifford-depth counts;
+- logical qubits, clean and dirty ancillae, and routed CNOT depth;
+- active volume, code distance, physical footprint, and projected runtime.
 - median, p90, and p99 for runtime, $\Delta_{\min}$, $D_{\mathrm{fb}}$, and
   $\sum_k h_k$.
 
@@ -203,14 +211,20 @@ the modulus.
    the $\kappa=2$ two-cluster scan circuit when applicable, and the strongest
    relevant external synthesis baseline. Do not color a point by a single
    winner unless a scalar resource objective has first been fixed.
-4. Tradeoff map: work, feedback depth, and setup.
-5. Operator diagram: $U,U^2,U^4,\ldots$.
-6. Stage count versus $\Delta_{\min}$.
-7. Crossover heatmaps over $(h,\Delta_{\min})$.
-8. Gap-one scaling as $m$ grows.
-9. Setup amortization over $K$.
-10. Predicted active-tap work versus measured runtime.
-11. Random-support depth and work versus $s$.
+4. **Binary-ECDLP resource waterfall.** For each degree, propagate the
+   attacker-optimal representation and circuit through reduction, squaring,
+   multiplication, FLT inversion, ECPointAdd, windowed phase estimation,
+   active volume, and the two published physical architectures. Show absolute
+   resources and deltas from the reproduced Garn--Kan baseline, including a
+   negative or negligible final delta.
+5. Tradeoff map: work, feedback depth, and setup.
+6. Operator diagram: $U,U^2,U^4,\ldots$.
+7. Stage count versus $\Delta_{\min}$.
+8. Crossover heatmaps over $(h,\Delta_{\min})$.
+9. Gap-one scaling as $m$ grows.
+10. Setup amortization over $K$.
+11. Predicted active-tap work versus measured runtime.
+12. Random-support depth and work versus $s$.
 
 The schematic is a conceptual introduction figure, not a theorem giving a
 universal boundary. The empirical panels must be separated by fixed $m$ (and
@@ -236,7 +250,8 @@ boundaries must not be reused as CNOT-resource boundaries.
 4. portable C results;
 5. SIMD results;
 6. setup and storage;
-7. optional hardware results.
+7. optional hardware results;
+8. binary-ECDLP logical and physical resource propagation.
 
 ### 9.6 Negative Results
 

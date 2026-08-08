@@ -93,9 +93,11 @@ CNOT upper bound into hardware depth without fixing the model.
 | Generic bounded-fan-in depth lower bound | Formal model and proof | Candidate theorem |
 | Native scalar speed regions | Reproducible matched experiments | Exploratory |
 | Platform-optimal modulus changes | Search plus end-to-end measurements | Open hypothesis |
-| CNOT size-depth-space tradeoff | Circuit construction, model, and prior-art audit | Candidate matching bounds for the restricted two-cluster family; general case open |
+| Koblitz representation/reducer co-design changes complete scalar multiplication | Field-isomorphism implementation, strongest polynomial/normal-basis and multi-squaring baselines, matched end-to-end measurements | Open EUROCRYPT hypothesis; K-283 first |
+| CNOT size-depth-space tradeoff | Circuit construction, model, and prior-art audit | Zero-ancilla linear-size/log-depth two-cluster construction implemented and basis-verified; matching lower bounds and prior-art boundary remain open |
 | Cluster-separation $\kappa$ partition | Recursive circuit theorem and matching constructions or lower bounds | Open; the two-cluster family is the $\kappa=2$ endpoint |
 | Classical and quantum algorithm-selection diagrams | Fixed-$m$ measurements or exact circuit-resource counts under stated models | Planned; classical winner panels and quantum Pareto panels must remain separate |
+| Best binary-ECDLP quantum attack resources decrease | Reproduced Garn--Kan baseline, attacker-optimal representation/circuit search, complete active-volume and physical propagation | Open and currently adverse at the degree-283 reduction kernel |
 | Novelty | Hostile primary-source audit | Provisional |
 
 Never use “first,” “optimal,” “practical,” “constant-time,” or “significant

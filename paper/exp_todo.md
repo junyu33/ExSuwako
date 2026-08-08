@@ -28,9 +28,11 @@ actionable experimental content is covered:
 |---|---|---|
 | [README.md](../README.md) and [native_benchmark.md](../bench/native_benchmark.md) | Current inventory, benchmark contract, gf2x provenance, and artifact rules in Current Inventory, P0, and Gate 6 | The source files as implementation documentation |
 | [writing_guide.md](writing_guide.md) | Evidence levels and completion criteria in all gates | Paper structure, claim status, and submission gates |
-| [implementation_evaluation.md](sections/implementation_evaluation.md) | Implementations, baselines, RQ1--RQ8, parameter sweeps, metrics, figures, tables, and negative results in Gates 1--3, 5, and 6 | Paper-facing evaluation design |
+| [implementation_evaluation.md](sections/implementation_evaluation.md) | Implementations, baselines, RQ1--RQ9, parameter sweeps, metrics, figures, tables, and negative results in Gates 1--3, 5A, 5B, and 6 | Paper-facing evaluation design |
 | [extensions_appendices.md](sections/extensions_appendices.md) | Claim-to-evidence experiments and former implementation/evaluation TODOs in Gates 1--6 | Mathematical, prior-art, appendix, and submission planning |
-| [application.md](notes/application.md) | Repeated squaring, modulus selection, and quantum validation in Gates 4A, 4B, and 5 | Application motivation and evidence ledger |
+| [application.md](notes/application.md) | Repeated squaring, modulus selection, Koblitz scalar multiplication, circuit validation, and binary-ECDLP resources in Gates 4A, 4B, 4C, 5A, and 5B | Application motivation and evidence ledger |
+| [crypto_1.md](raw/crypto_1.md) | Koblitz representation co-design, normal-basis and multi-squaring baselines, and the end-to-end ladder in Gate 4C | Cleaned GPT-assisted application search and verification leads |
+| [crypto_2.md](raw/crypto_2.md) | Binary-ECDLP attack-resource baseline, reduction-shear experiment, active-volume propagation, and kill criteria in Gate 5B | Primary-source-backed Route B design and exploratory kernel result |
 | [cnot_1.md](raw/cnot_1.md), [cnot_2.md](raw/cnot_2.md), [cnot_3.md](raw/cnot_3.md), and [cnot_4.md](raw/cnot_4.md) | Reversible interface, fanout/uncomputation, exact resource counting, scan alternatives, basis tests, two-cluster examples, and external comparison in Gates 1, 4B, and 5 | The successive GPT-assisted derivations and their claim ledgers |
 | [math_1.md](raw/math_1.md) and [math_2.md](raw/math_2.md) | Optional coefficient-algebra checks and the circuit-boundary tests in Gates 1, 2, and 5 | General algebraic derivations, proofs, and open problems |
 | [related_1.md](raw/related_1.md) and [related_2.md](raw/related_2.md) | Only their demands for matched software/circuit comparisons enter Gates 3 and 5 | Hostile-search records summarized in [related_work.md](sections/related_work.md) and tracked in [prior_art_plan.md](notes/prior_art_plan.md) |
@@ -52,6 +54,9 @@ The following items describe code that exists, not completed paper evidence.
       representative aligned and non-aligned degrees.
 - [x] Reduction-only benchmark and phase-diagram drivers exist under
       bench/scripts/.
+- [x] A deterministic reduction-shear resource script emits and basis-verifies
+      the direct, sequential two-cluster, and zero-ancilla parallel-prefix
+      CNOT circuits for degrees 163, 233, 283, and 571.
 - [x] Local exploratory CSV files are separated under bench/data/ and are
       ignored by Git.
 - [ ] Rerun every claimed correctness and timing result from the eventual
@@ -249,7 +254,58 @@ This is Application 2 in
       moduli are tested in repeated modular squaring and at least one
       end-to-end workload.
 
-## Gate 5: Reversible and Quantum Circuits
+## Gate 4C: Koblitz Scalar Multiplication
+
+This is the EUROCRYPT case study in
+[application.md](notes/application.md#eurocrypt-case-study-koblitz-scalar-multiplication)
+and combines Gates 4A and 4B at the level of a complete cryptographic
+algorithm.
+
+- [ ] Verify the Koblitz equations, standard degree-283 modulus, base point,
+      group order, polynomial-basis coordinates, normal-basis coordinates,
+      and deprecation status against primary standards.
+- [ ] Freeze one reproducible K-283 $\tau$-adic scalar-multiplication
+      implementation and record its coordinate system, scalar recoding,
+      precomputation, inversion strategy, side-channel scope, and API.
+- [ ] Construct and version a field isomorphism between the standard K-283
+      representation and one verified irreducible two-cluster degree-283
+      representation.
+- [ ] Convert the standard base point and test points through the isomorphism;
+      verify curve membership, group operations, scalar multiplication, and
+      round-trip canonical encoding independently.
+- [ ] Implement the strongest credible fixed-modulus standard-polynomial
+      reducer and a matched generalized-Suwako or generated reducer for the
+      two-cluster representation.
+- [ ] Integrate a strong normal-basis backend, or reproduce a directly
+      comparable normal-basis implementation, instead of treating polynomial
+      basis as the only design space.
+- [ ] Benchmark field square, multiplication, and inversion separately, then
+      report their measured shares inside point addition and scalar
+      multiplication.
+- [ ] Benchmark one $\tau$, short $\tau^k$, and long $\tau^k$ separately;
+      compare repeated squaring with the strongest table-based multi-squaring
+      method and report table setup and storage.
+- [ ] Run matched random-point and fixed-point scalar multiplication with the
+      same abstract points and scalars across representations.
+- [ ] Add complete ECDH, ECDSA signing, and ECDSA verification only where the
+      implementation exposes matched reproducible entrypoints; include
+      double-scalar multiplication for verification.
+- [ ] Report field-isomorphism setup, boundary conversion, precomputation,
+      tables, code size, storage, and amortization separately and inside any
+      end-to-end boundary where they are not offline.
+- [ ] Verify all outputs after conversion to one canonical representation and
+      preserve exact failing scalars, points, and seeds as regressions.
+- [ ] Treat constant-time and side-channel properties as an independent audit;
+      do not infer them from public moduli or field isomorphism.
+- [ ] Preserve negative outcomes: normal basis, a standard unrolled reducer,
+      or table-based multi-squaring may win even when ExSuwako wins a
+      reduction-only comparison.
+- [ ] Repeat at degrees 163, 233, 409, or 571 only after the K-283 protocol and
+      strongest baselines are frozen.
+- [ ] Phrase any positive result as a historical but clean cryptographic case
+      study unless a separate modern application establishes current relevance.
+
+## Gate 5A: Reversible Reduction Circuits
 
 The paper-facing model and plot definition are in
 [Implementation and Evaluation, RQ8](sections/implementation_evaluation.md#91-research-questions)
@@ -282,6 +338,62 @@ and the construction is recorded in
       Itoh--Tsujii inversion before making an application-level quantum claim.
 - [ ] Keep classical runtime boundaries separate from CNOT-resource
       boundaries.
+
+## Gate 5B: Binary-ECDLP Quantum Resource Re-estimation
+
+This is the executable version of EUROCRYPT route B in
+[application.md](notes/application.md#executable-route-b-binary-ecdlp-resource-re-estimation)
+and [crypto_2.md](raw/crypto_2.md).  It uses the Garn--Kan binary-ECDLP
+resource model as the end-to-end target and treats the attacker's field
+representation as an optimization variable.
+
+- [x] Add a dependency-free reduction-shear resource driver with built-in
+      standard and two-cluster manifests at degrees 163, 233, 283, and 571.
+- [x] Verify every emitted two-cluster circuit on all high-register basis
+      vectors against independent polynomial long division.
+- [x] Record the first cross-representation kill signal: at degree 283 the
+      sequential two-cluster shear uses 1,741 CNOTs at depth 702 and the
+      parallel-prefix variant uses 2,513 CNOTs at depth 82, while the standard
+      direct shear uses 1,166 CNOTs at depth 8; this is not an attack-level
+      win.
+- [ ] Freeze one Garn--Kan paper version and reproduce its modular
+      multiplication, FLT inversion, ECPointAdd, phase-estimation,
+      active-volume, code-distance, footprint, and runtime tables.
+- [ ] Encode the paper's elementary-operation active-volume weights and verify
+      every reproduced subtotal before substituting a new circuit.
+- [ ] Add exact PLU synthesis for in-place squaring, combined $2^k$-power
+      maps, constant multiplication, and the direct dense reduction baseline.
+- [ ] Reproduce Vandaele's multiplication and specialized trinomial or
+      equally-spaced reduction resources under the same gate conventions.
+- [x] Formalize and implement the zero-ancilla Brent--Kung parallel-prefix
+      two-cluster circuit; verify every scan and complete clean shear, and
+      report explicit conflict-free layers rather than a scheduled proxy.
+- [ ] Enumerate or sample irreducible representations at each target degree;
+      optimize direct, PLU, Vandaele, and structured circuits separately for
+      CNOT count, CNOT depth, swaps, ancillae, and active volume.
+- [ ] Preserve the same abstract curve by mapping all curve coefficients,
+      base points, and public points through an independently verified field
+      isomorphism before comparing representations.
+- [ ] Embed each representation/circuit winner into matched reversible
+      squaring and multiplication interfaces; account for product registers,
+      garbage, and uncomputation rather than comparing incompatible maps.
+- [ ] Recompute every consecutive-squaring block and FLT inversion addition
+      chain, comparing repeated structured squaring with one synthesized
+      combined linear map.
+- [ ] Substitute the resulting multiplication, squaring, and inversion
+      resources into exact ECPointAdd and re-optimize the phase-estimation
+      window size.
+- [ ] Report CNOTs, swaps, Toffolis/CCZs, CNOT depth, non-Clifford depth,
+      logical qubits, ancillae, active volume, and setup/synthesis cost at
+      every layer from reduction through the complete attack.
+- [ ] Recompute physical runtime and footprint under both published
+      architectures without changing their assumptions opportunistically.
+- [ ] Add all-to-all and routed nearest-neighbor sensitivity analyses, and
+      sweep the relative pricing of Clifford operations, magic-state
+      production, delay, and workspace.
+- [ ] Kill the EUROCRYPT route if the attacker-optimal low-tap representation
+      dominates, if the saving disappears in full arithmetic, or if complete
+      ECDLP active volume and runtime change only negligibly.
 
 ## Gate 6: Reproducibility and Artifact
 
