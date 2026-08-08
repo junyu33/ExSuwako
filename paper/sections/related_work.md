@@ -39,6 +39,20 @@ systems over arbitrary fields [5].  Generalized Suwako must
 therefore not be described as the first logarithmic-depth polynomial division
 or as a new inverse identity.
 
+The older structured-linear-system literature makes this boundary still
+sharper. Chen and Kuck study time and processor bounds for linear recurrence
+systems and relate them to triangular solves [11]. Morf explicitly develops
+``doubling algorithms'' for Toeplitz and related equations [12]. Most
+directly, Bini solves an \(n\times n\) triangular Toeplitz system in
+\(7\log n+7\) parallel steps for exact computation in his arithmetic model;
+the processor bound is \(\frac52n^2\), or \(\frac52n(k+1)\) when the matrix
+has bandwidth \(k\) [13]. Murphy later restates the equivalence between
+reciprocal computation modulo \(z^n\), polynomial division, and triangular
+Toeplitz inversion, with polynomial degree corresponding to matrix bandwidth
+[15]. Thus neither recursive doubling, logarithmic-depth triangular Toeplitz
+inversion, nor the reciprocal--Toeplitz--bandwidth correspondence is a
+contribution of this work.
+
 The distinction is representational and algorithmic.  General reciprocal and
 Toeplitz methods address a broader problem and may materialize a dense
 reciprocal or use general polynomial multiplication.  For the sparse feedback
@@ -61,6 +75,20 @@ reduction matrix.  The unresolved audit question is whether prior
 parallel-division or sparse-reciprocal work gives the same fixed-state,
 support-preserving realization together with a tap-geometry-sensitive work
 analysis.
+
+Bini's banded bound also clarifies why bandwidth alone does not settle that
+question. A feedback operator may contain only a few shifted diagonals while
+its largest shift, and hence its ordinary matrix bandwidth, is close to \(m\).
+The banded processor bound then remains quadratic even though the discrete
+support is sparse. The candidate distinction of generalized Suwako is not a
+new Toeplitz solver, but the characteristic-two identity
+
+$$
+\rho(N)^{2^k}=\bigoplus_{t\in T}N^{2^k\Delta_t},
+$$
+
+which exposes the evolution of each occupied diagonal separately and leads to
+an exact complete-support cost rather than a bandwidth-only bound.
 
 ## LFSR Look-Ahead and Parallel Recurrences
 
@@ -100,6 +128,18 @@ regime, not as an independent novelty claim.  Its role is to identify the
 parameter region in which a bounded normalized feedback order is preferable to
 sparse Frobenius stages.
 
+Ho and Lee provide an even closer generic sparse baseline. They transform a
+sparse triangular system into a directed graph and solve it by edge
+elimination and recursive doubling, with reported worst-case
+\(O(\log^2 n)\) time on a CREW PRAM and \(O(\log m\log n)\) time for bandwidth
+\(m\) [14]. This rules out novelty claims based merely on applying recursive
+doubling to a sparse triangular dependency graph. Their bounds are expressed
+for general sparsity and bandwidth, however, rather than for the explicit
+support evolution available here: Frobenius powering retains one shifted
+diagonal per original tap without combinatorial support growth. Whether this
+distinction, together with the exact work expression below, is absent from
+prior sparse triangular solvers remains a source-level audit obligation.
+
 Parallel LFSR and CRC architectures supply a second relevant baseline.
 Ayinala and Parhi construct equivalent state-space formulations for all CRC
 and BCH generator polynomials, obtaining a full speed-up over a serial LFSR
@@ -124,7 +164,7 @@ produce long feedback chains [4].
 
 This is the principal classical baseline in the low-weight regime.  Both
 methods are correct for arbitrary binary monic moduli, but generalized Suwako
-uses sparsity to make its shift/XOR work favorable and preserves the serial
+uses sparse, support-sensitive shift/XOR stages and preserves the serial
 feedback traversal only in the baseline.  Generalized Suwako replaces this
 traversal by sparse stages at distances \(2^k\Delta_t\).  A final comparison
 must use a common representation and report separately: shift/XOR work,
@@ -132,6 +172,33 @@ sequential feedback depth, bounded-fan-in or gate depth where a circuit model
 is fixed, schedule setup, and storage.  A logarithmic feedback-stage count by
 itself does not establish a wall-clock speedup or an improvement to complete
 field multiplication.
+
+The work comparison must also be stated as a tradeoff rather than a universal
+improvement. In the top-down procedure, reducing an input of degree \(d\)
+applies one XOR for every non-leading tap at each of the \(d-m+1\) eliminated
+positions, giving the fixed circuit count
+
+$$
+(d-m+1)|T|.
+$$
+
+For a product of two degree-below-\(m\) polynomials this is at most
+\((m-1)|T|\), specializing to \(2m-2\) XORs for a trinomial and \(4m-4\) for a
+pentanomial. By contrast, the generalized-Suwako feedback stages cost
+
+$$
+W_{\mathrm{fb}}
+=\sum_k\sum_{t\in T}[m-2^k\Delta_t]_+,
+$$
+
+before the final low-part assembly is counted. This quantity is not uniformly
+smaller and can incur a logarithmic work factor in hostile small-gap regimes.
+The defensible claim is therefore an explicit work--feedback-depth tradeoff:
+the method pays a geometry-quantified amount of work to replace a potentially
+long serial dependency chain by
+\(\lceil\log_2(m/\Delta_{\min})\rceil\) sparse stages. Evaluation must report
+the regimes in which that exchange helps and the regimes in which ordinary
+top-down folding remains preferable.
 
 The current audit has not found a sparse-reduction result that derives the
 full active-tap work expression
@@ -143,6 +210,15 @@ $$
 
 or an equivalent exact work--depth geometry for a fixed-state, doubling-based
 reduction schedule.  This is a candidate theorem, not yet a priority claim.
+
+Parallel finite-field hardware also predates this work. Meher derives
+systolic and non-systolic polynomial-basis multipliers using modular reduction
+across multiple degrees, logic-level subexpression sharing, and balanced-tree
+organization [16]. This rules out broad claims of first multi-degree parallel
+reduction or first balanced XOR realization. The comparison still has to
+separate a fixed multiplier architecture and its logic synthesis from the
+uniform arbitrary-modulus schedule and complete tap-geometry analysis claimed
+here.
 
 ## Barrett and Montgomery Families
 
@@ -193,9 +269,10 @@ formulation:
 > that simultaneously treats arbitrary binary monic moduli; realizes the
 > resulting fixed-length reduction as support-sensitive sparse shift/XOR
 > stages; reduces its sequential feedback chain through a factored nilpotent
-> inverse without materializing a dense reciprocal or reduction matrix; and
-> gives an exact work--depth characterization in terms of the complete tap
-> geometry.
+> inverse without materializing a dense reciprocal or reduction matrix;
+> exposes the characteristic-two evolution of every occupied feedback
+> diagonal without combinatorial support growth; and gives an exact
+> work--depth characterization in terms of the complete tap geometry.
 
 This is not a claim that the Frobenius-doubling observation is new.  TePLAT
 already supplies its nearest known recurrence-level antecedent, and generic
@@ -239,6 +316,38 @@ The following additional audit entries complete the numbered list.
 - [9] H. Wu, ``Low Complexity Bit-Parallel Finite Field Arithmetic Using Polynomial Basis,'' *CHES 1999*, pp. 280--291. [Bibliographic record](https://dblp.org/rec/conf/ches/Wu99).
 
 - [10] M. Ayinala and K. K. Parhi, ``High-Speed Parallel Architectures for Linear Feedback Shift Registers,'' *IEEE Transactions on Signal Processing* 59(9), pp. 4459--4469, 2011, DOI: 10.1109/TSP.2011.2159495. [Institutional record](https://experts.umn.edu/en/publications/high-speed-parallel-architectures-for-linear-feedback-shift-regis/).
+
+- [11] S.-C. Chen and D. J. Kuck, ``Time and Parallel Processor Bounds for
+  Linear Recurrence Systems,'' *IEEE Transactions on Computers* C-24(7),
+  pp. 701--717, 1975, DOI: 10.1109/T-C.1975.224291.
+  [DBLP record](https://dblp.org/rec/journals/tc/ChenK75).
+
+- [12] M. Morf, ``Doubling Algorithms for Toeplitz and Related Equations,''
+  *Proceedings of ICASSP 1980*, pp. 954--959, DOI:
+  10.1109/ICASSP.1980.1171074.
+  [DBLP record](https://dblp.org/rec/conf/icassp/Morf80).
+
+- [13] D. Bini, ``Parallel Solution of Certain Toeplitz Linear Systems,''
+  *SIAM Journal on Computing* 13(2), pp. 268--276, 1984, DOI:
+  10.1137/0213019.
+  [Publisher record](https://epubs.siam.org/doi/10.1137/0213019).
+
+- [14] C.-W. Ho and R. C. T. Lee, ``A Parallel Algorithm for Solving Sparse
+  Triangular Systems,'' *IEEE Transactions on Computers* 39(6), pp. 848--852,
+  1990, DOI: 10.1109/12.53610.
+  [Institutional record](https://scholars.ncu.edu.tw/en/publications/a-parallel-algorithm-for-solving-sparse-triangular-systems/).
+
+- [15] B. J. Murphy, ``Acceleration of the Inversion of Triangular Toeplitz
+  Matrices and Polynomial Division,'' in *Computer Algebra in Scientific
+  Computing*, LNCS 6885, pp. 321--332, 2011, DOI:
+  10.1007/978-3-642-23568-9_25.
+  [DBLP record](https://dblp.org/rec/conf/casc/Murphy11).
+
+- [16] P. K. Meher, ``Systolic and Non-Systolic Scalable Modular Designs of
+  Finite Field Multipliers for Reed--Solomon Codec,'' *IEEE Transactions on
+  Very Large Scale Integration (VLSI) Systems* 17(6), pp. 747--757, 2009,
+  DOI: 10.1109/TVLSI.2008.2006080.
+  [Author manuscript](https://citeseerx.ist.psu.edu/document?doi=4c7d167f77e07c620d7b1f7c550e6f635277afc4).
 
 The bibliography above is a claim ledger rather than a final reference list.
 Before submission, verify the exact model and theorem used from each primary
