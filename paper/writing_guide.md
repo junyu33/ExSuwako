@@ -145,6 +145,8 @@ correctness checks, reduction microbenchmarks, and end-to-end workloads.
 No prior method has been found that simultaneously gives arbitrary-modulus
 correctness, sparse-support-sensitive work, logarithmic feedback depth, and a
 schedule derived without materializing a dense reciprocal or reduction matrix.
+The hostile prior-art audit is closed for this claim boundary; reopen it only
+if this boundary changes or a direct counterexample is identified.
 
 ### Gate 2: Theorems
 
