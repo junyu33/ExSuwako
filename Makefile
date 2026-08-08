@@ -24,6 +24,11 @@ serial-benchmark: $(TARGET)
 
 check: $(CHECK_TARGET)
 	$(CHECK_TARGET)
+	$(MAKE) check-theory
+
+check-theory:
+	$(PYTHON) tests/check_theory_round1_gf2.py
+	$(PYTHON) tests/check_theory_round2_algebras.py
 
 check-serial: check
 

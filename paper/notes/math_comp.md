@@ -134,9 +134,13 @@ be materialized.
 > D=\left\lceil\log_2\frac{m}{\delta}\right\rceil
 > $$
 >
-> sequential feedback stages, where \(\delta=\min_r d_r\).  Stage \(k\)
-> uses exactly the taps satisfying \(2^kd_r<m\), with coefficient
-> \(a_r^{2^k}\).
+> sequential feedback stages, where \(\delta=\min_r d_r\).  At stage \(k\),
+> the formal scheduled support is contained in
+> \(\{r:2^kd_r<m\}\), and its coefficient at tap \(r\) is
+> \(a_r^{2^k}\).  The actual nonzero support is
+> \(\{r:2^kd_r<m,\ a_r^{2^k}\ne0\}\).  If \(R\) is reduced (in
+> particular, if \(R\) is a field), these two supports coincide for the
+> initially nonzero coefficients.
 
 The theorem makes no field or irreducibility claim.  It is stronger and more
 accurate to say that characteristic two preserves *per-stage* tap sparsity
@@ -144,7 +148,9 @@ than to say that it makes a generic reciprocal sparse.
 
 ## Work and Depth Statements
 
-In a coefficient-operation model, applying the feedback factors has exact
+In the formal scheduled coefficient-operation model, which retains every
+geometrically surviving initial tap whether or not its later Frobenius
+coefficient vanishes, applying the feedback factors has exact
 position-weighted work
 
 $$
@@ -165,6 +171,10 @@ $$
 where the last bound uses distinct integer distances \(d_r\ge r\).  It
 includes the dense endpoint \(O(m^2)\), avoiding the artificial extra
 \(\log m\) factor caused by the coarser \(O(hm\log(m/\delta))\) bound.
+An implementation that eliminates zero Frobenius coefficients can use strictly
+less arithmetic work over a non-reduced coefficient algebra.  Over a reduced
+characteristic-two algebra, the displayed expression is also the exact
+nonzero-tap work.
 
 With bounded-fan-in additions, stage \(k\) has depth
 \(O(\log(1+h_k))\), where
@@ -211,6 +221,16 @@ This is a sound algebraic extension, but characteristic two is the principal
 algorithmic case: each factor is simply \(I+T^{2^k}\), without higher powers
 of \(T\) and their cross terms.
 
+For a full reduction statement in odd characteristic, retain the signs in the
+quotient identity:
+
+$$
+A-fY=L-S(Y)+x^m\bigl(H-Y-T(Y)\bigr).
+$$
+
+Thus \(H=(I+T)Y\) gives remainder \(L-S(Y)\); the binary formula
+\(L+S(Y)\) is its characteristic-two specialization.
+
 ### Commuting Block Taps
 
 The scalar proof extends to
@@ -256,8 +276,8 @@ classical reduction theorem.
 | Statement | Status |
 |---|---|
 | Monic reduction reduces to nilpotent feedback inversion | Ready to prove formally. |
-| Characteristic-two Frobenius factors retain per-stage tap count | Ready to prove formally. |
-| Exact geometry-sensitive work formula and its dense \(O(m^2)\) endpoint | Ready to prove formally after fixing the operation model. |
+| Characteristic-two Frobenius factors retain formal per-stage support; the nonzero support is exact over reduced algebras | Ready to prove formally. |
+| Scheduled geometry-sensitive work formula and its dense \(O(m^2)\) endpoint | Ready to prove formally after fixing the operation model. |
 | Generic bounded-fan-in depth lower bound | Plausible proof target; state only with the generic-coefficient model. |
 | Positive-characteristic and commuting-block generalisations | Algebraically plausible; retain as corollaries after full proof checking. |
 | Linear-size reversible circuits for all fixed-weight tap geometries | Open; do not claim. |
