@@ -1,0 +1,540 @@
+\documentclass{mcom-l}
+\issueinfo{00}{0}{Xxxx}{XXXX}
+
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\Ftwo}{\mathbb{F}_2}
+\newcommand{\poly}{\Ftwo[x]}
+\newcommand{\Dmin}{\Delta_{\min}}
+\newcommand{\Wfb}{W_{\mathrm{fb}}}
+\newcommand{\drafttodo}[1]{%
+  \par\smallskip\noindent\textbf{[TODO]} \emph{#1}\par\smallskip}
+\newcommand{\prooftodo}{%
+  \par\smallskip\noindent\textbf{[Proof TODO.] }%
+  Complete the formal proof and audit all boundary cases.\par\smallskip}
+\newcommand{\placeholderbox}[1]{%
+  \begin{center}
+    \fbox{\parbox{0.90\linewidth}{\centering\textbf{Placeholder.} #1}}
+  \end{center}}
+
+\title[Generalized Suwako Reduction]{Generalized Suwako:\
+Sparse Modular Reduction with Logarithmic Feedback Depth}
+
+% TODO: Replace all author metadata before circulation.
+\author{Author Name}
+\address{Institution and postal address}
+\email{author@example.org}
+\subjclass[2020]{Primary 11T06; Secondary 12Y05, 68W10, 68W40}
+\keywords{binary polynomials, modular reduction, finite fields,
+sparse polynomials, Frobenius map, parallel algorithms}
+
+\begin{document}
+
+\begin{abstract}
+Polynomial modular reduction is a basic operation in binary finite-field
+arithmetic and in computational-algebra workloads based on repeated Frobenius
+powers.  For a sparse modulus, conventional top-down folding retains sparse
+shift/XOR work, but its dependency chain can be long when a nonleading term is
+close to the leading term.  We study a different schedule obtained by
+expressing the high-part recurrence as the inverse of a nilpotent feedback
+operator.  In characteristic two, this inverse factors into Frobenius powers
+whose individual supports remain controlled by the original tap set.  The
+result is a matrix-free reduction method with an exact feedback-stage count
+and a scheduled-work expression governed by the complete tap geometry.
+
+\drafttodo{Replace this paragraph with the final proved complexity statement,
+matched reduction results, and one end-to-end repeated-squaring,
+irreducibility-testing, or factorization result.  Include the platform,
+parameter range, strongest baselines, and losing regions.}
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+Arithmetic in a polynomial-basis representation of a binary extension field
+reduces products and squares modulo a monic polynomial.  The same operation
+appears in polynomial factorization, irreducibility testing, and searches for
+sparse irreducible or primitive polynomials.  In these settings the modulus is
+public and often fixed for many reductions, but the useful degree, support,
+and setup-amortization regimes vary substantially.
+
+When the nonleading part is sparse, top-down folding uses little setup and can
+be extremely effective.  Its work and latency, however, are controlled by
+different geometric features.  Hamming weight controls how many shifts and
+XORs one fold introduces, whereas the distance from the leading term to the
+nearest internal tap controls how far feedback can propagate.  Equal-degree,
+equal-weight moduli may therefore induce very different dependency chains.
+
+Barrett and Montgomery reduction avoid this particular serial recurrence, but
+introduce multiplication kernels, modulus-dependent constants, and different
+setup costs.  Reciprocal methods and dense linear maps expose additional
+parallelism, but do not automatically preserve sparse support.  We ask whether
+the sparse feedback chain can be shortened without first materializing a dense
+reciprocal or reduction matrix.
+
+For an input of degree below twice the modulus degree, reduction gives a
+finite forced recurrence.  We write it as $(I+U)Y=H$ for a truncated shift
+operator $U$.  Characteristic two gives
+\begin{equation}
+  (I+U)^{-1}=\prod_{k=0}^{r-1}(I+U^{2^k}),
+  \qquad
+  r=\left\lceil\log_2\frac{m}{\Dmin}\right\rceil,
+  \label{eq:intro-factorization}
+\end{equation}
+once $U^{2^r}=0$.  Each Frobenius power doubles the original tap distances.
+Mixed feedback paths arise through composition across stages rather than by
+expanding a dense reciprocal inside one stage.
+
+The intended contributions are: (i) a nilpotent-feedback formulation for any
+monic binary modulus; (ii) a sparse characteristic-two factorization;
+(iii) exact work--feedback-depth geometry; (iv) a matched implementation
+study; and (v) evaluation in repeated modular squaring and one complete
+computational-algebra workload.
+
+\drafttodo{Items (i)--(iii) remain candidate theorem claims until the proof
+and cost-model audit is complete.  Items (iv)--(v) remain planned until the
+experiments in Sections~\ref{sec:evaluation} and~\ref{sec:consequences} are
+complete.  Delete unsupported contributions.}
+
+Correctness does not require irreducibility; sparsity is a performance
+condition rather than an applicability condition.  We do not identify
+feedback depth with Boolean gate depth, claim an unconditional improvement to
+complete field multiplication, or infer a side-channel result from a public
+fixed schedule alone.
+
+Sections~\ref{sec:preliminaries}--\ref{sec:paradigms} fix the problem and
+comparison models.  Sections~\ref{sec:operators}--\ref{sec:complexity} develop
+the method and analysis.  Section~\ref{sec:related} states the prior-art
+boundary.  Sections~\ref{sec:evaluation} and~\ref{sec:consequences} contain the
+implementation and application evidence, and Section~\ref{sec:conclusion}
+concludes.
+
+\section{Preliminaries and Cost Models}
+\label{sec:preliminaries}
+
+Let
+\begin{equation}
+  g(x)=x^m+q(x)=x^m+\bigoplus_{t\in T}x^t\in\poly,
+  \qquad T\subseteq\{0,\ldots,m-1\},
+  \label{eq:modulus}
+\end{equation}
+be monic, and set $h=1+|T|$.  For $t\in T$, define
+$\Delta_t=m-t$.  If a positive-degree tap exists, let
+\begin{equation}
+  \Dmin=\min\{\Delta_t:t\in T,\ t>0\}.
+\end{equation}
+Otherwise the feedback operator below is zero.  A constant tap participates
+in final low-part assembly but not in high-part feedback.
+
+Identify degree-below-$m$ polynomials with vectors in $\Ftwo^m$.  Let $N$ be
+the truncated right shift
+\begin{equation}
+  (N^d y)_i=\begin{cases}y_{i+d},&0\le i<m-d,\\0,&m-d\le i<m,
+  \end{cases}
+  \qquad N^m=0.
+\end{equation}
+
+For $A\in\poly$ with $\deg A<2m$, write
+\begin{equation}
+  A=L+x^mH,
+  \qquad \deg L,\deg H<m.
+  \label{eq:low-high}
+\end{equation}
+For degree-below-$m$ input $Y$, define linear maps $V$ and $U$ by
+\begin{equation}
+  qY=V(Y)+x^mU(Y),
+  \qquad
+  U=\sum_{\substack{t\in T\\t>0}}N^{\Delta_t}.
+  \label{eq:UV}
+\end{equation}
+Monicity is sufficient for a unique remainder; irreducibility is required only
+when the quotient is intended to be a field.
+
+We distinguish scheduled coefficient work, machine-word work, feedback depth,
+bounded-fan-in gate depth, setup, and temporary space.  Scheduled coefficient
+work is neither an instruction count nor a minimal XOR-circuit count.  Machine
+latency and throughput are measured under a fixed platform and timed boundary.
+
+\drafttodo{Freeze the word-operation model, representation, top-word masking,
+allocation boundary, and setup-amortization policy.}
+
+\section{Existing Reduction Paradigms}
+\label{sec:paradigms}
+
+Serial folding repeatedly eliminates high terms through the sparse support.
+It has low setup, but a tap at distance $\Dmin$ can create on the order of
+$m/\Dmin$ dependent folds.  Fixed trinomial and pentanomial formulae,
+generated code, and L\'opez--Dahab reduction can be stronger under their
+family assumptions~\cite{LopezDahab2000}.
+
+Dense linear maps and generic parallel division expose a different tradeoff.
+Polynomial division can be reduced to triangular Toeplitz or reciprocal
+inversion~\cite{BiniPan1985}.  Barrett and Montgomery replace serial folding
+with products and modulus-dependent constants.  Their machine cost cannot be
+deduced from sparse shift/XOR counts.
+
+\begin{table}[t]
+\caption{Reduction-family comparison contract.}
+\label{tab:families}
+\centering
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Method & Modulus class & Main work & Setup & Main risk\\
+\midrule
+Serial folding & arbitrary sparse & shifts/XORs & low & long feedback\\
+Specialized folding & fixed family & generated code & code & nonuniform\\
+Generalized Suwako & arbitrary monic & sparse factors & schedule & traffic\\
+Dense linear map & arbitrary fixed & XOR network & matrix & storage\\
+Barrett/Montgomery & general/restricted & products & constants & multiply cost\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\drafttodo{Replace qualitative entries with model-consistent proved bounds.
+Keep measured times in separate tables.}
+
+\section{Sparse Feedback Operators}
+\label{sec:operators}
+
+\begin{lemma}[Low/high decomposition]
+\label{lem:decomposition}
+For~\eqref{eq:low-high} and~\eqref{eq:UV},
+\begin{equation}
+  A-gY=L+V(Y)+x^m\bigl(H+Y+U(Y)\bigr).
+\end{equation}
+Consequently, if $H=(I+U)Y$, then $A\bmod g=L+V(Y)$.
+\end{lemma}
+\begin{proof}
+Expand $A-(x^m+q)Y$ and use subtraction equals addition in characteristic two.
+\prooftodo
+\end{proof}
+
+\begin{lemma}[Sparse Frobenius powers]
+\label{lem:frobenius}
+For every $k\ge0$,
+\begin{equation}
+  U^{2^k}=\sum_{\substack{t\in T\\t>0}}N^{2^k\Delta_t},
+  \label{eq:frobenius}
+\end{equation}
+where shifts by at least $m$ are zero.
+\end{lemma}
+\begin{proof}
+The shifts commute, and characteristic-two Frobenius removes mixed binomial
+terms.  Truncation removes shifts of distance at least $m$.
+\prooftodo
+\end{proof}
+
+\begin{theorem}[Sparse feedback inverse]
+\label{thm:inverse}
+If $U=0$, then $(I+U)^{-1}=I$.  Otherwise, for
+\begin{equation}
+  r=\left\lceil\log_2\frac{m}{\Dmin}\right\rceil,
+  \label{eq:r}
+\end{equation}
+we have $U^{2^r}=0$ and
+\begin{equation}
+  (I+U)^{-1}=\prod_{k=0}^{r-1}(I+U^{2^k}).
+  \label{eq:inverse}
+\end{equation}
+\end{theorem}
+\begin{proof}
+Lemma~\ref{lem:frobenius} gives $U^{2^r}=0$.  Multiplication of the factors
+gives $(I+U)\prod_{k<r}(I+U^{2^k})=I+U^{2^r}=I$.
+\prooftodo
+\end{proof}
+
+This is a factored truncated reciprocal.  Formal-series inversion itself is
+classical~\cite{Kalorkoti1993}; the proposed contribution is the sparse
+fixed-length realization and its complete tap-geometry analysis.
+
+\section{Generalized Suwako Reduction}
+\label{sec:algorithm}
+
+For $0\le k<r$, define
+\begin{equation}
+  T_k=\{t\in T:t>0,\ 2^k\Delta_t<m\}.
+\end{equation}
+The public schedule stores shifts $2^k\Delta_t$ for $t\in T_k$ and the taps
+for final low assembly.
+
+\begin{quote}
+\textbf{Algorithm 1 (generalized Suwako reduction).}
+Split $A=L+x^mH$ and set $Y\leftarrow H$.  For $k=0,\ldots,r-1$, read one
+immutable stage input $Y_{\rm old}$ and compute synchronously
+\begin{equation*}
+  Y_{\rm new}=Y_{\rm old}
+  +\sum_{t\in T_k}N^{2^k\Delta_t}Y_{\rm old}.
+\end{equation*}
+Set $Y\leftarrow Y_{\rm new}$ and return $L+V(Y)$.
+\end{quote}
+
+An in-place tap loop that exposes updates within a stage computes a different
+recurrence.
+
+\begin{theorem}[Correctness]
+\label{thm:correctness}
+For every monic $g\in\poly$ of degree $m$ and every $A$ with $\deg A<2m$,
+Algorithm~1 returns $A\bmod g$.
+\end{theorem}
+\begin{proof}
+The stages apply Theorem~\ref{thm:inverse}, so
+$Y=(I+U)^{-1}H$.  Lemma~\ref{lem:decomposition} then identifies $L+V(Y)$ as
+the remainder.
+\prooftodo
+\end{proof}
+
+\begin{example}
+For $g=x^m+x^{m-d}+1$, feedback shifts are $d,2d,4d,\ldots$ while below $m$.
+The constant tap appears only in $V(Y)$.
+\end{example}
+
+\drafttodo{Add one complete multi-tap example and cover $q=0$,
+constant-only, constant-free, dense, reducible, and non-word-aligned cases.}
+
+\section{Work--Depth--Space Geometry}
+\label{sec:complexity}
+
+Let $h_k=|T_k|$.  Algorithm~1 has exactly
+$r=\lceil\log_2(m/\Dmin)\rceil$ feedback stages when $U\ne0$.  This is
+feedback depth, not gate depth.
+
+\begin{theorem}[Geometry-sensitive scheduled work]
+\label{thm:work}
+The feedback factors have scheduled coefficient work
+\begin{equation}
+  \Wfb=\sum_{\substack{t\in T\\t>0}}
+  \sum_{k\ge0}[m-2^k\Delta_t]_+,
+  \qquad [z]_+=\max\{z,0\}.
+  \label{eq:work}
+\end{equation}
+If $s$ is the number of positive-degree taps, then
+\begin{equation}
+  \Wfb<m\sum_{t>0}\left\lceil\log_2\frac{m}{\Delta_t}\right\rceil
+  =O\!\left(ms\left(1+\log\frac{m}{s}\right)\right).
+\end{equation}
+\end{theorem}
+\begin{proof}
+A shift by $2^k\Delta_t$ affects $[m-2^k\Delta_t]_+$ positions.  Sum over
+active taps and stages.  For the last bound, order the distinct distances and
+use that the $i$th smallest positive distance is at least $i$.
+\prooftodo
+\end{proof}
+
+Exact work depends on every tap distance, not only on $(h,\Dmin)$.  A portable
+synchronous implementation can use two $m$-bit buffers and a public schedule;
+generated code trades traversal for code size.
+
+\drafttodo{Prove exact space, schedule-size, setup-work, and generated-code
+bounds.  Derive word counts for width $W$, separating aligned, cross-word, and
+cross-vector shifts.  Either formalize the bounded-fan-in lower bound or omit
+it.}
+
+\section{Prior Art and Novelty Boundary}
+\label{sec:related}
+
+Reciprocal and triangular Toeplitz inversion for polynomial division are
+classical~\cite{BiniPan1985}, as are formal-power-series inversion
+\cite{Kalorkoti1993} and parallel recurrence methods~\cite{KoggeStone1973}.
+The inverse identity is not itself a novelty claim.  Sparse binary-field
+reduction includes strong specialized methods
+\cite{LopezDahab2000,NiehuesEtAl2018}; Barrett and Montgomery provide
+multiplication-based alternatives, including restricted precomputation-free
+families~\cite{KnezevicEtAl2008}.
+
+Repeated Frobenius powering in factorization gives the closest application
+context.  Von zur Gathen and Gerhard combine theory, implementation, storage,
+and complete factorization over $\Ftwo$~\cite{GathenGerhard2002}; irreducible
+polynomial construction gives another context~\cite{Shoup1990}.
+
+Our narrow boundary is the combination of arbitrary monic-modulus
+correctness, sparse support-sensitive factors, logarithmic feedback depth, no
+materialized dense reciprocal or matrix, and exact geometry from all tap
+distances.  We do not claim the first reciprocal, Frobenius identity, parallel
+recurrence solver, or balanced XOR realization.
+
+\drafttodo{Insert source-checked TePLAT, LFSR, CRC, prefix, and dense
+linear-circuit comparisons.  Verify all metadata against primary sources.}
+
+\section{Implementations and Evaluation}
+\label{sec:evaluation}
+
+Existing falsification suites compare with independent long division over
+$\Ftwo$ and separately test $\mathbb F_4$, the nonreduced algebra
+$\Ftwo[\varepsilon]/(\varepsilon^2)$, exhaustive support geometry, and an
+$\mathbb F_3$ sign check.  These tests can expose errors, but do not prove
+Theorem~\ref{thm:correctness}.
+
+The native API exposes generalized Suwako, serial folding, naive long
+division, and gf2x-backed Barrett under one contract.  Generalized Suwako and
+serial folding share the word-shift primitive.  Strong specialized reducers,
+dense reduction, and matched Montgomery reduction are added where applicable.
+
+\drafttodo{Record the experiment commit, commands, seeds, case counts, tap
+manifests, compiler, gf2x archive, platform, affinity/frequency policy, input
+distributions, timed boundaries, and setup policy.}
+
+\placeholderbox{Predicted stage count and active-tap work versus instrumented
+counts and cycles, including deviations from traffic, barriers, and alignment.}
+
+For fixed $m$, the planned phase diagram places Hamming weight $h$ horizontally
+and $m/\Dmin$ on a base-two logarithmic vertical axis.  Each support is colored
+by the matched winner among serial folding, generalized Suwako, and Barrett.
+
+\placeholderbox{Fixed-$m$ winner panels with median, p90, p99, uncertainty
+marks, complete tap manifests, and friendly and hostile supports.}
+
+\placeholderbox{Work--feedback-depth--setup Pareto map, fixed-gap and
+fixed-weight sweeps, and setup amortization over reductions per modulus.}
+
+\begin{table}[t]
+\caption{Reduction-only results; do not populate before the contract freezes.}
+\centering
+\begin{tabular}{@{}llllll@{}}
+\toprule
+Platform & $m$ & support family & winner & median cycles & setup policy\\
+\midrule
+\multicolumn{6}{c}{\textbf{TODO: matched experimental data}}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\drafttodo{Insert matched data and uncertainty treatment.  Preserve dense,
+small-degree, alignment-hostile, and specialized-baseline losing regions.}
+
+\section{Computational-Algebra Consequences and Limitations}
+\label{sec:consequences}
+
+Distinct-degree factorization, Rabin irreducibility testing, and sparse
+polynomial search repeatedly compute Frobenius powers.  A valid experiment
+must separate square formation, reduction, multiplication, and GCD cost before
+recombining them in a complete workload.  A high-monomial microbenchmark is
+not a square-shaped input distribution.
+
+\placeholderbox{Square formation, reduction, and complete modular-square
+breakdown for random and application-generated Frobenius-chain states.}
+
+\drafttodo{Implement the modular-square API and compare with the strongest
+general and applicable family-specific squarers.}
+
+The primary end-to-end candidate is a complete Rabin test, distinct-degree
+factorization kernel, primitive-polynomial certification, or sparse-polynomial
+search.  It must report early exits, candidate distribution, irreducibility
+provenance, and time fractions.  A second question asks whether, under a frozen
+objective, generalized Suwako changes the platform-optimal irreducible modulus.
+
+\begin{table}[t]
+\caption{End-to-end computational-algebra results.}
+\centering
+\begin{tabular}{@{}llllll@{}}
+\toprule
+Workload & degree & modulus family & reducer & total time & reduction share\\
+\midrule
+\multicolumn{6}{c}{\textbf{TODO: reproducible end-to-end data}}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\drafttodo{Populate only after independent state-by-state verification.  If a
+reduction gain vanishes end to end, report it.  Preserve modulus candidate
+sets and irreducibility certificates and state whether the winner changes.}
+
+Dense supports, small degrees, expensive cross-word shifts, and strong fixed
+reducers can make generalized Suwako unattractive.  Multiplication-based
+methods may dominate once fast polynomial multiplication is effective.  The
+reduction theorem does not establish a lower bound for every fixed modulus, a
+constant-time implementation, or an asymptotic improvement to complete field
+multiplication.
+
+\drafttodo{Replace generic limitations with measured boundaries and threats
+to validity for compiler, machine, sample size, distribution, and setup.}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This draft recasts binary polynomial reduction as inversion of a nilpotent
+feedback operator.  Characteristic-two Frobenius powers give a factored
+schedule with logarithmic feedback depth and work governed by the full sparse
+tap geometry, without first constructing a dense reciprocal or matrix.
+
+\drafttodo{Rewrite after the proof audit and experiments.  State actual
+winning and losing regions and the measured workload consequence.}
+
+\appendix
+
+\section{Coefficient-Algebra Extension}
+
+For a commutative characteristic-two algebra and
+$U=\sum_t a_tN^{\Delta_t}$,
+\begin{equation}
+  U^{2^k}=\sum_t a_t^{2^k}N^{2^k\Delta_t}.
+\end{equation}
+Formal scheduled support and actual nonzero support can differ over a
+nonreduced algebra such as $\Ftwo[\varepsilon]/(\varepsilon^2)$.
+
+\drafttodo{Insert the fully quantified proof.  Keep the odd-characteristic
+radix identity and the remainder sign $L-V(Y)$ separate.}
+
+\section{Validation and Additional Results}
+
+\drafttodo{Document seeds, exhaustive ranges, independent oracles, commands,
+complete tables, secondary platforms, setup/storage, generated code size,
+anomalies, and all losing regions.}
+
+\begin{thebibliography}{99}
+\bibitem{BiniPan1985}
+D.~Bini and V.~Pan, \emph{Fast parallel polynomial division via reduction to
+triangular Toeplitz matrix inversion and to polynomial inversion modulo a
+power}, Inform. Process. Lett. \textbf{21} (1985), no.~2.
+
+\bibitem{GathenGerhard2002}
+J.~von zur Gathen and J.~Gerhard, \emph{Polynomial factorization over
+$\mathbb F_2$}, Math. Comp. \textbf{71} (2002), no.~240, 1677--1698,
+\url{https://doi.org/10.1090/S0025-5718-02-01421-7}.
+
+\bibitem{Kalorkoti1993}
+K.~S.~K. Kalorkoti, \emph{Inverting polynomials and formal power series},
+SIAM J. Comput. \textbf{22} (1993), no.~3,
+\url{https://doi.org/10.1137/0222037}.
+
+\bibitem{KnezevicEtAl2008}
+M.~Knezevic, K.~Sakiyama, J.~Fan, and I.~Verbauwhede, \emph{Modular reduction
+in $\operatorname{GF}(2^n)$ without pre-computational phase}, WAIFI 2008,
+LNCS 5130, Springer, 2008, pp.~77--87.
+
+\bibitem{KoggeStone1973}
+P.~M. Kogge and H.~S. Stone, \emph{A parallel algorithm for the efficient
+solution of a general class of recurrence equations}, IEEE Trans. Comput.
+\textbf{C-22} (1973), no.~8.
+
+\bibitem{LopezDahab2000}
+J.~L\'opez and R.~Dahab, \emph{High-speed software multiplication in
+$\mathbb F_{2^m}$}, Progress in Cryptology---INDOCRYPT 2000, LNCS 1977,
+Springer, 2000.
+
+\bibitem{NiehuesEtAl2018}
+L.~Boppre Niehues, R.~Custodio, and D.~Panario, \emph{Fast modular reduction
+and squaring in $\operatorname{GF}(2^m)$}, Inform. Process. Lett.
+\textbf{132} (2018), \url{https://doi.org/10.1016/j.ipl.2017.12.002}.
+
+\bibitem{Shoup1990}
+V.~Shoup, \emph{New algorithms for finding irreducible polynomials over finite
+fields}, Math. Comp. \textbf{54} (1990), no.~189, 435--447,
+\url{https://doi.org/10.1090/S0025-5718-1990-0993933-0}.
+\end{thebibliography}
+
+\end{document}

@@ -27,6 +27,24 @@ Treat the following files as the local writing references:
 - `paper/exp_todo.md`: sole authoritative experimental execution checklist;
 - `README.md`: current notation, scope, and conservative research status.
 
+## LaTeX Source and Overleaf Boundary
+
+For LaTeX manuscript edits, use `paper/ExSuwako/main.tex` as the sole editable
+source file. Read and write that local filesystem path only.
+
+- Do not edit an `overleaf-workshop://` virtual document or treat a server-view
+  editor buffer as the local source of truth.
+- Do not create or maintain `paper/main.tex` or another parallel manuscript
+  source as part of the editing workflow.
+- Do not modify the Overleaf database or server-side project state to propagate
+  an ordinary manuscript edit.
+- After finishing the local edit, report that `paper/ExSuwako/main.tex` is ready
+  for synchronization. The user handles synchronization from the remote server
+  view and uses that view for remote compilation.
+- A successful local edit does not imply that the remote project has already
+  received it. Keep local validation and remote synchronization/compilation as
+  separate states in the handoff.
+
 Do not copy sentences, distinctive phrasing, or paper-specific claims from the
 PDFs. Transfer their organization, tone, level of explanation, and transition
 logic only.
@@ -43,6 +61,8 @@ logic only.
 4. Draft in the section-specific style below.
 5. Check formulas, cross-references, terminology, and claim strength.
 6. Run `git diff --check` and report any unverified claims or missing evidence.
+   For LaTeX edits, explicitly report that the local
+   `paper/ExSuwako/main.tex` is ready for the user's server-view sync.
 
 ## Three Writing Rules
 

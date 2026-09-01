@@ -42,6 +42,7 @@ Use *feedback depth* unless a Boolean gate model is explicitly fixed.
 
 | Topic | Canonical working document | Role |
 |---|---|---|
+| Full manuscript skeleton | [骨架.md](骨架.md) | Expandable Math. Comp. section scaffold; subordinate to this guide. |
 | Abstract and introduction | [sections/intro_draft.md](sections/intro_draft.md) | Narrative draft; finalize last. |
 | Algebra, theorems, and complexity | [notes/math_comp.md](notes/math_comp.md) | Mathematical core and claim ledger. |
 | Technical body assembly | [sections/technical_body.md](sections/technical_body.md) | Manuscript section plan and proof interfaces. |
