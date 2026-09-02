@@ -344,12 +344,22 @@ build/reduction_benchmark --taps 0,7,12 16 3 283 0x1
 The output is CSV with reduction-only timing in nanoseconds per input:
 
 ```text
-m,s,h,taps,Delta_min,GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,...
+m,s,h,taps,Delta_min,input_distribution,GS_ns,Serial_ns,Naive_ns,...
 ```
 
+The current reduction-only corpus is `uniform-full-range:v1`: it samples
+$A=L+x^mH$ with independent uniform $m$-bit $L,H$. Multiplication results,
+squares, and application states are subsets of this reduction domain, not
+different reduction APIs; they are considered separately only in complete
+arithmetic and end-to-end experiments. The contract is documented in
+[bench/native_benchmark.md](bench/native_benchmark.md#input-distribution-registry).
+
 For repeatable support suites, `phase_diagram_benchmark.py --manifest FILE`
-accepts JSON Lines records containing `sample_id`, `m`, and `taps`; the exact
-identifier and support are retained in its output CSV.
+accepts JSON Lines records containing `sample_id`, `provenance`, `m`, and
+`taps`. The driver retains the source fields and deterministically derives
+`s`, `h`, `Delta_min`, `feedback_stages`, `active_tap_counts`, and `W_fb` in
+its output CSV. Random-mode rows use provenance
+`synthetic-fixed-weight-uniform:v1` and seed-qualified sample identifiers.
 
 Setup, input generation, output allocation, correctness checks, and checksum
 consumption are outside the timed region. This is a steady-state fixed-modulus

@@ -15,6 +15,22 @@ folding, naive long division, and Barrett all expose the same timed
 input generation, output allocation, correctness checks, and checksum
 consumption are outside the timed region.
 
+## Input Distribution Registry
+
+Every result row carries an `input_distribution` label. The frozen names and
+mathematical contracts are:
+
+| Name | Input polynomial $A$ with $\deg A<2m$ | Status |
+|---|---|---|
+| `uniform-full-range:v1` | $A=L+x^mH$, where $L$ and $H$ are independent uniform $m$-bit polynomials | Implemented; primary reduction-only corpus |
+
+Polynomial multiplication results, polynomial squares, and application states
+are subsets of this same degree-below-$2m$ reduction domain; they do not define
+different reduction operations. They are introduced only by complete
+arithmetic or end-to-end experiments that include formation or workload costs.
+All reducers in one reduction-only comparison consume the same materialized
+`uniform-full-range:v1` inputs.
+
 The two Barrett products call the upstream `gf2x_mul` API. The reciprocal
 polynomial is precomputed outside the timed reduction path.
 
@@ -52,8 +68,8 @@ support occupies one field.
 For a versionable suite of exact supports, use a JSON Lines manifest:
 
 ```json
-{"sample_id":"k283-example","m":283,"taps":[0,7,12]}
-{"sample_id":"empty-283","m":283,"taps":[]}
+{"sample_id":"k283-example","provenance":"hand-constructed-example:v1","m":283,"taps":[0,7,12]}
+{"sample_id":"empty-283","provenance":"synthetic-boundary:v1","m":283,"taps":[]}
 ```
 
 ```text
@@ -64,10 +80,29 @@ python3 bench/scripts/phase_diagram_benchmark.py \
 ```
 
 Manifest taps obey the same canonical contract. `sample_id` must be nonempty
-and unique; the driver rejects unordered, duplicate, nonintegral, and
-out-of-range taps rather than normalizing them silently. Additional manifest
-metadata may be recorded in the source manifest, but is not yet propagated to
-the benchmark CSV.
+and unique, while `provenance` is a nonempty label for the modulus source or
+generation rule. The driver rejects unordered, duplicate, nonintegral, and
+out-of-range taps rather than normalizing them silently.
+
+The manifest stores only the source fields `sample_id`, `provenance`, `m`, and
+`taps`. The driver deterministically derives and emits `s`, `h`, `Delta_min`,
+`feedback_stages`, `active_tap_counts`, and `W_fb`; it also checks the native
+driver's `m`, `s`, `h`, taps, and `Delta_min` against those derived values.
+Here `active_tap_counts` serializes
+
+\[
+h_k=\#\{t\in T:2^k(m-t)<m\}
+\]
+
+with semicolons, and `W_fb` is
+\(\sum_{t,k}[m-2^k(m-t)]_+\). A zero-stage profile is written as `-`.
+Irreducibility is not part of this general reduction contract; field-level
+experiments must record it separately when their claims require it.
+
+The current native binary emits
+`input_distribution=uniform-full-range:v1`. Future complete-arithmetic or
+application drivers must name their own corpus without presenting it as a
+different reduction API.
 
 ## Shared Work--Feedback-Depth--Setup Tradeoff Map
 
@@ -87,6 +122,7 @@ instruction-count or minimum-XOR-circuit claim.  It must keep support geometry,
 input distribution, compiler, machine, seed, timing boundary, and multiplication
 backend with every row.  The existing
 `bench/scripts/phase_diagram_benchmark.py` supplies matched per-support timing
-rows and now records the exact support. Extend its output contract to include
-\(W_{\mathrm{fb}}\), setup timings, and \(K\)-amortized quantities before
-generating this map. No existing CSV is evidence for the map.
+rows and now records the exact support, active-tap profile, and
+\(W_{\mathrm{fb}}\). Extend its output contract to include setup timings and
+\(K\)-amortized quantities before generating this map. No existing CSV is
+evidence for the map.

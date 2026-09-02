@@ -12,14 +12,20 @@ from pathlib import Path
 from typing import Any
 
 
+CURRENT_INPUT_DISTRIBUTION = "uniform-full-range:v1"
+
+
 def validate_manifest_entry(value: Any, line_number: int) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"manifest line {line_number}: expected a JSON object")
     sample_id = value.get("sample_id")
+    provenance = value.get("provenance")
     m = value.get("m")
     taps = value.get("taps")
-    if not isinstance(sample_id, str) or not sample_id:
+    if not isinstance(sample_id, str) or not sample_id.strip():
         raise ValueError(f"manifest line {line_number}: invalid sample_id")
+    if not isinstance(provenance, str) or not provenance.strip():
+        raise ValueError(f"manifest line {line_number}: invalid provenance")
     if isinstance(m, bool) or not isinstance(m, int) or m <= 0:
         raise ValueError(f"manifest line {line_number}: m must be positive")
     if not isinstance(taps, list):
@@ -72,12 +78,93 @@ def exact_tap_argument(taps: list[int]) -> str:
     return ",".join(str(tap) for tap in taps) if taps else "-"
 
 
-def add_derived_fields(row: dict[str, object], sample_id: str) -> None:
+def serialized_taps(taps: list[int]) -> str:
+    return ";".join(str(tap) for tap in taps) if taps else "-"
+
+
+def parse_serialized_taps(value: str, m: int) -> list[int]:
+    if value == "-":
+        return []
+    try:
+        taps = [int(tap) for tap in value.split(";")]
+    except ValueError as error:
+        raise RuntimeError(f"benchmark emitted invalid taps: {value!r}") from error
+    previous = -1
+    for tap in taps:
+        if tap < 0 or tap >= m or tap <= previous:
+            raise RuntimeError(
+                f"benchmark emitted noncanonical taps for m={m}: {value!r}"
+            )
+        previous = tap
+    return taps
+
+
+def derive_geometry(m: int, taps: list[int]) -> dict[str, object]:
+    if not taps:
+        delta_min: int | None = None
+    else:
+        delta_min = min(m - tap for tap in taps)
+
+    active_counts: list[int] = []
+    scheduled_work = 0
+    scale = 1
+    while True:
+        active = [m - tap for tap in taps if scale * (m - tap) < m]
+        if not active:
+            break
+        active_counts.append(len(active))
+        scheduled_work += sum(m - scale * distance for distance in active)
+        scale *= 2
+
+    return {
+        "s": len(taps),
+        "h": len(taps) + 1,
+        "Delta_min": "NA" if delta_min is None else delta_min,
+        "log2_m_over_delta": (
+            "" if delta_min is None else math.log2(m / delta_min)
+        ),
+        "feedback_stages": len(active_counts),
+        "active_tap_counts": (
+            ";".join(str(count) for count in active_counts)
+            if active_counts
+            else "-"
+        ),
+        "W_fb": scheduled_work,
+    }
+
+
+def validate_benchmark_geometry(
+    row: dict[str, object], m: int, taps: list[int]
+) -> None:
+    geometry = derive_geometry(m, taps)
+    expected = {
+        "m": str(m),
+        "s": str(geometry["s"]),
+        "h": str(geometry["h"]),
+        "taps": serialized_taps(taps),
+        "Delta_min": str(geometry["Delta_min"]),
+    }
+    for field, value in expected.items():
+        if str(row.get(field)) != value:
+            raise RuntimeError(
+                f"benchmark geometry mismatch for {field}: "
+                f"expected {value!r}, got {row.get(field)!r}"
+            )
+    if row.get("input_distribution") != CURRENT_INPUT_DISTRIBUTION:
+        raise RuntimeError(
+            "benchmark emitted an unexpected input distribution: "
+            f"{row.get('input_distribution')!r}"
+        )
+
+
+def add_derived_fields(
+    row: dict[str, object], sample_id: str, provenance: str,
+    m: int, taps: list[int]
+) -> None:
+    validate_benchmark_geometry(row, m, taps)
     row["sample_id"] = sample_id
-    delta = str(row["Delta_min"])
-    row["log2_m_over_delta"] = (
-        "" if delta == "NA" else math.log2(int(str(row["m"])) / int(delta))
-    )
+    row["provenance"] = provenance
+    row.update(derive_geometry(m, taps))
 
 
 def main() -> None:
@@ -103,12 +190,17 @@ def main() -> None:
     rows: list[dict[str, object]] = []
     fields = [
         "sample_id",
+        "provenance",
         "m",
         "s",
         "h",
         "taps",
         "Delta_min",
         "log2_m_over_delta",
+        "feedback_stages",
+        "active_tap_counts",
+        "W_fb",
+        "input_distribution",
         "GS_ns",
         "Serial_ns",
         "Naive_ns",
@@ -154,13 +246,11 @@ def main() -> None:
                     f"expected one row for sample {entry['sample_id']!r}"
                 )
             row: dict[str, object] = dict(parsed[0])
-            expected_taps = ";".join(str(tap) for tap in taps) if taps else "-"
-            if row["taps"] != expected_taps:
-                raise RuntimeError(
-                    f"benchmark changed taps for sample {entry['sample_id']!r}"
-                )
             row["seed"] = c_seed
-            add_derived_fields(row, entry["sample_id"])
+            add_derived_fields(
+                row, entry["sample_id"], entry["provenance"],
+                entry["m"], taps
+            )
             rows.append(row)
             print(
                 f"sample={entry['sample_id']} m={row['m']} taps={row['taps']} "
@@ -188,8 +278,15 @@ def main() -> None:
             for parsed_row in parsed:
                 row = dict(parsed_row)
                 row["seed"] = c_seed
-                sample_id = f"random-m{args.m}-s{s}-{row['sample']}"
-                add_derived_fields(row, sample_id)
+                taps = parse_serialized_taps(str(row["taps"]), args.m)
+                sample_id = (
+                    f"random-m{args.m}-s{s}-seed{c_seed:016x}-"
+                    f"sample{row['sample']}"
+                )
+                add_derived_fields(
+                    row, sample_id, "synthetic-fixed-weight-uniform:v1",
+                    args.m, taps
+                )
                 rows.append(row)
                 print(
                     f"sample={sample_id} delta={row['Delta_min']} "

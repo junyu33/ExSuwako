@@ -8,6 +8,7 @@
 #include <time.h>
 
 static uint64_t rng_state;
+static const char *input_distribution = "uniform-full-range:v1";
 
 static uint64_t rng_next(void) {
     rng_state ^= rng_state << 7;
@@ -115,10 +116,10 @@ static char *serialize_taps(const size_t *taps, size_t count) {
     return result;
 }
 
-static void random_input(poly_t *input, size_t m) {
+/* Uniform A in the full 2m-bit reduction domain, equivalently A=L+x^m H. */
+static void uniform_full_range_input(poly_t *input, size_t m) {
     memset(input->v, 0, input->n * sizeof(word_t));
-    poly_set_bit(input, m + (size_t)(rng_next() % m));
-    for (size_t i = 0; i < m; ++i)
+    for (size_t i = 0; i < 2 * m; ++i)
         if (rng_next() & 1) poly_set_bit(input, i);
 }
 
@@ -256,6 +257,7 @@ int main(int argc, char **argv) {
     }
     if (supports <= 0 || inputs_count <= 0 || repeats <= 0)
         die("supports, inputs, and repeats must be positive");
+    if (seed == 0) die("seed must be nonzero for the xorshift generator");
 
     rng_state = seed;
     double *gs_samples = calloc((size_t)supports, sizeof(*gs_samples));
@@ -312,7 +314,7 @@ int main(int argc, char **argv) {
         if (!inputs) die("allocation failed");
         for (int i = 0; i < inputs_count; ++i) {
             inputs[i] = poly_new(input_words);
-            random_input(&inputs[i], m);
+            uniform_full_range_input(&inputs[i], m);
         }
 
         check_reducers(methods, method_count, inputs, (size_t)inputs_count);
@@ -336,7 +338,8 @@ int main(int argc, char **argv) {
         free(pool);
     }
 
-    printf("m,s,h,taps,Delta_min,GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
+    printf("m,s,h,taps,Delta_min,input_distribution,"
+           "GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
            "Serial/GS,Naive/GS,BarrettGF2X/GS,sample,seed\n");
     for (int trial = 0; trial < supports; ++trial) {
         double gs = gs_samples[trial];
@@ -346,8 +349,8 @@ int main(int argc, char **argv) {
         printf("%zu,%zu,%zu,%s,", m, s, s + 1, tap_values[trial]);
         if (has_delta[trial]) printf("%zu,", delta_values[trial]);
         else printf("NA,");
-        printf("%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
-               gs, serial, naive, barrett,
+        printf("%s,%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
+               input_distribution, gs, serial, naive, barrett,
                serial / gs, skip_naive ? 0.0 : naive / gs, barrett / gs,
                trial, (unsigned long long)seed);
         free(tap_values[trial]);

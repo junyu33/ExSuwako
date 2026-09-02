@@ -59,10 +59,10 @@ The following items describe code that exists, not completed paper evidence.
 - [ ] Promote the temporary square-input diagnostic into a versioned benchmark
       before citing any modular-squaring timing.
 
-The current reduction benchmark samples a random low half and only one set bit
-in the high half. This is a valid named input distribution, but it is not a
-model for modular squaring, a dense product, or a generic degree-below-$2m$
-input. Keep its results separate from the application experiments below.
+The current reduction benchmark samples uniformly from the full
+degree-below-$2m$ input domain. Multiplication results, polynomial squares, and
+application states are subsets of that domain; they become separate corpora
+only when complete formation or workload costs are part of the experiment.
 
 ## P0: Freeze the Experimental Contract
 
@@ -85,11 +85,17 @@ silent deduplication or normalization.
       explicitly and whether $h$ includes the leading term.
 - [x] Add an exact tap-list or manifest input mode; do not rely only on a seed
       to recover the tested modulus.
-- [ ] Emit the complete tap set, irreducibility status, provenance, $m$, $h$,
-      $\Delta_{\min}$, active-tap profile, and sample identifier.
-- [ ] Define and name each input distribution:
-      high monomial, random high half, multiplication product, polynomial
-      square, and application-generated state.
+- [x] Preserve the sample identifier, provenance, $m$, and complete tap set;
+      deterministically derive and emit $s$, $h$, $\Delta_{\min}$, feedback
+      stage count, active-tap profile, and scheduled work. Irreducibility is
+      not part of the general reduction contract and is recorded separately
+      only for field-level claims that require it.
+- [x] Freeze the reduction-only input domain and its primary distribution:
+      `uniform-full-range:v1` samples $A=L+x^mH$ for independent uniform
+      $m$-bit $L,H$. Multiplication results, squares, and application states
+      are subsets of the same reduction domain, not distinct reduction APIs;
+      they are named separately only by complete-arithmetic or end-to-end
+      experiments that include their formation or workload semantics.
 - [ ] Freeze the timed boundary for reduction-only, square formation,
       modular squaring, multiplication, and end-to-end workloads.
 - [ ] Freeze setup accounting: schedule generation, reciprocal generation,
@@ -102,8 +108,15 @@ silent deduplication or normalization.
 
 ## Gate 1: Correctness
 
-- [ ] Run make check from the experiment commit and archive its output.
-- [ ] Exhaust all tap sets and all inputs for small $m$ where feasible.
+- [ ] At the frozen experiment/artifact commit, run `make check` and archive
+      its complete output together with the environment metadata required by
+      Gate 6. Ordinary development commits do not independently reset this
+      item; rerun it after changes that affect algorithms, tests, toolchains,
+      or experimental semantics.
+- [x] Exhaust all tap sets and all inputs for small $m$ where feasible. For
+      $m\le6$, the GF(2) suite checks every monic binary modulus and every
+      input of degree below $2m$ against independent long division: 299,592
+      modulus/input pairs in total.
 - [x] Run the deterministic theorem-falsification suites through `make check`:
       20,000 GF(2) random trials with $m\le128$, 299,592 exhaustive binary
       modulus/input pairs for $m\le6$, 266,304 exhaustive dual-number cases
@@ -121,8 +134,10 @@ silent deduplication or normalization.
 - [ ] Verify that every generalized-Suwako stage reads one immutable old
       state across all active taps.
 - [ ] Test feedback closure and final low-part assembly independently.
-- [ ] Add differential tests for square-shaped and multiplication-shaped
-      inputs.
+- [x] Treat square-shaped and multiplication-shaped inputs as subsets of the
+      already tested degree-below-$2m$ reduction domain; no separate
+      reduction-correctness claim is attached to their origin. Formation and
+      complete-operation correctness remain in Gate 4A.
 - [ ] If the coefficient-algebra or positive-characteristic extensions are
       promoted beyond theorem statements, add small exact differential tests
       over at least one non-binary coefficient algebra; do not treat this as

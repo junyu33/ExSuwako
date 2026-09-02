@@ -145,6 +145,19 @@ and p99 rather than only the mean. Do not label this model "random
 polynomials" without specifying the fixed weight: unconstrained random
 polynomials are typically dense.
 
+The reduction-only input contract is:
+
+| Registry name | Definition | Current status |
+|---|---|---|
+| `uniform-full-range:v1` | $A=L+x^mH$ with independent uniform $m$-bit $L,H$ | implemented primary corpus |
+
+Multiplication results, polynomial squares, and application states are subsets
+of this same reduction domain. They are not distinct reduction operations and
+are separated only in complete-arithmetic or end-to-end experiments that also
+include formation or workload semantics. Each reduction result row records
+the registry name, and every matched reducer comparison uses the same
+materialized input corpus.
+
 For the algorithm-selection plots, use the modulus Hamming weight $h=s+1$ as
 the primary horizontal coordinate and report $s=|T|$ as the secondary support
 coordinate.  Use
@@ -176,6 +189,13 @@ theoretical coordinate as a complete implementation model.
 - temporary memory.
 - median, p90, and p99 for runtime, $\Delta_{\min}$, $D_{\mathrm{fb}}$, and
   $\sum_k h_k$.
+
+The modulus manifest preserves only the source fields `sample_id`,
+`provenance`, $m$, and the complete tap set. The experiment driver derives
+$s$, $h$, $\Delta_{\min}$, $D_{\mathrm{fb}}$, the complete $(h_k)$ profile,
+and $W_{\mathrm{fb}}$ from those fields and cross-checks the native output.
+Irreducibility metadata is required only for field-level experiments whose
+claims depend on it, not for general reduction correctness or timing.
 
 ### 9.4 Planned Figures
 

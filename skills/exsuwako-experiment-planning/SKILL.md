@@ -110,9 +110,10 @@ result. A software feedback stage is not a CNOT layer.
 
 - Treat native implementations as available code, not current evidence, until
   rerun from the experiment commit.
-- The existing reduction benchmark uses a named high-monomial input
-  distribution; do not use it as a proxy for polynomial squares or dense
-  products.
+- The reduction-only benchmark uses `uniform-full-range:v1` over the complete
+  degree-below-$2m$ domain. Multiplication results, squares, and application
+  states are subsets of that domain and become separate corpora only when
+  complete formation or workload costs are measured.
 - GS versus serial is the primary matched sparse-reduction comparison.
   Barrett, naive, dense, generated, and specialized reducers answer different
   baseline questions and must retain their setup assumptions.
@@ -124,9 +125,10 @@ result. A software feedback stage is not a CNOT layer.
 
 - Label every result as correctness, model validation, microbenchmark,
   complete arithmetic, end-to-end, or circuit-resource evidence.
-- Record command, commit, seed, full tap set, irreducibility status, input
-  distribution, repetitions, compiler, flags, linked gf2x path, machine, CPU
-  affinity, and timing boundary.
+- Record command, commit, seed, full tap set, input distribution, repetitions,
+  compiler, flags, linked gf2x path, machine, CPU affinity, and timing
+  boundary. Record irreducibility status and evidence only for field-level
+  claims that require them; general reduction does not assume irreducibility.
 - Show favorable, losing, and uncertain regimes.
 - Separate cycles, wall time, word work, XOR count, instruction count, CNOT
   count, gate depth, and ancilla count.
