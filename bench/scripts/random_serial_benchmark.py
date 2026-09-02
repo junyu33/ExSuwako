@@ -51,6 +51,9 @@ def main() -> None:
         row["Delta_min"] = statistics.median(
             int(sample["Delta_min"]) for sample in benchmark_rows
         )
+        # This driver aggregates several random supports into one row, so no
+        # single exact tap list represents the resulting median.
+        row.pop("taps", None)
         row.pop("sample", None)
         row["power"] = power
         row["seed"] = args.seed

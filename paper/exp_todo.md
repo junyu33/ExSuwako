@@ -83,7 +83,7 @@ silent deduplication or normalization.
 
 - [x] Freeze the tap convention, including whether the constant tap is listed
       explicitly and whether $h$ includes the leading term.
-- [ ] Add an exact tap-list or manifest input mode; do not rely only on a seed
+- [x] Add an exact tap-list or manifest input mode; do not rely only on a seed
       to recover the tested modulus.
 - [ ] Emit the complete tap set, irreducibility status, provenance, $m$, $h$,
       $\Delta_{\min}$, active-tap profile, and sample identifier.
@@ -113,9 +113,11 @@ silent deduplication or normalization.
       [round 2](../tests/check_theory_round2_algebras.py), and
       [validation record](raw/math_3.md).  This is computational
       falsification, not a proof.
-- [ ] Cover $\Delta_{\min}=1$, taps at both ends, mixed aligned and unaligned
+- [x] Cover $\Delta_{\min}=1$, taps at both ends, mixed aligned and unaligned
       shifts, dense supports, constant-free moduli, reducible moduli, and
-      non-word-aligned degrees.
+      non-word-aligned degrees. The deterministic native suite runs 10,000
+      stratified random full-input cases for $1\le m\le512$ in addition to
+      700 fixed-degree cases; failures print a directly reproducible case.
 - [ ] Verify that every generalized-Suwako stage reads one immutable old
       state across all active taps.
 - [ ] Test feedback closure and final low-part assembly independently.

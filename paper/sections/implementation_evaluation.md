@@ -79,7 +79,12 @@ The current validation record establishes agreement for the binary core by
 randomized and exhaustive tests, and separately tests the coefficient-algebra
 identity over GF(4) and \(\mathbb F_2[\varepsilon]/(\varepsilon^2)\).  These
 tests can falsify an implementation or a stated identity; they do not replace
-the correctness proof.
+the correctness proof. The portable-C differential suite additionally checks
+GS, serial folding, naive long division, and gf2x-backed Barrett on 700
+fixed-degree and 10,000 deterministic stratified-random cases with complete
+bitwise-random degree-below-$2m$ inputs. Its support profiles include the
+empty, sparse, dense, constant-free, endpoint, mixed-alignment, and
+unrestricted boundaries for $1\le m\le512$.
 
 **RQ2: Feedback chain.** Does latency scale with
 $1+\log(m/\Delta_{\min})$ rather than $m/\Delta_{\min}$?

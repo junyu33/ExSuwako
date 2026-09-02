@@ -26,16 +26,48 @@ make GF2X_PREFIX=/path/to/gf2x
 build/reduction_benchmark 12 64 5
 ```
 
-Arguments are `supports`, `inputs`, `repeats`, `m`, `s`, `seed`, and an
-optional `no-naive` flag. The output is reduction-only timing in nanoseconds
-per input. Correctness is checked across all enabled reducers before each timed
-trial.
+Random-mode arguments are `supports`, `inputs`, `repeats`, `m`, `s`, `seed`,
+and an optional `no-naive` flag. The output is reduction-only timing in
+nanoseconds per input. Correctness is checked across all enabled reducers
+before each timed trial.
 
 For a large `m` run that skips naive long division, pass the `no-naive` flag:
 
 ```text
 build/reduction_benchmark 6 8 5 1000000 8 0x9e3779b97f4a7c15 no-naive
 ```
+
+To benchmark one exact modulus support, use the canonical ascending tap list:
+
+```text
+build/reduction_benchmark --taps 0,7,12 8 5 283 0x1 no-naive
+```
+
+The exact-mode arguments are `--taps LIST`, `inputs`, `repeats`, `m`, `seed`,
+and the optional `no-naive` flag. `LIST` is comma-separated, strictly
+increasing, duplicate-free, and contains only exponents in `[0,m)`; use `-`
+for the empty support. The CSV serializes taps with semicolons so the complete
+support occupies one field.
+
+For a versionable suite of exact supports, use a JSON Lines manifest:
+
+```json
+{"sample_id":"k283-example","m":283,"taps":[0,7,12]}
+{"sample_id":"empty-283","m":283,"taps":[]}
+```
+
+```text
+python3 bench/scripts/phase_diagram_benchmark.py \
+  --binary build/reduction_benchmark \
+  --manifest supports.jsonl --output bench/data/exact.csv \
+  --inputs 8 --repeats 5 --seed 1 --no-naive
+```
+
+Manifest taps obey the same canonical contract. `sample_id` must be nonempty
+and unique; the driver rejects unordered, duplicate, nonintegral, and
+out-of-range taps rather than normalizing them silently. Additional manifest
+metadata may be recorded in the source manifest, but is not yet propagated to
+the benchmark CSV.
 
 ## Shared Work--Feedback-Depth--Setup Tradeoff Map
 
@@ -55,7 +87,6 @@ instruction-count or minimum-XOR-circuit claim.  It must keep support geometry,
 input distribution, compiler, machine, seed, timing boundary, and multiplication
 backend with every row.  The existing
 `bench/scripts/phase_diagram_benchmark.py` supplies matched per-support timing
-rows, but currently records only \(\Delta_{\min}\) and runtime ratios.  Extend
-its input/output contract (and the C driver if necessary) to record the exact
-support or \(W_{\mathrm{fb}}\), setup timings, and \(K\)-amortized quantities
-before generating this map.  No existing CSV is evidence for the map.
+rows and now records the exact support. Extend its output contract to include
+\(W_{\mathrm{fb}}\), setup timings, and \(K\)-amortized quantities before
+generating this map. No existing CSV is evidence for the map.

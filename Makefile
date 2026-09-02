@@ -22,8 +22,9 @@ $(CHECK_TARGET): $(CHECK_SOURCES) include/*.h
 
 serial-benchmark: $(TARGET)
 
-check: $(CHECK_TARGET)
+check: $(CHECK_TARGET) $(TARGET)
 	$(CHECK_TARGET)
+	$(PYTHON) tests/check_experiment_contract.py --binary $(TARGET)
 	$(MAKE) check-theory
 
 check-theory:

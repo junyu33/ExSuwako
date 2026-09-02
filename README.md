@@ -264,9 +264,13 @@ make check
 ```
 
 This builds and runs `tests/check_reduction.c`, which compares GS, serial,
-naive, and Barrett through the common `reduction_method` API on randomized
-sparse moduli and product-range inputs. It includes word-boundary degrees and
-forced $\Delta_{\min}=1$ cases.
+naive, and Barrett through the common `reduction_method` API. Its deterministic
+native suite includes 700 fixed-degree cases and 10,000 stratified random
+cases with bitwise-random inputs over the full degree-below-$2m$ range. The
+support profiles cover empty, sparse, dense, constant-free, endpoint,
+word-aligned/unaligned, and unrestricted tap sets for $1\le m\le512$; they
+include reducible moduli and forced $\Delta_{\min}=1$ cases. A mismatch prints
+the seed, degree, trial, complete taps, and input words.
 
 The older alias is kept for now:
 
@@ -323,19 +327,29 @@ Its arguments are:
 
 ```text
 supports inputs repeats m s seed [no-naive]
+--taps LIST inputs repeats m seed [no-naive]
 ```
+
+The first form samples random supports. The second benchmarks exactly one
+canonical support; `LIST` is an ascending, duplicate-free comma-separated tap
+list, or `-` for the empty support.
 
 Example:
 
 ```bash
 build/reduction_benchmark 4 16 3 1024 8 0x9e3779b97f4a7c15
+build/reduction_benchmark --taps 0,7,12 16 3 283 0x1
 ```
 
 The output is CSV with reduction-only timing in nanoseconds per input:
 
 ```text
-m,s,h,Delta_min,GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,...
+m,s,h,taps,Delta_min,GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,...
 ```
+
+For repeatable support suites, `phase_diagram_benchmark.py --manifest FILE`
+accepts JSON Lines records containing `sample_id`, `m`, and `taps`; the exact
+identifier and support are retained in its output CSV.
 
 Setup, input generation, output allocation, correctness checks, and checksum
 consumption are outside the timed region. This is a steady-state fixed-modulus
