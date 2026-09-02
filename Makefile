@@ -15,7 +15,7 @@ $(TARGET): $(BENCH_SOURCES) include/*.h
 	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ $(BENCH_SOURCES) \
 		-L$(GF2X_PREFIX)/lib -lgf2x
 
-$(CHECK_TARGET): $(CHECK_SOURCES) include/*.h
+$(CHECK_TARGET): $(CHECK_SOURCES) include/*.h tests/reduction_regressions.h
 	mkdir -p build
 	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
 		$(CHECK_SOURCES) -L$(GF2X_PREFIX)/lib -lgf2x

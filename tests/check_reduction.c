@@ -9,6 +9,17 @@ enum {
     RANDOM_MAX_DEGREE = 512,
 };
 
+typedef struct {
+    const char *id;
+    size_t m;
+    const size_t *taps;
+    size_t tap_count;
+    const size_t *input_bits;
+    size_t input_bit_count;
+} reduction_regression_case;
+
+#include "reduction_regressions.h"
+
 static uint64_t next_random(void) {
     check_rng ^= check_rng << 7;
     check_rng ^= check_rng >> 9;
@@ -169,31 +180,56 @@ static void check_methods(const reduction_method *methods,
     free(outputs);
 }
 
-static void check_case(size_t m, size_t trial, size_t *taps,
-                       size_t tap_count, const char *suite) {
+static void check_exact_input(size_t m, size_t trial, const size_t *taps,
+                              size_t tap_count, poly_t *input,
+                              const char *suite) {
     poly_t modulus = poly_from_exponents(m + 1, taps, tap_count);
     poly_set_bit(&modulus, m);
-    poly_t input = poly_new(poly_words_for_bits(2 * m));
-    random_input(&input, m);
 
     reduction_method methods[] = {
         reduction_make_gs(taps, tap_count, m),
         reduction_make_serial(taps, tap_count, m),
-        reduction_make_naive(&modulus, m, input.n),
+        reduction_make_naive(&modulus, m, input->n),
         reduction_make_barrett(&modulus, m),
     };
     size_t method_count = sizeof(methods) / sizeof(methods[0]);
-    check_methods(methods, method_count, &input, m, trial, taps, tap_count,
+    check_methods(methods, method_count, input, m, trial, taps, tap_count,
                   suite);
 
     for (size_t i = 0; i < method_count; ++i)
         reduction_method_destroy(&methods[i]);
-    poly_free(&input);
     poly_free(&modulus);
+}
+
+static void check_random_case(size_t m, size_t trial, size_t *taps,
+                              size_t tap_count, const char *suite) {
+    poly_t input = poly_new(poly_words_for_bits(2 * m));
+    random_input(&input, m);
+    check_exact_input(m, trial, taps, tap_count, &input, suite);
+    poly_free(&input);
+}
+
+static void check_regression_cases(void) {
+    size_t count = sizeof(reduction_regressions)
+                 / sizeof(reduction_regressions[0]);
+    for (size_t i = 0; i < count; ++i) {
+        const reduction_regression_case *test = &reduction_regressions[i];
+        poly_t input = poly_new(poly_words_for_bits(2 * test->m));
+        for (size_t bit = 0; bit < test->input_bit_count; ++bit) {
+            if (test->input_bits[bit] >= 2 * test->m)
+                die("regression input bit is outside the reduction domain");
+            poly_set_bit(&input, test->input_bits[bit]);
+        }
+        check_exact_input(test->m, i, test->taps, test->tap_count,
+                          &input, test->id);
+        poly_free(&input);
+    }
 }
 
 int main(void) {
     const size_t degrees[] = {8, 31, 64, 65, 127, 128, 257};
+
+    check_regression_cases();
 
     for (size_t mi = 0; mi < sizeof(degrees) / sizeof(degrees[0]); ++mi) {
         size_t m = degrees[mi];
@@ -204,7 +240,7 @@ int main(void) {
             if (!taps) die("allocation failed");
             choose_taps(taps, tap_count, m, (trial & 1) == 0);
 
-            check_case(m, trial, taps, tap_count, "fixed-degrees");
+            check_random_case(m, trial, taps, tap_count, "fixed-degrees");
             free(taps);
         }
     }
@@ -213,12 +249,13 @@ int main(void) {
         size_t m = 1 + (size_t)(next_random() % RANDOM_MAX_DEGREE);
         size_t tap_count;
         size_t *taps = choose_stress_taps(m, trial, &tap_count);
-        check_case(m, trial, taps, tap_count, "random-polynomials");
+        check_random_case(m, trial, taps, tap_count, "random-polynomials");
         free(taps);
     }
 
-    printf("reduction correctness: ok (%zu fixed-degree and %d random "
-           "full-input cases, seed=0x%016llx)\n",
+    printf("reduction correctness: ok (%zu regression, %zu fixed-degree and "
+           "%d random full-input cases, seed=0x%016llx)\n",
+           sizeof(reduction_regressions) / sizeof(reduction_regressions[0]),
            sizeof(degrees) / sizeof(degrees[0]) * FIXED_DEGREE_TRIALS,
            RANDOM_STRESS_TRIALS, (unsigned long long)check_seed);
     return EXIT_SUCCESS;

@@ -38,6 +38,7 @@ def check_exact_cli(binary: Path) -> None:
     )
     expected = {
         "m": "16",
+        "word_bits": "64",
         "s": "3",
         "h": "4",
         "taps": "0;3;7",
@@ -45,6 +46,7 @@ def check_exact_cli(binary: Path) -> None:
         "input_distribution": "uniform-full-range:v1",
         "timing_scope": "reduction-steady-state:v1",
         "setup_scope": "modulus-plan:v1",
+        "timing_order": "cyclic-method-rotation:v1",
     }
     for field, value in expected.items():
         if row[field] != value:
@@ -154,6 +156,24 @@ def check_manifest(binary: Path, driver: Path) -> None:
         if any(row["setup_scope"] != "modulus-plan:v1" for row in rows):
             raise AssertionError("setup scope was not preserved")
         if any(
+            row["timing_order"] != "cyclic-method-rotation:v1"
+            for row in rows
+        ):
+            raise AssertionError("timing order was not preserved")
+        if any(
+            row["aggregation"]
+            != "median-of-trial-medians:no-outlier-removal:v1"
+            for row in rows
+        ):
+            raise AssertionError("aggregation contract was not preserved")
+        if any(
+            (row["inputs"], row["batch_repeats"], row["warmup_runs"],
+             row["measurement_trials"], row["measurement_trial"])
+            != ("2", "1", "0", "1", "0")
+            for row in rows
+        ):
+            raise AssertionError("measurement parameters were not preserved")
+        if any(
             float(row[field]) < 0
             for row in rows
             for field in [
@@ -242,6 +262,81 @@ def check_manifest(binary: Path, driver: Path) -> None:
             "-seed" not in row["sample_id"] for row in random_rows
         ):
             raise AssertionError("random sample identifiers are not stable")
+
+        trial_output = root / "random-trials.csv"
+        trial_command = list(random_command)
+        trial_command[trial_command.index(str(random_output))] = str(trial_output)
+        trial_command.extend(
+            ["--warmup-runs", "1", "--measurement-trials", "3"]
+        )
+        run(trial_command)
+        with trial_output.open(newline="", encoding="utf-8") as stream:
+            trial_rows = list(csv.DictReader(stream))
+        if len(trial_rows) != 6:
+            raise AssertionError("measurement trials did not preserve raw rows")
+        trials_by_sample: dict[str, list[str]] = {}
+        for row in trial_rows:
+            trials_by_sample.setdefault(row["sample_id"], []).append(
+                row["measurement_trial"]
+            )
+            if (row["warmup_runs"], row["measurement_trials"]) != ("1", "3"):
+                raise AssertionError("trial metadata is incorrect")
+        if any(trials != ["0", "1", "2"] for trials in trials_by_sample.values()):
+            raise AssertionError("measurement-trial indices are incomplete")
+
+        repeated_output = root / "random-repeated.csv"
+        repeated_command = list(random_command)
+        repeated_command[repeated_command.index(str(random_output))] = str(
+            repeated_output
+        )
+        run(repeated_command)
+        with repeated_output.open(newline="", encoding="utf-8") as stream:
+            repeated_rows = list(csv.DictReader(stream))
+        deterministic_fields = [
+            "sample_id", "provenance", "m", "s", "h", "taps",
+            "Delta_min", "feedback_stages", "active_tap_counts", "W_fb",
+            "seed",
+        ]
+        if [
+            tuple(row[field] for field in deterministic_fields)
+            for row in random_rows
+        ] != [
+            tuple(row[field] for field in deterministic_fields)
+            for row in repeated_rows
+        ]:
+            raise AssertionError("identical driver seeds changed sampled cases")
+
+        regression_manifest = (
+            driver.parent.parent / "manifests" / "regression_supports.jsonl"
+        )
+        regression_output = root / "regression-supports.csv"
+        regression_command = [
+            sys.executable,
+            str(driver),
+            "--binary",
+            str(binary),
+            "--manifest",
+            str(regression_manifest),
+            "--output",
+            str(regression_output),
+            "--inputs",
+            "1",
+            "--repeats",
+            "1",
+            "--seed",
+            "17",
+            "--no-naive",
+        ]
+        run(regression_command)
+        with regression_output.open(newline="", encoding="utf-8") as stream:
+            regression_rows = list(csv.DictReader(stream))
+        if [row["sample_id"] for row in regression_rows] != [
+            "regression-empty-m1",
+            "regression-dense-m17",
+            "regression-word-boundary-m65",
+            "regression-constant-free-m127",
+        ]:
+            raise AssertionError("versioned regression manifest was not replayed")
 
 
 def main() -> None:

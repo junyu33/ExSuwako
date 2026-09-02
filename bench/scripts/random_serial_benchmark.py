@@ -30,9 +30,10 @@ def main() -> None:
         max_h = min(args.max_h, m + 1)
         h = rng.randint(3, max_h)
         s = h - 1
+        c_seed = rng.getrandbits(64) or 1
         command = [
             str(args.binary), str(args.supports), str(args.inputs),
-            str(args.repeats), str(m), str(s),
+            str(args.repeats), str(m), str(s), hex(c_seed),
         ]
         completed = subprocess.run(
             command, check=True, capture_output=True, text=True
@@ -58,7 +59,8 @@ def main() -> None:
         row.pop("taps", None)
         row.pop("sample", None)
         row["power"] = power
-        row["seed"] = args.seed
+        row["driver_seed"] = args.seed
+        row["seed"] = c_seed
         rows.append(row)
         print(
             f"m=2^{power} h={h} "
@@ -69,12 +71,12 @@ def main() -> None:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fields = [
-        "power", "m", "s", "h", "Delta_min", "input_distribution",
-        "timing_scope", "setup_scope", "GS_setup_ns", "Serial_setup_ns",
+        "power", "m", "word_bits", "s", "h", "Delta_min", "input_distribution",
+        "timing_scope", "setup_scope", "timing_order", "GS_setup_ns", "Serial_setup_ns",
         "Naive_setup_ns", "BarrettGF2X_setup_ns",
         "GS_ns", "Serial_ns", "Naive_ns",
         "BarrettGF2X_ns", "Serial/GS", "Naive/GS", "BarrettGF2X/GS",
-        "seed",
+        "driver_seed", "seed",
     ]
     with args.output.open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)

@@ -11,6 +11,7 @@ static uint64_t rng_state;
 static const char *input_distribution = "uniform-full-range:v1";
 static const char *timing_scope = "reduction-steady-state:v1";
 static const char *setup_scope = "modulus-plan:v1";
+static const char *timing_order = "cyclic-method-rotation:v1";
 
 typedef enum {
     REDUCER_GS,
@@ -194,60 +195,83 @@ static reduction_method make_reducer(reducer_kind kind, const size_t *taps,
  * while parsing, modulus materialization, teardown, and benchmark buffers are
  * excluded.
  */
-static double time_setup(reducer_kind kind, const size_t *taps,
-                         size_t tap_count, const poly_t *modulus, size_t m,
-                         size_t input_words, int repeats) {
-    double *samples = calloc((size_t)repeats, sizeof(*samples));
+static void time_setups_rotating(const reducer_kind *kinds,
+                                 size_t method_count, const size_t *taps,
+                                 size_t tap_count, const poly_t *modulus,
+                                 size_t m, size_t input_words, int repeats,
+                                 double *results) {
+    double *samples = calloc(
+        method_count * (size_t)repeats, sizeof(*samples));
     if (!samples) die("allocation failed");
 
     for (int repeat = 0; repeat < repeats; ++repeat) {
-        struct timespec start = monotonic_time();
-        reduction_method method = make_reducer(
-            kind, taps, tap_count, modulus, m, input_words);
-        samples[repeat] = elapsed_ns(start, monotonic_time());
-        reduction_method_destroy(&method);
+        for (size_t position = 0; position < method_count; ++position) {
+            size_t method = (position + (size_t)repeat) % method_count;
+            struct timespec start = monotonic_time();
+            reduction_method plan = make_reducer(
+                kinds[method], taps, tap_count, modulus, m, input_words);
+            samples[method * (size_t)repeats + (size_t)repeat] =
+                elapsed_ns(start, monotonic_time());
+            reduction_method_destroy(&plan);
+        }
     }
 
-    double result = median(samples, (size_t)repeats);
+    for (size_t method = 0; method < method_count; ++method)
+        results[method] = median(
+            &samples[method * (size_t)repeats], (size_t)repeats);
     free(samples);
-    return result;
 }
 
 /*
- * Steady-state reduction timing for one method.
+ * Steady-state reduction timing with cyclic method-order rotation.
  *
- * The method object owns all reducer-specific plan/scratch state. The timed
- * region contains only repeated calls to method->reduce_into(); setup,
- * allocation, correctness checks, and checksum consumption happen outside.
+ * On batch repeat r, timing starts with method r mod method_count and then
+ * wraps around. If repeats is divisible by method_count, every method occupies
+ * every timing position equally often. The timed region contains only calls
+ * to reduce_into(); setup, allocation, checks, and checksums remain outside.
  */
-static double time_reducer(const reduction_method *method,
-                           const poly_t *inputs, size_t count, int repeats) {
-    double *samples = calloc((size_t)repeats, sizeof(*samples));
-    poly_t *outputs = calloc(count, sizeof(*outputs));
+static void time_reducers_rotating(const reduction_method *methods,
+                                   size_t method_count, const poly_t *inputs,
+                                   size_t count, int repeats, double *results) {
+    double *samples = calloc(
+        method_count * (size_t)repeats, sizeof(*samples));
+    poly_t **outputs = calloc(method_count, sizeof(*outputs));
     if (!samples || !outputs) die("allocation failed");
-
-    for (size_t i = 0; i < count; ++i)
-        outputs[i] = poly_new(method->output_words);
-
-    for (int repeat = 0; repeat < repeats; ++repeat) {
-        struct timespec start = monotonic_time();
+    for (size_t method = 0; method < method_count; ++method) {
+        outputs[method] = calloc(count, sizeof(*outputs[method]));
+        if (!outputs[method]) die("allocation failed");
         for (size_t i = 0; i < count; ++i)
-            method->reduce_into(&inputs[i], method->context, &outputs[i]);
-        samples[repeat] = elapsed_ns(start, monotonic_time()) / (double)count;
-
-        word_t checksum = 0;
-        for (size_t i = 0; i < count; ++i) {
-            checksum ^= outputs[i].v[0];
-            checksum ^= outputs[i].v[outputs[i].n - 1];
-        }
-        benchmark_sink ^= checksum;
+            outputs[method][i] = poly_new(methods[method].output_words);
     }
 
-    double result = median(samples, (size_t)repeats);
-    for (size_t i = 0; i < count; ++i) poly_free(&outputs[i]);
+    for (int repeat = 0; repeat < repeats; ++repeat) {
+        for (size_t position = 0; position < method_count; ++position) {
+            size_t method = (position + (size_t)repeat) % method_count;
+            struct timespec start = monotonic_time();
+            for (size_t i = 0; i < count; ++i)
+                methods[method].reduce_into(
+                    &inputs[i], methods[method].context, &outputs[method][i]);
+            samples[method * (size_t)repeats + (size_t)repeat] =
+                elapsed_ns(start, monotonic_time()) / (double)count;
+
+            word_t checksum = 0;
+            for (size_t i = 0; i < count; ++i) {
+                checksum ^= outputs[method][i].v[0];
+                checksum ^= outputs[method][i].v[outputs[method][i].n - 1];
+            }
+            benchmark_sink ^= checksum;
+        }
+    }
+
+    for (size_t method = 0; method < method_count; ++method) {
+        results[method] = median(
+            &samples[method * (size_t)repeats], (size_t)repeats);
+        for (size_t i = 0; i < count; ++i)
+            poly_free(&outputs[method][i]);
+        free(outputs[method]);
+    }
     free(outputs);
     free(samples);
-    return result;
 }
 
 static void check_reducers(const reduction_method *methods, size_t method_count,
@@ -365,27 +389,25 @@ int main(int argc, char **argv) {
         poly_set_bit(&modulus, m);
 
         size_t input_words = poly_words_for_bits(2 * m);
-        gs_setup_samples[trial] = time_setup(
-            REDUCER_GS, taps, s, &modulus, m, input_words, repeats);
-        serial_setup_samples[trial] = time_setup(
-            REDUCER_SERIAL, taps, s, &modulus, m, input_words, repeats);
-        if (!skip_naive)
-            naive_setup_samples[trial] = time_setup(
-                REDUCER_NAIVE, taps, s, &modulus, m, input_words, repeats);
-        barrett_setup_samples[trial] = time_setup(
-            REDUCER_BARRETT, taps, s, &modulus, m, input_words, repeats);
+        reducer_kind kinds[4];
+        size_t method_count = 0;
+        kinds[method_count++] = REDUCER_GS;
+        kinds[method_count++] = REDUCER_SERIAL;
+        if (!skip_naive) kinds[method_count++] = REDUCER_NAIVE;
+        kinds[method_count++] = REDUCER_BARRETT;
+
+        double setup_timings[4] = {0};
+        time_setups_rotating(kinds, method_count, taps, s, &modulus, m,
+                             input_words, repeats, setup_timings);
+        gs_setup_samples[trial] = setup_timings[0];
+        serial_setup_samples[trial] = setup_timings[1];
+        if (!skip_naive) naive_setup_samples[trial] = setup_timings[2];
+        barrett_setup_samples[trial] = setup_timings[method_count - 1];
 
         reduction_method methods[4];
-        size_t method_count = 0;
-        methods[method_count++] = make_reducer(
-            REDUCER_GS, taps, s, &modulus, m, input_words);
-        methods[method_count++] = make_reducer(
-            REDUCER_SERIAL, taps, s, &modulus, m, input_words);
-        if (!skip_naive)
-            methods[method_count++] = make_reducer(
-                REDUCER_NAIVE, taps, s, &modulus, m, input_words);
-        methods[method_count++] = make_reducer(
-            REDUCER_BARRETT, taps, s, &modulus, m, input_words);
+        for (size_t method = 0; method < method_count; ++method)
+            methods[method] = make_reducer(
+                kinds[method], taps, s, &modulus, m, input_words);
 
         poly_t *inputs = calloc((size_t)inputs_count, sizeof(*inputs));
         if (!inputs) die("allocation failed");
@@ -396,15 +418,13 @@ int main(int argc, char **argv) {
 
         check_reducers(methods, method_count, inputs, (size_t)inputs_count);
 
-        gs_samples[trial] = time_reducer(
-            &methods[0], inputs, (size_t)inputs_count, repeats);
-        serial_samples[trial] = time_reducer(
-            &methods[1], inputs, (size_t)inputs_count, repeats);
-        if (!skip_naive)
-            naive_samples[trial] = time_reducer(
-                &methods[2], inputs, (size_t)inputs_count, repeats);
-        barrett_samples[trial] = time_reducer(
-            &methods[method_count - 1], inputs, (size_t)inputs_count, repeats);
+        double timings[4] = {0};
+        time_reducers_rotating(methods, method_count, inputs,
+                               (size_t)inputs_count, repeats, timings);
+        gs_samples[trial] = timings[0];
+        serial_samples[trial] = timings[1];
+        if (!skip_naive) naive_samples[trial] = timings[2];
+        barrett_samples[trial] = timings[method_count - 1];
 
         for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
         free(inputs);
@@ -415,7 +435,7 @@ int main(int argc, char **argv) {
         free(pool);
     }
 
-    printf("m,s,h,taps,Delta_min,input_distribution,timing_scope,setup_scope,"
+    printf("m,word_bits,s,h,taps,Delta_min,input_distribution,timing_scope,setup_scope,timing_order,"
            "GS_setup_ns,Serial_setup_ns,Naive_setup_ns,BarrettGF2X_setup_ns,"
            "GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
            "Serial/GS,Naive/GS,BarrettGF2X/GS,sample,seed\n");
@@ -424,12 +444,13 @@ int main(int argc, char **argv) {
         double serial = serial_samples[trial];
         double naive = naive_samples[trial];
         double barrett = barrett_samples[trial];
-        printf("%zu,%zu,%zu,%s,", m, s, s + 1, tap_values[trial]);
+        printf("%zu,%d,%zu,%zu,%s,", m, (int)(sizeof(word_t) * CHAR_BIT),
+               s, s + 1, tap_values[trial]);
         if (has_delta[trial]) printf("%zu,", delta_values[trial]);
         else printf("NA,");
-        printf("%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
+        printf("%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
                "%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
-               input_distribution, timing_scope, setup_scope,
+               input_distribution, timing_scope, setup_scope, timing_order,
                gs_setup_samples[trial], serial_setup_samples[trial],
                naive_setup_samples[trial], barrett_setup_samples[trial],
                gs, serial, naive, barrett,

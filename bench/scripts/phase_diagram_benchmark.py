@@ -15,6 +15,8 @@ from typing import Any
 CURRENT_INPUT_DISTRIBUTION = "uniform-full-range:v1"
 CURRENT_TIMING_SCOPE = "reduction-steady-state:v1"
 CURRENT_SETUP_SCOPE = "modulus-plan:v1"
+CURRENT_TIMING_ORDER = "cyclic-method-rotation:v1"
+CURRENT_AGGREGATION = "median-of-trial-medians:no-outlier-removal:v1"
 
 
 def validate_manifest_entry(value: Any, line_number: int) -> dict[str, Any]:
@@ -167,6 +169,11 @@ def validate_benchmark_geometry(
             "benchmark emitted an unexpected setup scope: "
             f"{row.get('setup_scope')!r}"
         )
+    if row.get("timing_order") != CURRENT_TIMING_ORDER:
+        raise RuntimeError(
+            "benchmark emitted an unexpected timing order: "
+            f"{row.get('timing_order')!r}"
+        )
     for field in [
         "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
         "BarrettGF2X_setup_ns",
@@ -209,9 +216,18 @@ def main() -> None:
     parser.add_argument("--samples", type=int, default=8)
     parser.add_argument("--inputs", type=int, default=8)
     parser.add_argument("--repeats", type=int, default=3)
+    parser.add_argument("--warmup-runs", type=int, default=0)
+    parser.add_argument("--measurement-trials", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--no-naive", action="store_true")
     args = parser.parse_args()
+
+    if args.inputs <= 0 or args.repeats <= 0:
+        raise ValueError("inputs and repeats must be positive")
+    if args.warmup_runs < 0 or args.measurement_trials <= 0:
+        raise ValueError(
+            "warmup-runs must be nonnegative and measurement-trials positive"
+        )
 
     rng = random.Random(args.seed)
     rows: list[dict[str, object]] = []
@@ -219,6 +235,7 @@ def main() -> None:
         "sample_id",
         "provenance",
         "m",
+        "word_bits",
         "s",
         "h",
         "taps",
@@ -230,6 +247,13 @@ def main() -> None:
         "input_distribution",
         "timing_scope",
         "setup_scope",
+        "timing_order",
+        "aggregation",
+        "inputs",
+        "batch_repeats",
+        "warmup_runs",
+        "measurement_trials",
+        "measurement_trial",
         "GS_setup_ns",
         "Serial_setup_ns",
         "Naive_setup_ns",
@@ -260,6 +284,23 @@ def main() -> None:
         )
         return list(csv.DictReader(completed.stdout.splitlines()))
 
+    def measured_runs(command: list[str]) -> list[tuple[int, dict[str, str]]]:
+        for _ in range(args.warmup_runs):
+            run(list(command))
+        result: list[tuple[int, dict[str, str]]] = []
+        for trial in range(args.measurement_trials):
+            for row in run(list(command)):
+                result.append((trial, row))
+        return result
+
+    def add_measurement_fields(row: dict[str, object], trial: int) -> None:
+        row["aggregation"] = CURRENT_AGGREGATION
+        row["inputs"] = args.inputs
+        row["batch_repeats"] = args.repeats
+        row["warmup_runs"] = args.warmup_runs
+        row["measurement_trials"] = args.measurement_trials
+        row["measurement_trial"] = trial
+
     if args.manifest is not None:
         for entry in load_manifest(args.manifest):
             c_seed = rng.getrandbits(64) or 1
@@ -273,24 +314,28 @@ def main() -> None:
                 str(entry["m"]),
                 hex(c_seed),
             ]
-            parsed = run(command)
-            if len(parsed) != 1:
+            measured = measured_runs(command)
+            if len(measured) != args.measurement_trials:
                 raise RuntimeError(
-                    f"expected one row for sample {entry['sample_id']!r}"
+                    f"expected {args.measurement_trials} rows for sample "
+                    f"{entry['sample_id']!r}"
                 )
-            row: dict[str, object] = dict(parsed[0])
-            row["seed"] = c_seed
-            add_derived_fields(
-                row, entry["sample_id"], entry["provenance"],
-                entry["m"], taps
-            )
-            rows.append(row)
-            print(
-                f"sample={entry['sample_id']} m={row['m']} taps={row['taps']} "
-                f"serial/GS={row['Serial/GS']} barrett/GS={row['BarrettGF2X/GS']}",
-                flush=True,
-            )
-            save_rows()
+            for trial, parsed_row in measured:
+                row: dict[str, object] = dict(parsed_row)
+                row["seed"] = c_seed
+                add_derived_fields(
+                    row, entry["sample_id"], entry["provenance"],
+                    entry["m"], taps
+                )
+                add_measurement_fields(row, trial)
+                rows.append(row)
+                print(
+                    f"sample={entry['sample_id']} trial={trial} m={row['m']} "
+                    f"taps={row['taps']} serial/GS={row['Serial/GS']} "
+                    f"barrett/GS={row['BarrettGF2X/GS']}",
+                    flush=True,
+                )
+                save_rows()
     else:
         for s in args.s:
             if not 0 <= s <= args.m:
@@ -305,10 +350,13 @@ def main() -> None:
                 str(s),
                 hex(c_seed),
             ]
-            parsed = run(command)
-            if len(parsed) != args.samples:
-                raise RuntimeError(f"expected {args.samples} rows for s={s}")
-            for parsed_row in parsed:
+            measured = measured_runs(command)
+            if len(measured) != args.samples * args.measurement_trials:
+                raise RuntimeError(
+                    f"expected {args.samples * args.measurement_trials} "
+                    f"rows for s={s}"
+                )
+            for trial, parsed_row in measured:
                 row = dict(parsed_row)
                 row["seed"] = c_seed
                 taps = parse_serialized_taps(str(row["taps"]), args.m)
@@ -320,9 +368,11 @@ def main() -> None:
                     row, sample_id, "synthetic-fixed-weight-uniform:v1",
                     args.m, taps
                 )
+                add_measurement_fields(row, trial)
                 rows.append(row)
                 print(
-                    f"sample={sample_id} delta={row['Delta_min']} "
+                    f"sample={sample_id} trial={trial} "
+                    f"delta={row['Delta_min']} "
                     f"serial/GS={row['Serial/GS']} "
                     f"barrett/GS={row['BarrettGF2X/GS']}",
                     flush=True,

@@ -345,7 +345,7 @@ The output is CSV with setup time per fresh plan and steady-state reduction
 time in nanoseconds:
 
 ```text
-m,s,h,taps,Delta_min,input_distribution,timing_scope,setup_scope,GS_setup_ns,...,GS_ns,...
+m,word_bits,s,h,taps,Delta_min,input_distribution,timing_scope,setup_scope,timing_order,GS_setup_ns,...,GS_ns,...
 ```
 
 The current reduction-only corpus is `uniform-full-range:v1`: it samples
@@ -355,6 +355,14 @@ $A=L+x^mH$ with independent uniform $m$-bit $L,H$. The contract is documented in
 The current timing scope is `reduction-steady-state:v1`: only batched
 `reduce_into()` calls are timed. Reducer setup, input generation, allocation,
 correctness checks, checksum consumption, and reporting remain outside.
+
+Paper-facing runs cyclically rotate method order within each native trial,
+using 12 batch repeats so three- and four-method runs are exactly balanced
+across timing positions. They preserve 31 independent native trial rows after one
+discarded warm-up and aggregate them by the median without outlier removal.
+Use `--warmup-runs 1 --measurement-trials 31`; the CSV records those counts,
+the inner batch-repeat count, input count, trial index, and aggregation
+contract. The native output also records the machine-word width.
 
 The setup scope is `modulus-plan:v1`. It separately measures fresh reusable
 plan construction from materialized $m$, taps, and $g$, including schedules,
@@ -369,6 +377,12 @@ accepts JSON Lines records containing `sample_id`, `provenance`, `m`, and
 `s`, `h`, `Delta_min`, `feedback_stages`, `active_tap_counts`, and `W_fb` in
 its output CSV. Random-mode rows use provenance
 `synthetic-fixed-weight-uniform:v1` and seed-qualified sample identifiers.
+
+Deterministic failures and anomalous supports are promoted into versioned
+regression inputs rather than left only in console output or local CSV. Native
+exact inputs live in `tests/reduction_regressions.h`; benchmark support cases
+live in `bench/manifests/regression_supports.jsonl`. Both are replayed by
+`make check`.
 
 Setup remains outside the steady-state reduction region and is reported in
 separate columns. Input generation, output allocation, correctness checks, and

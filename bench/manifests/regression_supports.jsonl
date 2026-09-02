@@ -1,0 +1,4 @@
+{"sample_id":"regression-empty-m1","provenance":"permanent-boundary-regression:v1","m":1,"taps":[]}
+{"sample_id":"regression-dense-m17","provenance":"permanent-boundary-regression:v1","m":17,"taps":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]}
+{"sample_id":"regression-word-boundary-m65","provenance":"permanent-boundary-regression:v1","m":65,"taps":[0,1,64]}
+{"sample_id":"regression-constant-free-m127","provenance":"permanent-boundary-regression:v1","m":127,"taps":[1,63,126]}

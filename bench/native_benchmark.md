@@ -46,6 +46,52 @@ operation.
 The two Barrett products call the upstream `gf2x_mul` API. The reciprocal
 polynomial is precomputed outside the timed reduction path.
 
+## Sampling and Stability Protocol
+
+One native invocation reports the median of `batch_repeats` timed batches.
+Within each setup and reduction repeat, the first measured method advances
+cyclically, so no reducer is permanently assigned to the cold/ramp-up or
+late/hot position.
+Choose a repeat count divisible by the number of enabled methods to balance
+every method across every position exactly; the frozen count of 12 works for
+both the three-method (`no-naive`) and four-method configurations. Every row
+records `timing_order=cyclic-method-rotation:v1`.
+For paper measurements, run one discarded whole-invocation warm-up followed
+by 31 independent measurement trials over the same materialized support and
+deterministically reproduced input corpus. Preserve all 31 rows, then report
+their median. Do not delete or winsorize outliers; report dispersion from the
+retained rows. Use a deterministic nonparametric bootstrap over the retained
+trial medians and mark a point uncertain when the relative half-width of its
+95% median confidence interval exceeds 1%; additional trials may narrow that
+interval, but must be retained and reported rather than replacing unfavorable
+measurements.
+
+The phase-diagram driver implements this protocol with
+`--warmup-runs 1 --measurement-trials 31`. Its default remains one trial so
+contract tests and exploratory runs stay short. Every raw row records
+`inputs`, `batch_repeats`, `warmup_runs`, `measurement_trials`, and
+`measurement_trial`, together with
+`aggregation=median-of-trial-medians:no-outlier-removal:v1`. The frozen
+paper-facing inner count is twelve batch repeats. A final run must retain the
+same input count across compared methods and record that count rather than
+hiding it in the aggregation step.
+
+On the primary machine, an exploratory calibration pinned to logical CPU 10
+split 310 independent runs into ten disjoint groups of 31. For the tested
+representative support under cyclic method rotation and 12 batch repeats, the
+group-median CV was 0.802% for GS, 0.148% for Serial, and 0.020% for Barrett.
+This calibrates the sampling rule; it is not a paper performance result and
+must be rerun on the final artifact commit. Measurements made under the old
+fixed GS--Serial--Naive--Barrett order are not comparable to this protocol.
+
+Primary-machine runs use GCC with
+`-O3 -std=c11 -Wall -Wextra`, 64-bit `word_t`, and the dynamically resolved
+gf2x shared library. Run the driver under `taskset` on one recorded logical
+CPU. Record the exact compiler version, linked gf2x path, CPU model and
+affinity, governor, energy-performance preference, and turbo state with the
+raw run. Do not pool rows collected under different compiler, linkage,
+affinity, or frequency policies.
+
 ## Setup-Accounting Registry
 
 Every row also carries `setup_scope=modulus-plan:v1`. Starting from already
@@ -80,6 +126,33 @@ dense-map reducer must count method-specific generation and allocation as
 setup, while reporting compilation time, generated code size, and stored-map
 size as separate quantities. None of those future baselines is currently
 measured.
+
+## Seed and Regression Registry
+
+The native xorshift generator is deterministic. Its nonzero C seed controls
+random support sampling and `uniform-full-range:v1` inputs and is emitted in
+every native CSV row. Artifact commands must pass the seed explicitly even
+when a driver has a deterministic default. The phase-diagram driver's Python
+seed deterministically generates nonzero per-invocation C seeds; every derived
+row preserves the actual C seed, exact taps, stable `sample_id`, and
+provenance. Repeating the same driver seed is contract-tested to reproduce all
+nontiming identity and geometry fields.
+
+Native correctness testing uses the fixed seed
+`0xd1b54a32d192ed03`; the theorem-falsification suites record their own fixed
+seeds in source and, where supported, output. A native mismatch prints its
+suite, seed, degree, trial, complete taps, compared methods, and exact
+little-endian input words.
+After minimizing a failure, encode its input as mathematical bit exponents in
+`tests/reduction_regressions.h`; `make check` replays that corpus before the
+random suites. Bit exponents keep the case independent of machine word width.
+
+Benchmark-only anomalous supports belong in
+`bench/manifests/regression_supports.jsonl` with a stable identifier and
+provenance. The manifest is replayed by the experiment contract test. Local
+timing CSV remains exploratory and ignored; do not promote environmental
+jitter into a modulus regression unless the exact support reproducibly
+triggers the anomaly under the frozen platform protocol.
 
 The benchmark requires a native gf2x installation. Set `GF2X_PREFIX` to its
 installation prefix and build with MinGW or GCC:
