@@ -1,4 +1,5 @@
 #include "barrett.h"
+#include "sparse_shift.h"
 
 /*
  * Barrett is the multiplication-based baseline. Its two products call
@@ -81,19 +82,18 @@ void barrett_reduce_into(const poly_t *c, barrett_plan *plan, poly_t *output) {
         die("Barrett output buffer is too small");
 
     /* small = q1, large = q1 * mu. */
-    memset(plan->small.v, 0, plan->small.n * sizeof(word_t));
-    poly_xor_right_shift(&plan->small, c, plan->m - 1);
+    sparse_assign_right_shift(
+        plan->small.v, plan->small.n, c, plan->m - 1);
     if (poly_mul_gf2x(&plan->large, &plan->small, plan->mu) != 0)
         die("gf2x q1*mu failed");
 
     /* Reuse small for q3, then overwrite large with q3 * modulus. */
-    memset(plan->small.v, 0, plan->small.n * sizeof(word_t));
-    poly_xor_right_shift(&plan->small, &plan->large, plan->m + 1);
+    sparse_assign_right_shift(
+        plan->small.v, plan->small.n, &plan->large, plan->m + 1);
     if (poly_mul_gf2x(&plan->large, &plan->small, plan->modulus) != 0)
         die("gf2x q3*modulus failed");
 
     /* q3 is dead; reuse small for the corrected remainder. */
-    memset(plan->small.v, 0, plan->small.n * sizeof(word_t));
     for (size_t i = 0; i < plan->small.n; ++i) {
         word_t x = i < c->n ? c->v[i] : 0;
         word_t y = i < plan->large.n ? plan->large.v[i] : 0;
@@ -103,10 +103,10 @@ void barrett_reduce_into(const poly_t *c, barrett_plan *plan, poly_t *output) {
     plan->small.v[plan->small.n - 1] &= keep_bits == WORD_BITS
         ? (word_t)~(word_t)0
         : ((word_t)1 << keep_bits) - 1;
-    while (poly_degree(&plan->small) >= (long)plan->m) {
-        size_t shift = (size_t)(poly_degree(&plan->small) - (long)plan->m);
-        poly_xor_left_shift(&plan->small, plan->modulus, shift);
-    }
+    size_t top_word = plan->m / WORD_BITS;
+    unsigned top_bit = (unsigned)(plan->m % WORD_BITS);
+    if ((plan->small.v[top_word] >> top_bit) & 1u)
+        poly_xor_left_shift(&plan->small, plan->modulus, 0);
 
     memcpy(output->v, plan->small.v,
            plan->output_words * sizeof(word_t));

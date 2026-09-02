@@ -9,6 +9,22 @@ typedef struct {
     unsigned bit_offset;
 } shift_desc;
 
+/* Assign dst <- src >> shift without a separate destination clear pass. */
+static inline void sparse_assign_right_shift(
+    word_t *dst, size_t dst_words, const poly_t *src, size_t shift)
+{
+    size_t word_offset = shift / WORD_BITS;
+    unsigned bit_offset = (unsigned)(shift % WORD_BITS);
+
+    for (size_t i = 0; i < dst_words; ++i) {
+        size_t source = i + word_offset;
+        word_t value = source < src->n ? src->v[source] >> bit_offset : 0;
+        if (bit_offset != 0 && source + 1 < src->n)
+            value ^= src->v[source + 1] << (WORD_BITS - bit_offset);
+        dst[i] = value;
+    }
+}
+
 static inline int shift_desc_compare(const void *left, const void *right) {
     const shift_desc *a = left;
     const shift_desc *b = right;

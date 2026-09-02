@@ -127,16 +127,17 @@ void serial_reduce_into(const poly_t *input, serial_plan *plan,
     if (output->n < plan->state_words)
         die("serial output buffer is too small");
 
-    /* R <- L. Clear extra output capacity so callers may safely reuse it. */
-    memset(output->v, 0, output->n * sizeof(word_t));
+    /* R <- L. Clear only capacity not overwritten by the copy. */
     size_t low_words = input->n < plan->state_words
         ? input->n : plan->state_words;
     memcpy(output->v, input->v, low_words * sizeof(word_t));
-    mask_top_word(output->v, plan->state_words, plan->m);
+    if (output->n > low_words)
+        memset(output->v + low_words, 0,
+               (output->n - low_words) * sizeof(word_t));
 
     /* Y <- H. Both state buffers are retained by the plan across calls. */
-    memset(plan->current.v, 0, plan->current.n * sizeof(word_t));
-    poly_xor_right_shift(&plan->current, input, plan->m);
+    sparse_assign_right_shift(
+        plan->current.v, plan->current.n, input, plan->m);
     mask_top_word(plan->current.v, plan->state_words, plan->m);
 
     size_t active_words = trim_high_zero_words(
@@ -144,7 +145,6 @@ void serial_reduce_into(const poly_t *input, serial_plan *plan,
     while (active_words) {
         serial_fold_step(output, plan->current.v, plan->next.v,
                          active_words, plan);
-        mask_top_word(output->v, plan->state_words, plan->m);
 
         word_t *swap = plan->current.v;
         plan->current.v = plan->next.v;
@@ -152,6 +152,7 @@ void serial_reduce_into(const poly_t *input, serial_plan *plan,
         active_words = trim_high_zero_words(
             plan->current.v, active_words);
     }
+    mask_top_word(output->v, plan->state_words, plan->m);
 }
 
 poly_t serial_reduce_planned(const poly_t *input, serial_plan *plan) {

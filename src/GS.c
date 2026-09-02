@@ -33,6 +33,7 @@ typedef struct {
     size_t offset;
     size_t count;
     size_t aligned_count;
+    size_t affected_words;
 } round_desc;
 
 struct gs_plan {
@@ -77,16 +78,7 @@ static size_t aligned_shift_count(const shift_desc *shifts, size_t count) {
  */
 static void extract_high_part(word_t *state, size_t state_words,
                               const poly_t *input, size_t m) {
-    size_t word_offset = m / WORD_BITS;
-    unsigned bit_offset = (unsigned)(m % WORD_BITS);
-
-    for (size_t dst = 0; dst < state_words; ++dst) {
-        size_t src = dst + word_offset;
-        word_t value = src < input->n ? input->v[src] >> bit_offset : 0;
-        if (bit_offset != 0 && src + 1 < input->n)
-            value ^= input->v[src + 1] << (WORD_BITS - bit_offset);
-        state[dst] = value;
-    }
+    sparse_assign_right_shift(state, state_words, input, m);
     state[state_words] = 0;
 }
 
@@ -154,23 +146,24 @@ static void feedback_stage_in_place(
     size_t state_words,
     const shift_desc *shifts,
     size_t shift_count,
-    size_t aligned_count)
+    size_t aligned_count,
+    size_t affected_words)
 {
     if (aligned_count == 0) {
-        for (size_t dst = 0; dst < state_words; ++dst)
+        for (size_t dst = 0; dst < affected_words; ++dst)
             state[dst] = feedback_unaligned_accumulate(
                 state, state_words, dst, shifts, shift_count, state[dst]);
         return;
     }
 
     if (aligned_count == shift_count) {
-        for (size_t dst = 0; dst < state_words; ++dst)
+        for (size_t dst = 0; dst < affected_words; ++dst)
             state[dst] = feedback_aligned_accumulate(
                 state, state_words, dst, shifts, shift_count, state[dst]);
         return;
     }
 
-    for (size_t dst = 0; dst < state_words; ++dst) {
+    for (size_t dst = 0; dst < affected_words; ++dst) {
         word_t acc = state[dst];
         size_t j = 0;
         while (j < shift_count) {
@@ -328,11 +321,13 @@ gs_plan *gs_plan_create(const size_t *taps, size_t s, size_t m) {
      */
     for (size_t factor = 1;; factor <<= 1) {
         size_t shift_count = 0;
+        size_t min_shift = m;
         for (size_t i = 0; i < s; ++i) {
             if (taps[i] == 0) continue;
             size_t delta = m - taps[i];
             if (factor > (m - 1) / delta) continue;
             size_t shift = factor * delta;
+            if (shift < min_shift) min_shift = shift;
             round_shifts[shift_count++] = (shift_desc){
                 shift / WORD_BITS,
                 (unsigned)(shift % WORD_BITS)
@@ -352,7 +347,8 @@ gs_plan *gs_plan_create(const size_t *taps, size_t s, size_t m) {
         plan->rounds = rounds;
         plan->feedback_shifts = feedback;
         plan->rounds[plan->round_count++] = (round_desc){
-            feedback_count, shift_count, aligned_count
+            feedback_count, shift_count, aligned_count,
+            poly_words_for_bits(m - min_shift)
         };
         memcpy(plan->feedback_shifts + feedback_count,
                round_shifts, shift_count * sizeof(*round_shifts));
@@ -405,7 +401,8 @@ void gs_reduce_into(const poly_t *input, gs_plan *plan, poly_t *output) {
             plan->state_words,
             plan->feedback_shifts + round->offset,
             round->count,
-            round->aligned_count);
+            round->aligned_count,
+            round->affected_words);
     }
 
     /* Return L + V(X). */
