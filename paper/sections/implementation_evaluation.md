@@ -35,8 +35,7 @@ Requirements:
 
 Generate active tap lists, unrolled stages, final low assembly, and optional
 in-place specializations. Iterate uniformly over $t\in T$; do not hard-code an
-extra XOR for $X$. The $t=0$ term is an ordinary low-assembly tap. Measure code
-size.
+extra XOR for $X$. Measure code size.
 
 ### 8.4 SIMD
 
@@ -48,9 +47,8 @@ Potential targets:
 - ARM SVE.
 
 Discuss cross-limb shifts, cross-vector shifts, XOR fan-in, memory traffic, and
-stage barriers. Distinguish $t=0$, which participates only in final low
-assembly, from $t>0$, which may participate in both feedback and low assembly.
-After $2^k(m-t)\ge m$, a tap is inactive in later feedback stages.
+stage barriers. A tap is inactive in a feedback stage whenever
+$2^k(m-t)\ge m$; the same rule applies uniformly to every exponent in $T$.
 
 ### 8.5 Baselines
 

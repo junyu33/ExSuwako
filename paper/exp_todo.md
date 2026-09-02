@@ -66,7 +66,22 @@ input. Keep its results separate from the application experiments below.
 
 ## P0: Freeze the Experimental Contract
 
-- [ ] Freeze the tap convention, including whether the constant tap is listed
+The frozen binary tap convention is
+
+$$
+g(x)=x^m+\sum_{t\in T}x^t,
+\qquad
+T\subseteq\{0,\ldots,m-1\}.
+$$
+
+`taps` is the complete, explicit, ascending list `sort(T)`. It excludes the
+leading exponent $m$, contains no duplicates, and may be empty. Set $s=|T|$
+and let $h=s+1$ be the Hamming weight of the complete monic modulus. Tap order
+has no mathematical meaning; sorting is the canonical serialized form. Native
+experiment inputs must already satisfy this convention rather than relying on
+silent deduplication or normalization.
+
+- [x] Freeze the tap convention, including whether the constant tap is listed
       explicitly and whether $h$ includes the leading term.
 - [ ] Add an exact tap-list or manifest input mode; do not rely only on a seed
       to recover the tested modulus.

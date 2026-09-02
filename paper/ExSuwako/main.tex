@@ -134,12 +134,11 @@ Let
   \label{eq:modulus}
 \end{equation}
 be monic, and set $h=1+|T|$.  For $t\in T$, define
-$\Delta_t=m-t$.  If a positive-degree tap exists, let
+$\Delta_t=m-t$.  If $T\ne\varnothing$, let
 \begin{equation}
-  \Dmin=\min\{\Delta_t:t\in T,\ t>0\}.
+  \Dmin=\min\{\Delta_t:t\in T\}.
 \end{equation}
-Otherwise the feedback operator below is zero.  A constant tap participates
-in final low-part assembly but not in high-part feedback.
+For $T=\varnothing$, the feedback operator below is zero and we set $r=0$.
 
 Identify degree-below-$m$ polynomials with vectors in $\Ftwo^m$.  Let $N$ be
 the truncated right shift
@@ -159,7 +158,7 @@ For degree-below-$m$ input $Y$, define linear maps $V$ and $U$ by
 \begin{equation}
   qY=V(Y)+x^mU(Y),
   \qquad
-  U=\sum_{\substack{t\in T\\t>0}}N^{\Delta_t}.
+  U=\sum_{t\in T}N^{\Delta_t}.
   \label{eq:UV}
 \end{equation}
 Monicity is sufficient for a unique remainder; irreducibility is required only
@@ -228,7 +227,7 @@ Expand $A-(x^m+q)Y$ and use subtraction equals addition in characteristic two.
 \label{lem:frobenius}
 For every $k\ge0$,
 \begin{equation}
-  U^{2^k}=\sum_{\substack{t\in T\\t>0}}N^{2^k\Delta_t},
+  U^{2^k}=\sum_{t\in T}N^{2^k\Delta_t},
   \label{eq:frobenius}
 \end{equation}
 where shifts by at least $m$ are zero.
@@ -267,7 +266,7 @@ fixed-length realization and its complete tap-geometry analysis.
 
 For $0\le k<r$, define
 \begin{equation}
-  T_k=\{t\in T:t>0,\ 2^k\Delta_t<m\}.
+  T_k=\{t\in T:2^k\Delta_t<m\}.
 \end{equation}
 The public schedule stores shifts $2^k\Delta_t$ for $t\in T_k$ and the taps
 for final low assembly.
@@ -300,7 +299,6 @@ the remainder.
 
 \begin{example}
 For $g=x^m+x^{m-d}+1$, feedback shifts are $d,2d,4d,\ldots$ while below $m$.
-The constant tap appears only in $V(Y)$.
 \end{example}
 
 \drafttodo{Add one complete multi-tap example and cover $q=0$,
@@ -317,14 +315,14 @@ feedback depth, not gate depth.
 \label{thm:work}
 The feedback factors have scheduled coefficient work
 \begin{equation}
-  \Wfb=\sum_{\substack{t\in T\\t>0}}
+  \Wfb=\sum_{t\in T}
   \sum_{k\ge0}[m-2^k\Delta_t]_+,
   \qquad [z]_+=\max\{z,0\}.
   \label{eq:work}
 \end{equation}
-If $s$ is the number of positive-degree taps, then
+If $s=|T|\ge1$, then
 \begin{equation}
-  \Wfb<m\sum_{t>0}\left\lceil\log_2\frac{m}{\Delta_t}\right\rceil
+  \Wfb<m\sum_{t\in T}\left\lceil\log_2\frac{m}{\Delta_t}\right\rceil
   =O\!\left(ms\left(1+\log\frac{m}{s}\right)\right).
 \end{equation}
 \end{theorem}

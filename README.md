@@ -3,22 +3,25 @@
 **ExSuwako** is an early proof-of-concept implementation of generalized
 Suwako reduction for sparse binary polynomials.
 
-It extends the original trinomial-oriented Suwako idea to moduli of the form
+It extends the original trinomial-oriented Suwako idea to monic moduli of the
+form
 
 $$
-g(x)=x^m+1+\sum_{t\in T}x^t,
+g(x)=x^m+\sum_{t\in T}x^t,
 $$
 
 where
 
 $$
-0<t<m
+T\subseteq\{0,\ldots,m-1\}.
 $$
 
-for every $t\in T$. The Hamming weight of the modulus is therefore
+The canonical `taps` list is the complete ascending list of exponents in
+$T$; it excludes the leading exponent $m$ and contains no duplicates. Write
+$s=|T|$. The Hamming weight of the modulus is therefore
 
 $$
-h=|T|+2\ge 3.
+h=s+1.
 $$
 
 The current implementation operates over $\mathbb F_2[x]$ and reduces inputs
@@ -59,7 +62,7 @@ $$
 where $L$ contains the low $m$ coefficients and $H$ contains the high
 coefficients.
 
-For every internal exponent $t\in T$, define
+For every tap $t\in T$, define
 
 $$
 \Delta_t=m-t.
@@ -76,8 +79,6 @@ Also define the low-part assembly operator
 $$
 V(X)
 =
-X
-\oplus
 \bigoplus_{t\in T}
 \left((X\ll t)\bmod x^m\right).
 $$
@@ -85,16 +86,16 @@ $$
 Equivalently, with
 
 $$
-f(x)=1+\sum_{t\in T}x^t,
+q(x)=\sum_{t\in T}x^t,
 $$
 
-the product $fX$ splits as
+the product $qX$ splits as
 
 $$
-fX=V(X)+x^mU(X).
+qX=V(X)+x^mU(X).
 $$
 
-Since $g=x^m+f$ implies $x^m\equiv f$ modulo $g$, cancelling the high part
+Since $g=x^m+q$ implies $x^m\equiv q$ modulo $g$, cancelling the high part
 requires solving
 
 $$
@@ -146,7 +147,7 @@ In a SIMD or hardware implementation, this naturally suggests two
 ping-pong buffers. The Python PoC expresses the same dependency rule through
 an immutable `old` state within each round.
 
-If
+If $T\ne\varnothing$, let
 
 $$
 \Delta_{\min}=\min_{t\in T}(m-t),
@@ -160,10 +161,13 @@ $$
 \right\rceil.
 $$
 
-The exact ceiling is important. When the closest tap is a fixed distance from
-the leading term, the bare expression $\log(m/\Delta_{\min})$ tends to zero,
-but the feedback closure still needs one round. Asymptotic statements should
-therefore keep the exact $r$ or use
+For $T=\varnothing$, set $r=0$; reduction modulo $x^m$ has no feedback
+rounds.
+
+The exact ceiling is important. When at least one feedback round is active and
+the closest tap is a fixed distance from the leading term, the bare expression
+$\log(m/\Delta_{\min})$ tends to zero, but the feedback closure still needs one
+round. In that regime, asymptotic statements should keep the exact $r$ or use
 
 $$
 r=\Theta\left(1+\log\frac{m}{\Delta_{\min}}\right).
@@ -347,11 +351,9 @@ The current PoC assumes:
 
 1. coefficients are in $\mathbb F_2$;
 2. the modulus is monic and has degree $m$;
-3. the constant coefficient of the modulus is one;
-4. all internal tap exponents are distinct;
-5. every internal tap satisfies $0<t<m$;
-6. at least one internal tap is present, so the Hamming weight is at least 3;
-7. the input has degree less than $2m$.
+3. `taps` contains the complete support of the nonleading part;
+4. tap exponents are distinct and satisfy $0\le t<m$;
+5. the input has degree less than $2m$.
 
 The implementation does not construct a dense reciprocal polynomial or a dense
 reduction matrix. It computes the feedback schedule directly from the sparse
@@ -359,16 +361,16 @@ tap positions.
 
 This is best viewed as a matrix-free sparse reciprocal application. It does
 not deny the reciprocal structure; rather, it avoids explicitly materializing
-the usually dense reciprocal $q(z)^{-1}\bmod z^m$, where
+the usually dense feedback reciprocal $p(z)^{-1}\bmod z^m$, where
 
 $$
-q(z)=1+\bigoplus_{t\in T}z^{\Delta_t},
+p(z)=1+\bigoplus_{t\in T}z^{\Delta_t},
 $$
 
 and applies it through sparse Frobenius factors:
 
 $$
-q(z)^{-1}
+p(z)^{-1}
 \equiv
 \prod_{k=0}^{r-1}
 \left(
