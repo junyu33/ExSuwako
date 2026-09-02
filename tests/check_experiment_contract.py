@@ -44,10 +44,17 @@ def check_exact_cli(binary: Path) -> None:
         "Delta_min": "9",
         "input_distribution": "uniform-full-range:v1",
         "timing_scope": "reduction-steady-state:v1",
+        "setup_scope": "modulus-plan:v1",
     }
     for field, value in expected.items():
         if row[field] != value:
             raise AssertionError(f"{field}: expected {value!r}, got {row[field]!r}")
+    for field in [
+        "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
+        "BarrettGF2X_setup_ns",
+    ]:
+        if float(row[field]) < 0:
+            raise AssertionError(f"{field} must be nonnegative")
 
     empty = parse_one_row(
         run(base + ["-", "2", "1", "16", "0x2"]).stdout
@@ -144,6 +151,17 @@ def check_manifest(binary: Path, driver: Path) -> None:
             for row in rows
         ):
             raise AssertionError("timing scope was not preserved")
+        if any(row["setup_scope"] != "modulus-plan:v1" for row in rows):
+            raise AssertionError("setup scope was not preserved")
+        if any(
+            float(row[field]) < 0
+            for row in rows
+            for field in [
+                "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
+                "BarrettGF2X_setup_ns",
+            ]
+        ):
+            raise AssertionError("setup timings must be nonnegative")
 
         invalid_manifests = [
             [

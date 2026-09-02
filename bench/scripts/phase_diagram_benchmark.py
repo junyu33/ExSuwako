@@ -14,6 +14,7 @@ from typing import Any
 
 CURRENT_INPUT_DISTRIBUTION = "uniform-full-range:v1"
 CURRENT_TIMING_SCOPE = "reduction-steady-state:v1"
+CURRENT_SETUP_SCOPE = "modulus-plan:v1"
 
 
 def validate_manifest_entry(value: Any, line_number: int) -> dict[str, Any]:
@@ -161,6 +162,26 @@ def validate_benchmark_geometry(
             "benchmark emitted an unexpected timing scope: "
             f"{row.get('timing_scope')!r}"
         )
+    if row.get("setup_scope") != CURRENT_SETUP_SCOPE:
+        raise RuntimeError(
+            "benchmark emitted an unexpected setup scope: "
+            f"{row.get('setup_scope')!r}"
+        )
+    for field in [
+        "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
+        "BarrettGF2X_setup_ns",
+    ]:
+        try:
+            value = float(str(row.get(field)))
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                f"benchmark emitted invalid setup timing for {field}: "
+                f"{row.get(field)!r}"
+            ) from error
+        if value < 0:
+            raise RuntimeError(
+                f"benchmark emitted negative setup timing for {field}: {value}"
+            )
 
 
 def add_derived_fields(
@@ -208,6 +229,11 @@ def main() -> None:
         "W_fb",
         "input_distribution",
         "timing_scope",
+        "setup_scope",
+        "GS_setup_ns",
+        "Serial_setup_ns",
+        "Naive_setup_ns",
+        "BarrettGF2X_setup_ns",
         "GS_ns",
         "Serial_ns",
         "Naive_ns",

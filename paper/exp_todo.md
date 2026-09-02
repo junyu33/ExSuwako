@@ -11,10 +11,8 @@ evidence through the following levels:
 
 1. correctness;
 2. operation-count and cost-model validation;
-3. matched reduction-only microbenchmarks;
-4. complete arithmetic operations;
-5. end-to-end application workloads;
-6. reproducible artifact validation.
+3. matched reduction microbenchmarks;
+4. reproducible artifact validation.
 
 ## Source Coverage and Provenance
 
@@ -26,14 +24,14 @@ actionable experimental content is covered:
 
 | Source | Experimental content retained here | Non-experimental content remains in |
 |---|---|---|
-| [README.md](../README.md) and [native_benchmark.md](../bench/native_benchmark.md) | Current inventory, benchmark contract, gf2x provenance, and artifact rules in Current Inventory, P0, and Gate 6 | The source files as implementation documentation |
+| [README.md](../README.md) and [native_benchmark.md](../bench/native_benchmark.md) | Current inventory, benchmark contract, gf2x provenance, and artifact rules in Current Inventory, P0, and Gate 4 | The source files as implementation documentation |
 | [writing_guide.md](writing_guide.md) | Evidence levels and completion criteria in all gates | Paper structure, claim status, and submission gates |
-| [implementation_evaluation.md](sections/implementation_evaluation.md) | Implementations, baselines, RQ1--RQ7, parameter sweeps, metrics, figures, tables, and negative results in Gates 1--4 and 6 | Paper-facing evaluation design |
-| [extensions_appendices.md](sections/extensions_appendices.md) | Claim-to-evidence experiments and former implementation/evaluation TODOs in Gates 1--6 | Mathematical, prior-art, appendix, and submission planning |
-| [application.md](notes/application.md) | Repeated squaring and modulus selection in Gates 4A and 4B | Application motivation and evidence ledger |
+| [implementation_evaluation.md](sections/implementation_evaluation.md) | Implementations, baselines, RQ1--RQ7, parameter sweeps, metrics, figures, tables, and negative results in Gates 1--4 | Paper-facing evaluation design |
+| [extensions_appendices.md](sections/extensions_appendices.md) | Claim-to-evidence experiments and former implementation/evaluation TODOs in Gates 1--4 | Mathematical, prior-art, appendix, and submission planning |
+| [application.md](notes/application.md) | No executable gate: application material is motivation and possible future work, not part of the reduction experiment contract | Application motivation and provenance |
 | [math_1.md](raw/math_1.md) and [math_2.md](raw/math_2.md) | Optional coefficient-algebra checks in Gates 1 and 2 | General algebraic derivations, proofs, and open problems |
 | [related_1.md](raw/related_1.md), [related_2.md](raw/related_2.md), and [related_3.md](raw/related_3.md) | Their demands for matched classical comparisons enter Gate 3 | Hostile-search records summarized in [related_work.md](sections/related_work.md) and tracked in [prior_art_plan.md](notes/prior_art_plan.md) |
-| [math_comp.md](notes/math_comp.md), [technical_body.md](sections/technical_body.md), [intro_draft.md](sections/intro_draft.md), and [venue_choice.md](notes/venue_choice.md) | Any evidence requirements are represented by Gates 1--6; these files define no independent experiment queue | Mathematical synthesis, manuscript prose, and venue strategy |
+| [math_comp.md](notes/math_comp.md), [technical_body.md](sections/technical_body.md), [intro_draft.md](sections/intro_draft.md), and [venue_choice.md](notes/venue_choice.md) | Any evidence requirements are represented by Gates 1--4; these files define no independent experiment queue | Mathematical synthesis, manuscript prose, and venue strategy |
 | [experiment-planning skill](../skills/exsuwako-experiment-planning/SKILL.md) and [paper-writing skill](../skills/exsuwako-paper-writing/SKILL.md) | Both skills route experimental work to this file and deliberately contain no duplicate checklist | Workflow instructions in the skill files |
 
 When a source note gains a new executable experiment, add it to the relevant
@@ -56,13 +54,10 @@ The following items describe code that exists, not completed paper evidence.
 - [ ] Rerun every claimed correctness and timing result from the eventual
       experiment commit and record the command, seed, compiler, gf2x path,
       machine, CPU-affinity policy, and raw output.
-- [ ] Promote the temporary square-input diagnostic into a versioned benchmark
-      before citing any modular-squaring timing.
 
 The current reduction benchmark samples uniformly from the full
-degree-below-$2m$ input domain. Multiplication results, polynomial squares, and
-application states are subsets of that domain; they become separate corpora
-only when complete formation or workload costs are part of the experiment.
+degree-below-$2m$ input domain and measures only reduction modulo the selected
+monic polynomial $g$.
 
 ## P0: Freeze the Experimental Contract
 
@@ -84,10 +79,9 @@ silent deduplication or normalization.
 - [x] [Q] What is the canonical binary tap convention? [A] `taps=sort(T)` is the complete ascending nonleading support, includes exponent 0 exactly when present, excludes $m$, permits the empty set, and defines $s=|T|$ and $h=s+1$.
 - [x] [Q] How is the exact tested modulus recovered? [A] Use the exact tap-list CLI or a JSONL manifest; a seed alone is not the modulus identity.
 - [x] [Q] Which modulus identity and geometry fields are preserved? [A] Preserve `sample_id`, `provenance`, $m$, and complete taps, then deterministically derive and emit $s$, $h$, $\Delta_{\min}$, feedback stages, active-tap profile, and scheduled work; record irreducibility separately only for field-level claims that require it.
-- [x] [Q] What is the reduction-only input domain and primary distribution? [A] `uniform-full-range:v1` samples $A=L+x^mH$ for independent uniform $m$-bit $L,H$; multiplication results, squares, and application states are subsets of the same reduction domain and become separate corpora only when formation or workload semantics are timed.
-- [x] [Q] What does each timing scope include? [A] Freeze distinct reduction-only, square-formation, complete modular-square, multiplication-formation, complete modular-multiplication, and workload-specific end-to-end boundaries; only `reduction-steady-state:v1` is currently implemented, while the others are future Gate 4 contracts.
-- [ ] Freeze setup accounting: schedule generation, reciprocal generation,
-      generated code, dense matrices, allocation, and amortization over $K$.
+- [x] [Q] What is the reduction input domain and primary distribution? [A] `uniform-full-range:v1` samples every degree-below-$2m$ input as $A=L+x^mH$ for independent uniform $m$-bit $L,H$.
+- [x] [Q] What does the benchmark time? [A] `reduction-steady-state:v1` times only batched reduction of materialized inputs $A$ with $\deg A<2m$ modulo the selected monic polynomial $g$ through `reduce_into()`; reusable setup, allocation, validation, and reporting remain outside.
+- [x] [Q] How are setup costs accounted for? [A] `modulus-plan:v1` reports the median time over fresh plan constructions from materialized $m$, taps, and $g$, including schedules, reciprocals, and plan-owned scratch allocation while excluding parsing, shared modulus materialization, benchmark buffers, validation, reporting, and teardown; preserve raw $T_{\mathrm{setup}}$ and $T_{\mathrm{reduce}}$ and derive $T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for an explicitly stated $K$, while future generated-code and dense-map baselines must additionally report generation, compilation, code/storage size, and allocation separately.
 - [ ] Freeze compiler flags, word width $W$, gf2x build and linkage, CPU
       affinity, frequency policy, warm-up, repetitions, aggregation, and
       outlier treatment.
@@ -98,7 +92,7 @@ silent deduplication or normalization.
 
 - [ ] At the frozen experiment/artifact commit, run `make check` and archive
       its complete output together with the environment metadata required by
-      Gate 6. Ordinary development commits do not independently reset this
+      Gate 4. Ordinary development commits do not independently reset this
       item; rerun it after changes that affect algorithms, tests, toolchains,
       or experimental semantics.
 - [x] Exhaust all tap sets and all inputs for small $m$ where feasible. For
@@ -122,15 +116,11 @@ silent deduplication or normalization.
 - [ ] Verify that every generalized-Suwako stage reads one immutable old
       state across all active taps.
 - [ ] Test feedback closure and final low-part assembly independently.
-- [x] Treat square-shaped and multiplication-shaped inputs as subsets of the
-      already tested degree-below-$2m$ reduction domain; no separate
-      reduction-correctness claim is attached to their origin. Formation and
-      complete-operation correctness remain in Gate 4A.
 - [ ] If the coefficient-algebra or positive-characteristic extensions are
       promoted beyond theorem statements, add small exact differential tests
       over at least one non-binary coefficient algebra; do not treat this as
       evidence for the native binary kernel.
-- [ ] Verify every new specialized reducer, squarer, or generated circuit
+- [ ] Verify every new specialized or generated reducer
       against an independent long-division or computer-algebra result before
       timing it.
 - [ ] Preserve exact irreducibility certificates or reproducible Sage checks
@@ -220,70 +210,7 @@ The paper-facing definition of this experiment is in
 - [ ] Populate the planned method, theorem, real-modulus, portable-C, SIMD,
       setup/storage, and optional-hardware tables only from completed gates.
 
-## Gate 4A: Repeated Modular Squaring
-
-This is Application 1 in
-[application.md](notes/application.md#main-direction-repeated-modular-squaring-in-sparse-polynomial-search).
-
-- [ ] Add a modular-square API mapping one $m$-bit field element to its reduced
-      square.
-- [ ] Implement and time square formation separately from reduction.
-- [ ] Use random field elements and application-generated Frobenius-chain
-      states; do not infer complete modular-square timing from the uniform
-      reduction-only corpus.
-- [ ] Measure reduction-only, square-only, and complete modular-square costs
-      for the same inputs.
-- [ ] Compare generalized Suwako with serial folding, gf2x-backed Barrett, the
-      strongest general low-weight squarer, and applicable family-specific
-      trinomial or pentanomial formulae.
-- [ ] Include the irreducible two-cluster pentanomials and reciprocal-hostile
-      examples, but also include standard and previously optimized moduli.
-- [ ] Implement a repeated-Frobenius chain and verify every step against an
-      independent implementation.
-- [ ] Add a complete Rabin irreducibility test, DDF kernel, or
-      primitive-polynomial certification workload.
-- [ ] For candidate-search workloads, report early exits and the reducible
-      candidate distribution rather than timing only successful candidates.
-- [ ] Report the square-formation, reduction, GCD, multiplication, and other
-      fractions of end-to-end time.
-- [ ] Treat an advantage confined to reduction-only timing as a
-      microbenchmark result, not application impact.
-- [ ] Preserve negative cases where a specialized squarer, reciprocal
-      representation, or multiplication-based method wins.
-
-## Gate 4B: Platform-Specific Modulus Selection
-
-This is Application 2 in
-[application.md](notes/application.md#coupled-direction-platform-specific-modulus-selection).
-
-- [ ] Build a versioned candidate generator for irreducible trinomials,
-      pentanomials, and selected higher-weight moduli.
-- [ ] Stratify candidates at fixed $m$ and $h$ by $\Delta_{\min}$, full tap
-      geometry, word alignment, and reciprocal geometry.
-- [ ] Include standard moduli, the architecture-specific choices in the
-      existing modulus-selection literature, and the two-cluster candidates.
-- [ ] Record the exact irreducibility check, seed, search range, candidate
-      count, and provenance of every selected modulus.
-- [ ] Define the optimization objective before ranking moduli: reduction,
-      modular squaring, multiplication, inversion, a weighted arithmetic mix,
-      or an application-level workload.
-- [ ] Select a best modulus independently for serial folding, generalized
-      Suwako, specialized fixed reduction, and multiplication-based reduction.
-- [ ] Test whether generalized Suwako changes the selected modulus, rather
-      than merely timing a hand-picked hostile example.
-- [ ] Re-evaluate the selected modulus on every stated platform; do not
-      transfer a ranking across ISAs.
-- [ ] Include generated-code size, setup, storage, and amortization in the
-      objective where applicable.
-- [ ] State when a protocol or standard fixes the polynomial and therefore
-      does not permit modulus selection without a basis conversion.
-- [ ] Keep offline irreducibility-search cost separate from steady-state field
-      arithmetic unless online modulus search is itself the application.
-- [ ] Couple the final selection experiment to Gate 4A so that the chosen
-      moduli are tested in repeated modular squaring and at least one
-      end-to-end workload.
-
-## Gate 6: Reproducibility and Artifact
+## Gate 4: Reproducibility and Artifact
 
 - [ ] Keep benchmark entrypoints and drivers under bench/scripts/.
 - [ ] Keep exploratory raw CSV files under bench/data/; promote only
@@ -291,8 +218,8 @@ This is Application 2 in
       repository publication policy.
 - [ ] Emit commit, command, seed, modulus manifest, compiler, linked gf2x
       library, machine, affinity, and timing metadata with every run.
-- [ ] Provide one command for correctness, one for cost-model validation, one
-      for reduction microbenchmarks, and one for each end-to-end application.
+- [ ] Provide one command for correctness, one for cost-model validation, and
+      one for reduction microbenchmarks.
 - [ ] Regenerate every paper figure and table from recorded raw data.
 - [ ] Verify the scoped artifact path from a fresh checkout.
 - [ ] Repeat representative classical cases on a second machine or ISA before
@@ -306,9 +233,4 @@ This is Application 2 in
 - [ ] Every speed claim uses matched inputs, outputs, setup policy, and timing
       boundaries.
 - [ ] The classical phase diagram contains both winning and losing regions.
-- [ ] Repeated modular squaring passes a specialized-baseline comparison.
-- [ ] Any modulus-selection claim demonstrates a changed winner under a fixed
-      objective, or is reported as a negative result.
-- [ ] At least one end-to-end workload connects the result to real
-      cryptographic or computational arithmetic.
 - [ ] A fresh checkout reproduces every result used by the paper.

@@ -10,6 +10,14 @@
 static uint64_t rng_state;
 static const char *input_distribution = "uniform-full-range:v1";
 static const char *timing_scope = "reduction-steady-state:v1";
+static const char *setup_scope = "modulus-plan:v1";
+
+typedef enum {
+    REDUCER_GS,
+    REDUCER_SERIAL,
+    REDUCER_NAIVE,
+    REDUCER_BARRETT
+} reducer_kind;
 
 static uint64_t rng_next(void) {
     rng_state ^= rng_state << 7;
@@ -160,6 +168,51 @@ static double median(double *values, size_t count) {
 
 static volatile word_t benchmark_sink;
 
+static reduction_method make_reducer(reducer_kind kind, const size_t *taps,
+                                     size_t tap_count, const poly_t *modulus,
+                                     size_t m, size_t input_words) {
+    switch (kind) {
+    case REDUCER_GS:
+        return reduction_make_gs(taps, tap_count, m);
+    case REDUCER_SERIAL:
+        return reduction_make_serial(taps, tap_count, m);
+    case REDUCER_NAIVE:
+        return reduction_make_naive(modulus, m, input_words);
+    case REDUCER_BARRETT:
+        return reduction_make_barrett(modulus, m);
+    }
+    die("unknown reducer kind");
+    return (reduction_method){0};
+}
+
+/*
+ * Modulus-dependent plan setup timing.
+ *
+ * m, taps, and modulus are already materialized. Each sample constructs a
+ * fresh method, stops the clock, and then destroys it. Thus schedule or
+ * reciprocal generation and plan-owned scratch allocation are included,
+ * while parsing, modulus materialization, teardown, and benchmark buffers are
+ * excluded.
+ */
+static double time_setup(reducer_kind kind, const size_t *taps,
+                         size_t tap_count, const poly_t *modulus, size_t m,
+                         size_t input_words, int repeats) {
+    double *samples = calloc((size_t)repeats, sizeof(*samples));
+    if (!samples) die("allocation failed");
+
+    for (int repeat = 0; repeat < repeats; ++repeat) {
+        struct timespec start = monotonic_time();
+        reduction_method method = make_reducer(
+            kind, taps, tap_count, modulus, m, input_words);
+        samples[repeat] = elapsed_ns(start, monotonic_time());
+        reduction_method_destroy(&method);
+    }
+
+    double result = median(samples, (size_t)repeats);
+    free(samples);
+    return result;
+}
+
 /*
  * Steady-state reduction timing for one method.
  *
@@ -265,7 +318,17 @@ int main(int argc, char **argv) {
     double *serial_samples = calloc((size_t)supports, sizeof(*serial_samples));
     double *naive_samples = calloc((size_t)supports, sizeof(*naive_samples));
     double *barrett_samples = calloc((size_t)supports, sizeof(*barrett_samples));
-    if (!gs_samples || !serial_samples || !naive_samples || !barrett_samples)
+    double *gs_setup_samples =
+        calloc((size_t)supports, sizeof(*gs_setup_samples));
+    double *serial_setup_samples =
+        calloc((size_t)supports, sizeof(*serial_setup_samples));
+    double *naive_setup_samples =
+        calloc((size_t)supports, sizeof(*naive_setup_samples));
+    double *barrett_setup_samples =
+        calloc((size_t)supports, sizeof(*barrett_setup_samples));
+    if (!gs_samples || !serial_samples || !naive_samples || !barrett_samples ||
+        !gs_setup_samples || !serial_setup_samples || !naive_setup_samples ||
+        !barrett_setup_samples)
         die("allocation failed");
     size_t *delta_values = calloc((size_t)supports, sizeof(*delta_values));
     int *has_delta = calloc((size_t)supports, sizeof(*has_delta));
@@ -302,14 +365,27 @@ int main(int argc, char **argv) {
         poly_set_bit(&modulus, m);
 
         size_t input_words = poly_words_for_bits(2 * m);
+        gs_setup_samples[trial] = time_setup(
+            REDUCER_GS, taps, s, &modulus, m, input_words, repeats);
+        serial_setup_samples[trial] = time_setup(
+            REDUCER_SERIAL, taps, s, &modulus, m, input_words, repeats);
+        if (!skip_naive)
+            naive_setup_samples[trial] = time_setup(
+                REDUCER_NAIVE, taps, s, &modulus, m, input_words, repeats);
+        barrett_setup_samples[trial] = time_setup(
+            REDUCER_BARRETT, taps, s, &modulus, m, input_words, repeats);
+
         reduction_method methods[4];
         size_t method_count = 0;
-        methods[method_count++] = reduction_make_gs(taps, s, m);
-        methods[method_count++] = reduction_make_serial(taps, s, m);
+        methods[method_count++] = make_reducer(
+            REDUCER_GS, taps, s, &modulus, m, input_words);
+        methods[method_count++] = make_reducer(
+            REDUCER_SERIAL, taps, s, &modulus, m, input_words);
         if (!skip_naive)
-            methods[method_count++] =
-                reduction_make_naive(&modulus, m, input_words);
-        methods[method_count++] = reduction_make_barrett(&modulus, m);
+            methods[method_count++] = make_reducer(
+                REDUCER_NAIVE, taps, s, &modulus, m, input_words);
+        methods[method_count++] = make_reducer(
+            REDUCER_BARRETT, taps, s, &modulus, m, input_words);
 
         poly_t *inputs = calloc((size_t)inputs_count, sizeof(*inputs));
         if (!inputs) die("allocation failed");
@@ -339,7 +415,8 @@ int main(int argc, char **argv) {
         free(pool);
     }
 
-    printf("m,s,h,taps,Delta_min,input_distribution,timing_scope,"
+    printf("m,s,h,taps,Delta_min,input_distribution,timing_scope,setup_scope,"
+           "GS_setup_ns,Serial_setup_ns,Naive_setup_ns,BarrettGF2X_setup_ns,"
            "GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
            "Serial/GS,Naive/GS,BarrettGF2X/GS,sample,seed\n");
     for (int trial = 0; trial < supports; ++trial) {
@@ -350,8 +427,11 @@ int main(int argc, char **argv) {
         printf("%zu,%zu,%zu,%s,", m, s, s + 1, tap_values[trial]);
         if (has_delta[trial]) printf("%zu,", delta_values[trial]);
         else printf("NA,");
-        printf("%s,%s,%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
-               input_distribution, timing_scope,
+        printf("%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
+               "%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
+               input_distribution, timing_scope, setup_scope,
+               gs_setup_samples[trial], serial_setup_samples[trial],
+               naive_setup_samples[trial], barrett_setup_samples[trial],
                gs, serial, naive, barrett,
                serial / gs, skip_naive ? 0.0 : naive / gs, barrett / gs,
                trial, (unsigned long long)seed);
@@ -362,6 +442,10 @@ int main(int argc, char **argv) {
     free(serial_samples);
     free(naive_samples);
     free(barrett_samples);
+    free(gs_setup_samples);
+    free(serial_setup_samples);
+    free(naive_setup_samples);
+    free(barrett_setup_samples);
     free(delta_values);
     free(has_delta);
     free(tap_values);

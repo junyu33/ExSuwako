@@ -1,6 +1,6 @@
 ---
 name: exsuwako-experiment-planning
-description: Plan, execute, and review ExSuwako correctness, cost-model, baseline, implementation, classical phase-diagram, modular-squaring, modulus-selection, reversible-circuit, and artifact experiments using explicit evidence gates.
+description: Plan, execute, and review ExSuwako correctness, cost-model, baseline, implementation, classical reduction phase-diagram, reversible-circuit, and artifact experiments using explicit evidence gates.
 ---
 
 # ExSuwako Experiments
@@ -33,8 +33,7 @@ changes, update paper/exp_todo.md and keep topic documents linked to it.
 ## Workflow
 
 1. Identify the exact evidence level requested: correctness, cost model,
-   reduction-only microbenchmark, complete arithmetic operation, end-to-end
-   application, circuit resource count, or artifact reproduction.
+   reduction microbenchmark, circuit resource count, or artifact reproduction.
 2. Locate the corresponding gate in paper/exp_todo.md and check its
    prerequisites.
 3. Freeze the modulus manifest, input distribution, output contract, setup
@@ -103,31 +102,26 @@ Advance experiments in this order:
 6. a fresh checkout reproduces the result.
 
 A passing test establishes agreement, not novelty, optimality, or speed. A
-reduction-only result is not a modular-square, multiplication, or end-to-end
-result. A software feedback stage is not a CNOT layer.
+reduction result concerns only $A\bmod g$ for $\deg A<2m$. A software feedback
+stage is not a CNOT layer.
 
 ## Current Baseline Cautions
 
 - Treat native implementations as available code, not current evidence, until
   rerun from the experiment commit.
-- The reduction-only benchmark uses `uniform-full-range:v1` over the complete
-  degree-below-$2m$ domain. Multiplication results, squares, and application
-  states are subsets of that domain and become separate corpora only when
-  complete formation or workload costs are measured.
+- The reduction benchmark uses `uniform-full-range:v1` over the complete
+  degree-below-$2m$ domain.
 - Its implemented timing scope is `reduction-steady-state:v1`: only batched
-  `reduce_into()` calls are timed. Do not compare it directly with square
-  formation, complete modular arithmetic, or end-to-end timing scopes.
+  `reduce_into()` calls are timed.
 - GS versus serial is the primary matched sparse-reduction comparison.
   Barrett, naive, dense, generated, and specialized reducers answer different
   baseline questions and must retain their setup assumptions.
 - Use fixed public moduli and deterministic seeds when randomness is involved.
-- Keep reduction-only, complete arithmetic, and application measurements in
-  separate result sets.
 
 ## Reporting Rules
 
-- Label every result as correctness, model validation, microbenchmark,
-  complete arithmetic, end-to-end, or circuit-resource evidence.
+- Label every result as correctness, model validation, reduction
+  microbenchmark, or circuit-resource evidence.
 - Record command, commit, seed, full tap set, input distribution, repetitions,
   compiler, flags, linked gf2x path, machine, CPU affinity, and timing
   boundary. Record irreducibility status and evidence only for field-level

@@ -42,6 +42,8 @@ def main() -> None:
             raise RuntimeError(f"expected {args.supports} rows for m={m}, h={h}")
         row = dict(benchmark_rows[0])
         for field in [
+            "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
+            "BarrettGF2X_setup_ns",
             "GS_ns", "Serial_ns", "Naive_ns", "BarrettGF2X_ns",
             "Serial/GS", "Naive/GS", "BarrettGF2X/GS",
         ]:
@@ -68,7 +70,9 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fields = [
         "power", "m", "s", "h", "Delta_min", "input_distribution",
-        "timing_scope", "GS_ns", "Serial_ns", "Naive_ns",
+        "timing_scope", "setup_scope", "GS_setup_ns", "Serial_setup_ns",
+        "Naive_setup_ns", "BarrettGF2X_setup_ns",
+        "GS_ns", "Serial_ns", "Naive_ns",
         "BarrettGF2X_ns", "Serial/GS", "Naive/GS", "BarrettGF2X/GS",
         "seed",
     ]

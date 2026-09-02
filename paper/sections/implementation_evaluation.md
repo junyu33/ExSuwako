@@ -1,9 +1,9 @@
 # Implementation and Evaluation Draft
 
 This document defines the paper-facing implementation model, research
-questions, parameter grid, metrics, and figures.  Execution order, checkbox
-status, application experiments, and artifact requirements are maintained only
-in [the experimental TODO](../exp_todo.md).
+questions, parameter grid, metrics, and figures. Execution order, checkbox
+status, and artifact requirements are maintained only in
+[the experimental TODO](../exp_todo.md).
 
 ## 8. Implementations
 
@@ -151,31 +151,33 @@ The reduction-only input contract is:
 |---|---|---|
 | `uniform-full-range:v1` | $A=L+x^mH$ with independent uniform $m$-bit $L,H$ | implemented primary corpus |
 
-Multiplication results, polynomial squares, and application states are subsets
-of this same reduction domain. They are not distinct reduction operations and
-are separated only in complete-arithmetic or end-to-end experiments that also
-include formation or workload semantics. Each reduction result row records
-the registry name, and every matched reducer comparison uses the same
-materialized input corpus.
+Each reduction result row records the registry name, and every matched reducer
+comparison uses the same materialized input corpus.
 
-Timing scopes are explicit and non-interchangeable:
+The timing scope is explicit:
 
 | Registry name | Timed mathematical operation | Status |
 |---|---|---|
 | `reduction-steady-state:v1` | reduction of a materialized degree-below-$2m$ input into a preallocated output | implemented |
-| `square-formation:v1` | unreduced polynomial square formation | pending |
-| `modular-square-steady-state:v1` | square formation followed by reduction | pending |
-| `multiplication-formation:v1` | unreduced polynomial multiplication | pending |
-| `modular-multiplication-steady-state:v1` | multiplication followed by reduction | pending |
-| `end-to-end:<workload>:vN` | one specified workload invocation | workload-specific |
 
 For steady-state microbenchmarks, reusable plans, materialized inputs,
 outputs, and scratch buffers exist before the clock starts. Input generation,
 allocation, correctness checks, checksum consumption, and reporting remain
-outside. Complete-operation scopes include intermediate-buffer traffic, and
-end-to-end scopes include all arithmetic and control flow internal to the
-named invocation. Reusable setup is reported through the separate setup and
-amortization contract.
+outside. Reusable setup is reported through the separate setup and
+amortization contract. The evaluated mathematical operation is only
+$A\mapsto A\bmod g$ for $\deg A<2m$.
+
+Setup uses the separate `modulus-plan:v1` scope. From materialized $m$, taps,
+and $g$, it includes each reducer's schedule or reciprocal construction and
+plan-owned scratch allocation. Parsing, shared modulus materialization,
+benchmark input/output buffers, validation, reporting, and teardown are
+excluded. Setup is sampled through fresh plan constructions; the plan used for
+steady-state timing is constructed separately. Preserve the raw per-method
+$T_{\mathrm{setup}}$ and $T_{\mathrm{reduce}}$ values, then derive
+$T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for explicitly stated $K$.
+Generated-code and dense-map baselines must additionally report generation,
+compilation, code or map size, and allocation without hiding these quantities
+inside steady-state reduction timing.
 
 For the algorithm-selection plots, use the modulus Hamming weight $h=s+1$ as
 the primary horizontal coordinate and report $s=|T|$ as the secondary support

@@ -341,24 +341,27 @@ build/reduction_benchmark 4 16 3 1024 8 0x9e3779b97f4a7c15
 build/reduction_benchmark --taps 0,7,12 16 3 283 0x1
 ```
 
-The output is CSV with reduction-only timing in nanoseconds per input:
+The output is CSV with setup time per fresh plan and steady-state reduction
+time in nanoseconds:
 
 ```text
-m,s,h,taps,Delta_min,input_distribution,timing_scope,GS_ns,Serial_ns,...
+m,s,h,taps,Delta_min,input_distribution,timing_scope,setup_scope,GS_setup_ns,...,GS_ns,...
 ```
 
 The current reduction-only corpus is `uniform-full-range:v1`: it samples
-$A=L+x^mH$ with independent uniform $m$-bit $L,H$. Multiplication results,
-squares, and application states are subsets of this reduction domain, not
-different reduction APIs; they are considered separately only in complete
-arithmetic and end-to-end experiments. The contract is documented in
+$A=L+x^mH$ with independent uniform $m$-bit $L,H$. The contract is documented in
 [bench/native_benchmark.md](bench/native_benchmark.md#input-distribution-registry).
 
 The current timing scope is `reduction-steady-state:v1`: only batched
 `reduce_into()` calls are timed. Reducer setup, input generation, allocation,
-correctness checks, checksum consumption, and reporting remain outside. Other
-complete-arithmetic and application boundaries are defined in
-[bench/native_benchmark.md](bench/native_benchmark.md#timed-boundary-registry).
+correctness checks, checksum consumption, and reporting remain outside.
+
+The setup scope is `modulus-plan:v1`. It separately measures fresh reusable
+plan construction from materialized $m$, taps, and $g$, including schedules,
+reciprocals, and plan-owned scratch allocation. Raw per-method setup and
+reduction times are retained so amortized costs can be derived for an explicit
+number $K$ of reductions per plan. See
+[bench/native_benchmark.md](bench/native_benchmark.md#setup-accounting-registry).
 
 For repeatable support suites, `phase_diagram_benchmark.py --manifest FILE`
 accepts JSON Lines records containing `sample_id`, `provenance`, `m`, and
@@ -367,9 +370,9 @@ accepts JSON Lines records containing `sample_id`, `provenance`, `m`, and
 its output CSV. Random-mode rows use provenance
 `synthetic-fixed-weight-uniform:v1` and seed-qualified sample identifiers.
 
-Setup, input generation, output allocation, correctness checks, and checksum
-consumption are outside the timed region. This is a steady-state fixed-modulus
-microbenchmark, not an end-to-end multiplication benchmark.
+Setup remains outside the steady-state reduction region and is reported in
+separate columns. Input generation, output allocation, correctness checks, and
+checksum consumption are outside both operation timings.
 
 Experiment drivers live in `bench/scripts/`. Local CSV outputs should go under
 `bench/data/`; they are ignored by Git while the measurements remain

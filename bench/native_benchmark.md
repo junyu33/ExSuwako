@@ -24,36 +24,62 @@ mathematical contracts are:
 |---|---|---|
 | `uniform-full-range:v1` | $A=L+x^mH$, where $L$ and $H$ are independent uniform $m$-bit polynomials | Implemented; primary reduction-only corpus |
 
-Polynomial multiplication results, polynomial squares, and application states
-are subsets of this same degree-below-$2m$ reduction domain; they do not define
-different reduction operations. They are introduced only by complete
-arithmetic or end-to-end experiments that include formation or workload costs.
-All reducers in one reduction-only comparison consume the same materialized
+All reducers in one comparison consume the same materialized
 `uniform-full-range:v1` inputs.
 
 ## Timed-Boundary Registry
 
-Every timing row carries a `timing_scope` label. The frozen operation
-boundaries are:
+Every timing row carries a `timing_scope` label. The frozen operation boundary
+is:
 
 | Name | Included inside the timed operation | Excluded from the timed operation | Status |
 |---|---|---|---|
 | `reduction-steady-state:v1` | Calls to `reduce_into(input, plan, output)` over a materialized input batch | Plan/setup construction, input generation, allocation, correctness checks, checksum consumption, and reporting | Implemented |
-| `square-formation:v1` | Formation of the unreduced polynomial square into a preallocated $2m$-bit buffer | Reduction, reusable setup, input generation, allocation, validation, and reporting | Defined; pending |
-| `modular-square-steady-state:v1` | Square formation followed by reduction to an $m$-bit output, including any intermediate-buffer traffic | Reusable setup, input generation, allocation, validation, and reporting | Defined; pending |
-| `multiplication-formation:v1` | Polynomial multiplication into a preallocated $2m$-bit buffer | Reduction, reusable setup, input generation, allocation, validation, and reporting | Defined; pending |
-| `modular-multiplication-steady-state:v1` | Polynomial multiplication followed by reduction, including intermediate-buffer traffic | Reusable setup, input generation, allocation, validation, and reporting | Defined; pending |
-| `end-to-end:<workload>:vN` | One named workload invocation from materialized public inputs/state to its specified result, including its arithmetic and control flow | Process startup, corpus generation, file I/O, validation, and reporting | Workload-specific |
 
-Microbenchmarks time a batch with one clock interval and divide by the number
-of operations; they do not place clock calls around each individual reducer
-call. A fused implementation may use its own internal organization, but it
-must retain the same mathematical input/output operation and timing-scope
-label. Reusable setup is deliberately handled by the separate setup-accounting
-contract rather than hidden inside one method's timed operation.
+The benchmark times a batch with one clock interval and divides by the number
+of reductions; it does not place clock calls around individual calls. Every
+method must retain the same mathematical operation $A\mapsto A\bmod g$ for
+$\deg A<2m$. Reusable setup is deliberately handled by the separate
+setup-accounting contract rather than hidden inside one method's timed
+operation.
 
 The two Barrett products call the upstream `gf2x_mul` API. The reciprocal
 polynomial is precomputed outside the timed reduction path.
+
+## Setup-Accounting Registry
+
+Every row also carries `setup_scope=modulus-plan:v1`. Starting from already
+materialized $m$, taps, and $g$, one setup sample times construction of a fresh
+reusable reducer plan. Destruction happens after the clock stops. The
+benchmark takes the median of `repeats` fresh constructions, then constructs a
+separate plan for correctness checking and steady-state reduction timing.
+
+The included method-specific work is:
+
+| Method | Included in setup |
+|---|---|
+| GS | feedback-stage schedule, shift descriptors, and plan-owned scratch allocation |
+| Serial | tap descriptors, sorting, and plan-owned state allocation |
+| Naive | its current lightweight context allocation |
+| Barrett | reciprocal $\mu$, Barrett plan construction, and plan-owned scratch allocation |
+
+Argument parsing, shared modulus materialization, input/output benchmark
+buffers, correctness checks, reporting, and teardown are excluded uniformly.
+The CSV preserves `GS_setup_ns`, `Serial_setup_ns`, `Naive_setup_ns`, and
+`BarrettGF2X_setup_ns` separately from the steady-state reduction fields. For
+an explicitly stated number $K$ of reductions using one plan, derive
+
+\[
+T_{\mathrm{total}}(K)=T_{\mathrm{setup}}+K T_{\mathrm{reduce}},
+\qquad
+\bar T(K)=T_{\mathrm{reduce}}+\frac{T_{\mathrm{setup}}}{K}.
+\]
+
+Do not bake a particular $K$ into the raw CSV. A future generated-code or
+dense-map reducer must count method-specific generation and allocation as
+setup, while reporting compilation time, generated code size, and stored-map
+size as separate quantities. None of those future baselines is currently
+measured.
 
 The benchmark requires a native gf2x installation. Set `GF2X_PREFIX` to its
 installation prefix and build with MinGW or GCC:
@@ -121,11 +147,9 @@ Irreducibility is not part of this general reduction contract; field-level
 experiments must record it separately when their claims require it.
 
 The current native binary emits
-`input_distribution=uniform-full-range:v1`. Future complete-arithmetic or
-application drivers must name their own corpus without presenting it as a
-different reduction API. It also emits
-`timing_scope=reduction-steady-state:v1`; timing results with another scope
-must not be merged into the same distribution.
+`input_distribution=uniform-full-range:v1` and
+`timing_scope=reduction-steady-state:v1`, together with
+`setup_scope=modulus-plan:v1` and the four per-method setup timings.
 
 ## Shared Work--Feedback-Depth--Setup Tradeoff Map
 
@@ -145,7 +169,7 @@ instruction-count or minimum-XOR-circuit claim.  It must keep support geometry,
 input distribution, compiler, machine, seed, timing boundary, and multiplication
 backend with every row.  The existing
 `bench/scripts/phase_diagram_benchmark.py` supplies matched per-support timing
-rows and now records the exact support, active-tap profile, and
-\(W_{\mathrm{fb}}\). Extend its output contract to include setup timings and
-\(K\)-amortized quantities before generating this map. No existing CSV is
-evidence for the map.
+rows and records the exact support, active-tap profile, \(W_{\mathrm{fb}}\),
+and raw per-method setup and reduction timings. The plotting step must derive
+the amortized quantities for explicitly stated values of $K$; it must not add
+a hidden default $K$ to the raw data. No existing CSV is evidence for the map.
