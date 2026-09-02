@@ -114,6 +114,9 @@ result. A software feedback stage is not a CNOT layer.
   degree-below-$2m$ domain. Multiplication results, squares, and application
   states are subsets of that domain and become separate corpora only when
   complete formation or workload costs are measured.
+- Its implemented timing scope is `reduction-steady-state:v1`: only batched
+  `reduce_into()` calls are timed. Do not compare it directly with square
+  formation, complete modular arithmetic, or end-to-end timing scopes.
 - GS versus serial is the primary matched sparse-reduction comparison.
   Barrett, naive, dense, generated, and specialized reducers answer different
   baseline questions and must retain their setup assumptions.

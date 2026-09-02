@@ -31,6 +31,27 @@ arithmetic or end-to-end experiments that include formation or workload costs.
 All reducers in one reduction-only comparison consume the same materialized
 `uniform-full-range:v1` inputs.
 
+## Timed-Boundary Registry
+
+Every timing row carries a `timing_scope` label. The frozen operation
+boundaries are:
+
+| Name | Included inside the timed operation | Excluded from the timed operation | Status |
+|---|---|---|---|
+| `reduction-steady-state:v1` | Calls to `reduce_into(input, plan, output)` over a materialized input batch | Plan/setup construction, input generation, allocation, correctness checks, checksum consumption, and reporting | Implemented |
+| `square-formation:v1` | Formation of the unreduced polynomial square into a preallocated $2m$-bit buffer | Reduction, reusable setup, input generation, allocation, validation, and reporting | Defined; pending |
+| `modular-square-steady-state:v1` | Square formation followed by reduction to an $m$-bit output, including any intermediate-buffer traffic | Reusable setup, input generation, allocation, validation, and reporting | Defined; pending |
+| `multiplication-formation:v1` | Polynomial multiplication into a preallocated $2m$-bit buffer | Reduction, reusable setup, input generation, allocation, validation, and reporting | Defined; pending |
+| `modular-multiplication-steady-state:v1` | Polynomial multiplication followed by reduction, including intermediate-buffer traffic | Reusable setup, input generation, allocation, validation, and reporting | Defined; pending |
+| `end-to-end:<workload>:vN` | One named workload invocation from materialized public inputs/state to its specified result, including its arithmetic and control flow | Process startup, corpus generation, file I/O, validation, and reporting | Workload-specific |
+
+Microbenchmarks time a batch with one clock interval and divide by the number
+of operations; they do not place clock calls around each individual reducer
+call. A fused implementation may use its own internal organization, but it
+must retain the same mathematical input/output operation and timing-scope
+label. Reusable setup is deliberately handled by the separate setup-accounting
+contract rather than hidden inside one method's timed operation.
+
 The two Barrett products call the upstream `gf2x_mul` API. The reciprocal
 polynomial is precomputed outside the timed reduction path.
 
@@ -102,7 +123,9 @@ experiments must record it separately when their claims require it.
 The current native binary emits
 `input_distribution=uniform-full-range:v1`. Future complete-arithmetic or
 application drivers must name their own corpus without presenting it as a
-different reduction API.
+different reduction API. It also emits
+`timing_scope=reduction-steady-state:v1`; timing results with another scope
+must not be merged into the same distribution.
 
 ## Shared Work--Feedback-Depth--Setup Tradeoff Map
 

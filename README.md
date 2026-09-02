@@ -344,7 +344,7 @@ build/reduction_benchmark --taps 0,7,12 16 3 283 0x1
 The output is CSV with reduction-only timing in nanoseconds per input:
 
 ```text
-m,s,h,taps,Delta_min,input_distribution,GS_ns,Serial_ns,Naive_ns,...
+m,s,h,taps,Delta_min,input_distribution,timing_scope,GS_ns,Serial_ns,...
 ```
 
 The current reduction-only corpus is `uniform-full-range:v1`: it samples
@@ -353,6 +353,12 @@ squares, and application states are subsets of this reduction domain, not
 different reduction APIs; they are considered separately only in complete
 arithmetic and end-to-end experiments. The contract is documented in
 [bench/native_benchmark.md](bench/native_benchmark.md#input-distribution-registry).
+
+The current timing scope is `reduction-steady-state:v1`: only batched
+`reduce_into()` calls are timed. Reducer setup, input generation, allocation,
+correctness checks, checksum consumption, and reporting remain outside. Other
+complete-arithmetic and application boundaries are defined in
+[bench/native_benchmark.md](bench/native_benchmark.md#timed-boundary-registry).
 
 For repeatable support suites, `phase_diagram_benchmark.py --manifest FILE`
 accepts JSON Lines records containing `sample_id`, `provenance`, `m`, and

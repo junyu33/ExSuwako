@@ -13,6 +13,7 @@ from typing import Any
 
 
 CURRENT_INPUT_DISTRIBUTION = "uniform-full-range:v1"
+CURRENT_TIMING_SCOPE = "reduction-steady-state:v1"
 
 
 def validate_manifest_entry(value: Any, line_number: int) -> dict[str, Any]:
@@ -155,6 +156,11 @@ def validate_benchmark_geometry(
             "benchmark emitted an unexpected input distribution: "
             f"{row.get('input_distribution')!r}"
         )
+    if row.get("timing_scope") != CURRENT_TIMING_SCOPE:
+        raise RuntimeError(
+            "benchmark emitted an unexpected timing scope: "
+            f"{row.get('timing_scope')!r}"
+        )
 
 
 def add_derived_fields(
@@ -201,6 +207,7 @@ def main() -> None:
         "active_tap_counts",
         "W_fb",
         "input_distribution",
+        "timing_scope",
         "GS_ns",
         "Serial_ns",
         "Naive_ns",

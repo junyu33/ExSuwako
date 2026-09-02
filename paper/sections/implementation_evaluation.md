@@ -158,6 +158,25 @@ include formation or workload semantics. Each reduction result row records
 the registry name, and every matched reducer comparison uses the same
 materialized input corpus.
 
+Timing scopes are explicit and non-interchangeable:
+
+| Registry name | Timed mathematical operation | Status |
+|---|---|---|
+| `reduction-steady-state:v1` | reduction of a materialized degree-below-$2m$ input into a preallocated output | implemented |
+| `square-formation:v1` | unreduced polynomial square formation | pending |
+| `modular-square-steady-state:v1` | square formation followed by reduction | pending |
+| `multiplication-formation:v1` | unreduced polynomial multiplication | pending |
+| `modular-multiplication-steady-state:v1` | multiplication followed by reduction | pending |
+| `end-to-end:<workload>:vN` | one specified workload invocation | workload-specific |
+
+For steady-state microbenchmarks, reusable plans, materialized inputs,
+outputs, and scratch buffers exist before the clock starts. Input generation,
+allocation, correctness checks, checksum consumption, and reporting remain
+outside. Complete-operation scopes include intermediate-buffer traffic, and
+end-to-end scopes include all arithmetic and control flow internal to the
+named invocation. Reusable setup is reported through the separate setup and
+amortization contract.
+
 For the algorithm-selection plots, use the modulus Hamming weight $h=s+1$ as
 the primary horizontal coordinate and report $s=|T|$ as the secondary support
 coordinate.  Use

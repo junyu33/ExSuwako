@@ -43,6 +43,7 @@ def check_exact_cli(binary: Path) -> None:
         "taps": "0;3;7",
         "Delta_min": "9",
         "input_distribution": "uniform-full-range:v1",
+        "timing_scope": "reduction-steady-state:v1",
     }
     for field, value in expected.items():
         if row[field] != value:
@@ -138,6 +139,11 @@ def check_manifest(binary: Path, driver: Path) -> None:
             for row in rows
         ):
             raise AssertionError("input distribution was not preserved")
+        if any(
+            row["timing_scope"] != "reduction-steady-state:v1"
+            for row in rows
+        ):
+            raise AssertionError("timing scope was not preserved")
 
         invalid_manifests = [
             [

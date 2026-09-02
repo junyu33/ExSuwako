@@ -9,6 +9,7 @@
 
 static uint64_t rng_state;
 static const char *input_distribution = "uniform-full-range:v1";
+static const char *timing_scope = "reduction-steady-state:v1";
 
 static uint64_t rng_next(void) {
     rng_state ^= rng_state << 7;
@@ -338,7 +339,7 @@ int main(int argc, char **argv) {
         free(pool);
     }
 
-    printf("m,s,h,taps,Delta_min,input_distribution,"
+    printf("m,s,h,taps,Delta_min,input_distribution,timing_scope,"
            "GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
            "Serial/GS,Naive/GS,BarrettGF2X/GS,sample,seed\n");
     for (int trial = 0; trial < supports; ++trial) {
@@ -349,8 +350,9 @@ int main(int argc, char **argv) {
         printf("%zu,%zu,%zu,%s,", m, s, s + 1, tap_values[trial]);
         if (has_delta[trial]) printf("%zu,", delta_values[trial]);
         else printf("NA,");
-        printf("%s,%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
-               input_distribution, gs, serial, naive, barrett,
+        printf("%s,%s,%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
+               input_distribution, timing_scope,
+               gs, serial, naive, barrett,
                serial / gs, skip_naive ? 0.0 : naive / gs, barrett / gs,
                trial, (unsigned long long)seed);
         free(tap_values[trial]);

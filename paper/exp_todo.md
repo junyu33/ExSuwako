@@ -81,23 +81,11 @@ has no mathematical meaning; sorting is the canonical serialized form. Native
 experiment inputs must already satisfy this convention rather than relying on
 silent deduplication or normalization.
 
-- [x] Freeze the tap convention, including whether the constant tap is listed
-      explicitly and whether $h$ includes the leading term.
-- [x] Add an exact tap-list or manifest input mode; do not rely only on a seed
-      to recover the tested modulus.
-- [x] Preserve the sample identifier, provenance, $m$, and complete tap set;
-      deterministically derive and emit $s$, $h$, $\Delta_{\min}$, feedback
-      stage count, active-tap profile, and scheduled work. Irreducibility is
-      not part of the general reduction contract and is recorded separately
-      only for field-level claims that require it.
-- [x] Freeze the reduction-only input domain and its primary distribution:
-      `uniform-full-range:v1` samples $A=L+x^mH$ for independent uniform
-      $m$-bit $L,H$. Multiplication results, squares, and application states
-      are subsets of the same reduction domain, not distinct reduction APIs;
-      they are named separately only by complete-arithmetic or end-to-end
-      experiments that include their formation or workload semantics.
-- [ ] Freeze the timed boundary for reduction-only, square formation,
-      modular squaring, multiplication, and end-to-end workloads.
+- [x] [Q] What is the canonical binary tap convention? [A] `taps=sort(T)` is the complete ascending nonleading support, includes exponent 0 exactly when present, excludes $m$, permits the empty set, and defines $s=|T|$ and $h=s+1$.
+- [x] [Q] How is the exact tested modulus recovered? [A] Use the exact tap-list CLI or a JSONL manifest; a seed alone is not the modulus identity.
+- [x] [Q] Which modulus identity and geometry fields are preserved? [A] Preserve `sample_id`, `provenance`, $m$, and complete taps, then deterministically derive and emit $s$, $h$, $\Delta_{\min}$, feedback stages, active-tap profile, and scheduled work; record irreducibility separately only for field-level claims that require it.
+- [x] [Q] What is the reduction-only input domain and primary distribution? [A] `uniform-full-range:v1` samples $A=L+x^mH$ for independent uniform $m$-bit $L,H$; multiplication results, squares, and application states are subsets of the same reduction domain and become separate corpora only when formation or workload semantics are timed.
+- [x] [Q] What does each timing scope include? [A] Freeze distinct reduction-only, square-formation, complete modular-square, multiplication-formation, complete modular-multiplication, and workload-specific end-to-end boundaries; only `reduction-steady-state:v1` is currently implemented, while the others are future Gate 4 contracts.
 - [ ] Freeze setup accounting: schedule generation, reciprocal generation,
       generated code, dense matrices, allocation, and amortization over $K$.
 - [ ] Freeze compiler flags, word width $W$, gf2x build and linkage, CPU
@@ -241,7 +229,8 @@ This is Application 1 in
       square.
 - [ ] Implement and time square formation separately from reduction.
 - [ ] Use random field elements and application-generated Frobenius-chain
-      states; do not substitute the current high-monomial distribution.
+      states; do not infer complete modular-square timing from the uniform
+      reduction-only corpus.
 - [ ] Measure reduction-only, square-only, and complete modular-square costs
       for the same inputs.
 - [ ] Compare generalized Suwako with serial folding, gf2x-backed Barrett, the

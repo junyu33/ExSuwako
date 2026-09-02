@@ -68,8 +68,9 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fields = [
         "power", "m", "s", "h", "Delta_min", "input_distribution",
-        "GS_ns", "Serial_ns", "Naive_ns", "BarrettGF2X_ns", "Serial/GS",
-        "Naive/GS", "BarrettGF2X/GS", "seed",
+        "timing_scope", "GS_ns", "Serial_ns", "Naive_ns",
+        "BarrettGF2X_ns", "Serial/GS", "Naive/GS", "BarrettGF2X/GS",
+        "seed",
     ]
     with args.output.open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
