@@ -31,6 +31,13 @@ Requirements:
 - no undefined shifts;
 - constant-time field-element handling.
 
+The implemented scalar GS and Serial reducers share the word/bit shift
+descriptors, high-part extraction, and low/carry right-shift components in
+`sparse_shift.h`.  GS retains its destination-oriented gather traversal and
+doubling schedule, while Serial retains its source-oriented scatter traversal
+and sequential feedback chain.  Thus the comparison shares the primitive
+being measured without collapsing the two algorithms into one loop structure.
+
 ### 8.3 Fixed-Modulus Code Generation
 
 Generate active tap lists, unrolled stages, final low assembly, and optional

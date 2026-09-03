@@ -279,8 +279,16 @@ silent deduplication or normalization.
       the latter runs the reducer, GS component/stage, and shared-shift suites
       under ASan and UBSan, and GCC `-fanalyzer` reports no scalar-source
       diagnostic.
-- [ ] Retain the fair shared word-level shift primitive while keeping the
-      distinct GS and serial traversals.
+- [x] Retain the fair shared word-level shift primitive while keeping the
+      distinct GS and serial traversals. [A] Both plans use the descriptors
+      and right-shift operations in `include/sparse_shift.h`: high-part
+      extraction shares `sparse_assign_right_shift`, GS gathers adjacent
+      source words through `sparse_right_shift_word`, and Serial scatters one
+      loaded source word through the same `sparse_right_shift_low` and
+      `sparse_right_shift_carry` components.  Their schedule and traversal
+      structures remain intentionally distinct, and the common primitive is
+      exercised at every bit offset by `check_sparse_shift.c` under ordinary,
+      ASan, and UBSan builds.
 - [ ] Complete a matched Montgomery baseline where its representation and
       setup assumptions are meaningful.
 - [ ] Include a generic polynomial-remainder implementation as a correctness

@@ -39,6 +39,14 @@ This uses ASan with leak detection and UBSan with fail-fast behavior.  Passing
 the suite establishes coverage of the exercised scalar paths; it is not a
 formal proof that arbitrary C object sizes cannot overflow `size_t`.
 
+The shared header is also the fairness boundary for scalar sparse shifts.
+Both GS and Serial use `sparse_assign_right_shift` to extract the high part.
+For feedback, GS gathers an output word from an adjacent source pair with
+`sparse_right_shift_word`, whereas Serial loads a source word once and scatters
+its `sparse_right_shift_low` and `sparse_right_shift_carry` contributions.
+Those three functions implement the same word/bit decomposition; sharing them
+does not erase the algorithms' genuinely different schedules and traversals.
+
 ## Input Distribution Registry
 
 Every result row carries an `input_distribution` label. The frozen names and
