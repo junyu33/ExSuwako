@@ -221,6 +221,32 @@ with semicolons, `feedback_active_tap_sum` is \(\sum_k h_k\), and `W_fb` is
 Irreducibility is not part of this general reduction contract; field-level
 experiments must record it separately when their claims require it.
 
+The `scalar-source-v1` model covers the complete portable-scalar
+`gs_reduce_into()` data path for a canonical degree-below-$2m$ input and an
+$m$-bit output. It counts only data-word operations: descriptor accesses,
+indices, comparisons, branches, and scalar locals are excluded. The emitted
+fields are:
+
+| Field | Source-level meaning |
+|---|---|
+| `GS_source_aligned_word_contributions` | feedback/assembly contributions whose bit offset is zero |
+| `GS_source_cross_word_contributions` | feedback/assembly contributions assembled across a word boundary |
+| `GS_source_word_shifts` | `word_t` shifts by a nonzero bit offset |
+| `GS_source_word_xors` | XOR expressions on `word_t` data |
+| `GS_source_logical_word_reads` | reads from input, output, or GS state word arrays |
+| `GS_source_logical_word_writes` | writes to output or GS state word arrays |
+| `GS_source_scratch_words` | plan-owned mutable GS state, including its sentinel word |
+
+Aligned contributions therefore do not count as bit shifts. Cross-word
+contributions are recorded separately; the shift total also includes the
+possibly unaligned extraction of the high half. The model follows the current
+scalar fast paths, including adjacent-word load reuse, but it is not a count
+of compiler instructions, cache accesses, hardware loads/stores, or minimum
+XOR complexity. Cross-vector shifts are not applicable to this scalar model
+and require a separately named SIMD model if that implementation is added.
+The phase-diagram driver independently reconstructs `scalar-source-v1` from
+$m$, the complete taps, and the emitted word width, and rejects mismatches.
+
 The current native binary emits
 `input_distribution=uniform-full-range:v1` and
 `timing_scope=reduction-steady-state:v1`, together with

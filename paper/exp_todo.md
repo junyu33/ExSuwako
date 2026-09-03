@@ -214,15 +214,23 @@ silent deduplication or normalization.
       `feedback_active_tap_sum` and `W_fb` from the actual GS plan, while the
       phase-diagram driver independently checks them against
       $\sum_k h_k$ and $\sum_{t,k}[m-2^k\Delta_t]_+$ before accepting a row.
-- [ ] Define and validate source-level word shifts, XORs, reads, writes, and
-      temporary words without treating them as compiler instructions or
-      hardware memory transactions.
+- [x] [Q] Define and validate source-level word shifts, XORs, reads, writes,
+      and temporary words without treating them as compiler instructions or
+      hardware memory transactions. [A] `scalar-source-v1` counts the complete
+      portable GS data path from the actual plan, while the phase-diagram
+      driver independently reconstructs its aligned/cross-word contributions,
+      nonzero word shifts, word XORs, logical array accesses, and plan-owned
+      scratch words from $m$, taps, and $W$ before accepting a row.
 - [x] Validate the formal scheduled coefficient-work sum
       $\sum_{r,k}[m-2^kd_r]_+$ against every generated binary schedule and
       exhaustively enumerate support geometry for $2\le m\le18$; see
       [math_3.md](raw/math_3.md).  This does not validate an instruction-count
       or minimal-circuit model.
-- [ ] Separate logical shifts from cross-word and cross-vector shifts.
+- [x] [Q] Separate logical shifts from cross-word and cross-vector shifts.
+      [A] `scalar-source-v1` reports zero-bit-offset aligned contributions and
+      nonzero-bit-offset cross-word contributions separately. Cross-vector
+      shifts are explicitly not applicable to the scalar kernel and require a
+      separately named SIMD model if that optional implementation is added.
 - [ ] Validate setup time and stored schedule size independently of steady
       state reduction time.
 - [ ] Correlate predicted word work with measured cycles without relabelling

@@ -43,6 +43,11 @@ def main() -> None:
             raise RuntimeError(f"expected {args.supports} rows for m={m}, h={h}")
         row = dict(benchmark_rows[0])
         for field in [
+            "GS_source_aligned_word_contributions",
+            "GS_source_cross_word_contributions",
+            "GS_source_word_shifts", "GS_source_word_xors",
+            "GS_source_logical_word_reads", "GS_source_logical_word_writes",
+            "GS_source_scratch_words",
             "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
             "BarrettGF2X_setup_ns",
             "GS_ns", "Serial_ns", "Naive_ns", "BarrettGF2X_ns",
@@ -84,6 +89,10 @@ def main() -> None:
     fields = [
         "power", "m", "word_bits", "s", "h", "Delta_min",
         "feedback_stages", "feedback_active_tap_sum", "W_fb",
+        "GS_source_cost_model", "GS_source_aligned_word_contributions",
+        "GS_source_cross_word_contributions", "GS_source_word_shifts",
+        "GS_source_word_xors", "GS_source_logical_word_reads",
+        "GS_source_logical_word_writes", "GS_source_scratch_words",
         "input_distribution",
         "timing_scope", "setup_scope", "timing_order", "GS_setup_ns", "Serial_setup_ns",
         "Naive_setup_ns", "BarrettGF2X_setup_ns",

@@ -106,6 +106,13 @@ independently from the complete tap set and rejects any row whose schedule
 metadata disagrees with the predicted geometry.  This checks the structural
 predictor before it is correlated with timing data; it does not by itself
 establish the latency-scaling claim or an instruction-count model.
+The separate `scalar-source-v1` profile models the complete portable GS data
+path and distinguishes aligned from cross-word contributions, together with
+nonzero word shifts, word XORs, logical array reads and writes, and plan-owned
+scratch words. The native profile is checked against an independent Python
+reconstruction. These are source-model quantities rather than compiler
+instructions or hardware memory transactions; cross-vector behavior remains
+outside the scalar model.
 
 **RQ3: Crossover.** For which triples $(m,s,\Delta_{\min})$ does generalized
 Suwako outperform serial folding and Barrett/Montgomery?
@@ -225,7 +232,9 @@ theoretical coordinate as a complete implementation model.
 - setup time;
 - modulus-specific bytes;
 - generated code size;
-- temporary memory.
+- temporary memory;
+- `scalar-source-v1` aligned/cross-word contributions, nonzero word shifts,
+  word XORs, logical array accesses, and scratch words.
 - median, p90, and p99 for runtime, $\Delta_{\min}$, $D_{\mathrm{fb}}$, and
   $\sum_k h_k$.
 

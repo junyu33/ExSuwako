@@ -13,6 +13,7 @@ static const char *input_distribution = "uniform-full-range:v1";
 static const char *timing_scope = "reduction-steady-state:v1";
 static const char *setup_scope = "modulus-plan:v1";
 static const char *timing_order = "cyclic-method-rotation:v1";
+static const char *gs_source_cost_model = "scalar-source-v1";
 
 typedef enum {
     REDUCER_GS,
@@ -392,8 +393,11 @@ int main(int argc, char **argv) {
         calloc((size_t)supports, sizeof(*active_tap_sum_values));
     size_t *scheduled_work_values =
         calloc((size_t)supports, sizeof(*scheduled_work_values));
+    gs_source_cost *source_cost_values =
+        calloc((size_t)supports, sizeof(*source_cost_values));
     if (!delta_values || !has_delta || !tap_values || !feedback_stage_values ||
-        !active_tap_values || !active_tap_sum_values || !scheduled_work_values)
+        !active_tap_values || !active_tap_sum_values || !scheduled_work_values ||
+        !source_cost_values)
         die("allocation failed");
 
     for (int trial = 0; trial < supports; ++trial) {
@@ -452,6 +456,7 @@ int main(int argc, char **argv) {
             gs_plan_feedback_active_tap_sum(gs);
         scheduled_work_values[trial] =
             gs_plan_feedback_scheduled_coefficient_work(gs);
+        source_cost_values[trial] = gs_plan_source_cost(gs);
 
         poly_t *inputs = calloc((size_t)inputs_count, sizeof(*inputs));
         if (!inputs) die("allocation failed");
@@ -481,6 +486,10 @@ int main(int argc, char **argv) {
 
     printf("m,word_bits,s,h,taps,Delta_min,feedback_stages,active_tap_counts,"
            "feedback_active_tap_sum,W_fb,"
+           "GS_source_cost_model,GS_source_aligned_word_contributions,"
+           "GS_source_cross_word_contributions,GS_source_word_shifts,"
+           "GS_source_word_xors,GS_source_logical_word_reads,"
+           "GS_source_logical_word_writes,GS_source_scratch_words,"
            "input_distribution,timing_scope,setup_scope,timing_order,"
            "GS_setup_ns,Serial_setup_ns,Naive_setup_ns,BarrettGF2X_setup_ns,"
            "GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
@@ -494,10 +503,19 @@ int main(int argc, char **argv) {
                s, s + 1, tap_values[trial]);
         if (has_delta[trial]) printf("%zu,", delta_values[trial]);
         else printf("NA,");
-        printf("%zu,%s,%zu,%zu,%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
+        const gs_source_cost *source_cost = &source_cost_values[trial];
+        printf("%zu,%s,%zu,%zu,%s,%zu,%zu,%zu,%zu,%zu,%zu,%zu,"
+               "%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
                "%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
                feedback_stage_values[trial], active_tap_values[trial],
                active_tap_sum_values[trial], scheduled_work_values[trial],
+               gs_source_cost_model,
+               source_cost->aligned_word_contributions,
+               source_cost->cross_word_contributions,
+               source_cost->word_shifts, source_cost->word_xors,
+               source_cost->logical_word_reads,
+               source_cost->logical_word_writes,
+               source_cost->scratch_words,
                input_distribution, timing_scope, setup_scope, timing_order,
                gs_setup_samples[trial], serial_setup_samples[trial],
                naive_setup_samples[trial], barrett_setup_samples[trial],
@@ -523,6 +541,7 @@ int main(int argc, char **argv) {
     free(active_tap_values);
     free(active_tap_sum_values);
     free(scheduled_work_values);
+    free(source_cost_values);
     free(exact_taps);
     return 0;
 }

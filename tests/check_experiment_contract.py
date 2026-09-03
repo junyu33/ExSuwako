@@ -47,6 +47,14 @@ def check_exact_cli(binary: Path) -> None:
         "active_tap_counts": "2",
         "feedback_active_tap_sum": "2",
         "W_fb": "10",
+        "GS_source_cost_model": "scalar-source-v1",
+        "GS_source_aligned_word_contributions": "1",
+        "GS_source_cross_word_contributions": "4",
+        "GS_source_word_shifts": "9",
+        "GS_source_word_xors": "9",
+        "GS_source_logical_word_reads": "7",
+        "GS_source_logical_word_writes": "5",
+        "GS_source_scratch_words": "2",
         "input_distribution": "uniform-full-range:v1",
         "timing_scope": "reduction-steady-state:v1",
         "setup_scope": "modulus-plan:v1",
@@ -69,6 +77,13 @@ def check_exact_cli(binary: Path) -> None:
         empty["s"], empty["h"], empty["taps"], empty["Delta_min"],
         empty["feedback_stages"], empty["active_tap_counts"],
         empty["feedback_active_tap_sum"], empty["W_fb"],
+        empty["GS_source_cost_model"],
+        empty["GS_source_aligned_word_contributions"],
+        empty["GS_source_cross_word_contributions"],
+        empty["GS_source_word_shifts"], empty["GS_source_word_xors"],
+        empty["GS_source_logical_word_reads"],
+        empty["GS_source_logical_word_writes"],
+        empty["GS_source_scratch_words"],
     ) != (
         "0",
         "1",
@@ -78,6 +93,14 @@ def check_exact_cli(binary: Path) -> None:
         "-",
         "0",
         "0",
+        "scalar-source-v1",
+        "0",
+        "0",
+        "1",
+        "0",
+        "3",
+        "4",
+        "2",
     ):
         raise AssertionError(f"unexpected empty-support row: {empty}")
 
@@ -116,6 +139,12 @@ def check_manifest(binary: Path, driver: Path) -> None:
                 "m": 16,
                 "taps": [15],
             },
+            {
+                "sample_id": "aligned-word",
+                "provenance": "synthetic-boundary:v1",
+                "m": 128,
+                "taps": [0, 64],
+            },
         ]
         manifest.write_text(
             "".join(json.dumps(entry) + "\n" for entry in entries),
@@ -146,6 +175,7 @@ def check_manifest(binary: Path, driver: Path) -> None:
             "exact-0-3-7",
             "constant-only",
             "gap-one",
+            "aligned-word",
         ]:
             raise AssertionError("manifest sample identifiers were not preserved")
         if [row["provenance"] for row in rows] != [
@@ -153,21 +183,26 @@ def check_manifest(binary: Path, driver: Path) -> None:
             "hand-constructed-example:v1",
             "synthetic-boundary:v1",
             "synthetic-boundary:v1",
+            "synthetic-boundary:v1",
         ]:
             raise AssertionError("manifest provenance was not preserved")
-        if [row["taps"] for row in rows] != ["-", "0;3;7", "0", "15"]:
+        if [row["taps"] for row in rows] != [
+            "-", "0;3;7", "0", "15", "0;64"
+        ]:
             raise AssertionError("manifest tap lists were not preserved")
-        if [row["feedback_stages"] for row in rows] != ["0", "1", "0", "4"]:
+        if [row["feedback_stages"] for row in rows] != [
+            "0", "1", "0", "4", "1"
+        ]:
             raise AssertionError("incorrect derived feedback-stage counts")
         if [row["active_tap_counts"] for row in rows] != [
-            "-", "2", "-", "1;1;1;1"
+            "-", "2", "-", "1;1;1;1", "1"
         ]:
             raise AssertionError("incorrect derived active-tap profiles")
         if [row["feedback_active_tap_sum"] for row in rows] != [
-            "0", "2", "0", "4"
+            "0", "2", "0", "4", "1"
         ]:
             raise AssertionError("incorrect active-tap sums")
-        if [row["W_fb"] for row in rows] != ["0", "10", "0", "49"]:
+        if [row["W_fb"] for row in rows] != ["0", "10", "0", "49", "64"]:
             raise AssertionError("incorrect derived scheduled work")
         if any(
             row["input_distribution"] != "uniform-full-range:v1"
@@ -322,6 +357,12 @@ def check_manifest(binary: Path, driver: Path) -> None:
             "sample_id", "provenance", "m", "s", "h", "taps",
             "Delta_min", "feedback_stages", "active_tap_counts",
             "feedback_active_tap_sum", "W_fb",
+            "GS_source_cost_model",
+            "GS_source_aligned_word_contributions",
+            "GS_source_cross_word_contributions",
+            "GS_source_word_shifts", "GS_source_word_xors",
+            "GS_source_logical_word_reads",
+            "GS_source_logical_word_writes", "GS_source_scratch_words",
             "seed",
         ]
         if [

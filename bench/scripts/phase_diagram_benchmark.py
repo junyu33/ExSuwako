@@ -17,6 +17,7 @@ CURRENT_TIMING_SCOPE = "reduction-steady-state:v1"
 CURRENT_SETUP_SCOPE = "modulus-plan:v1"
 CURRENT_TIMING_ORDER = "cyclic-method-rotation:v1"
 CURRENT_AGGREGATION = "median-of-trial-medians:no-outlier-removal:v1"
+CURRENT_GS_SOURCE_COST_MODEL = "scalar-source-v1"
 
 
 def validate_manifest_entry(value: Any, line_number: int) -> dict[str, Any]:
@@ -138,10 +139,138 @@ def derive_geometry(m: int, taps: list[int]) -> dict[str, object]:
     }
 
 
+def derive_gs_source_cost(
+    m: int, taps: list[int], word_bits: int
+) -> dict[str, object]:
+    """Independently emulate the documented scalar-source-v1 loop model."""
+    state_words = (m + word_bits - 1) // word_bits
+    input_words = (2 * m + word_bits - 1) // word_bits
+    cost = {
+        "GS_source_aligned_word_contributions": 0,
+        "GS_source_cross_word_contributions": 0,
+        "GS_source_word_shifts": 0,
+        "GS_source_word_xors": 0,
+        "GS_source_logical_word_reads": 0,
+        "GS_source_logical_word_writes": 0,
+        "GS_source_scratch_words": state_words + 1,
+    }
+
+    extract_word_offset, extract_bit_offset = divmod(m, word_bits)
+    for dst in range(state_words):
+        source = dst + extract_word_offset
+        if source < input_words:
+            cost["GS_source_logical_word_reads"] += 1
+            cost["GS_source_word_shifts"] += extract_bit_offset != 0
+        if extract_bit_offset != 0 and source + 1 < input_words:
+            cost["GS_source_logical_word_reads"] += 1
+            cost["GS_source_word_shifts"] += 1
+            cost["GS_source_word_xors"] += 1
+        cost["GS_source_logical_word_writes"] += 1
+    cost["GS_source_logical_word_writes"] += 1
+
+    factor = 1
+    while True:
+        shifts = sorted(
+            factor * (m - tap)
+            for tap in taps
+            if tap != 0 and factor * (m - tap) < m
+        )
+        if not shifts:
+            break
+        descriptors = [divmod(shift, word_bits) for shift in shifts]
+        affected_words = (m - shifts[0] + word_bits - 1) // word_bits
+        all_aligned = all(bit_offset == 0 for _, bit_offset in descriptors)
+        for dst in range(affected_words):
+            cost["GS_source_logical_word_reads"] += 1
+            cost["GS_source_logical_word_writes"] += 1
+            if all_aligned:
+                for word_offset, _ in descriptors:
+                    if word_offset >= state_words - dst:
+                        break
+                    cost["GS_source_aligned_word_contributions"] += 1
+                    cost["GS_source_logical_word_reads"] += 1
+                    cost["GS_source_word_xors"] += 1
+                continue
+
+            index = 0
+            while index < len(descriptors):
+                word_offset = descriptors[index][0]
+                if word_offset >= state_words - dst:
+                    break
+                cost["GS_source_logical_word_reads"] += 2
+                while (
+                    index < len(descriptors)
+                    and descriptors[index][0] == word_offset
+                ):
+                    bit_offset = descriptors[index][1]
+                    if bit_offset == 0:
+                        cost["GS_source_aligned_word_contributions"] += 1
+                    else:
+                        cost["GS_source_cross_word_contributions"] += 1
+                        cost["GS_source_word_shifts"] += 2
+                    cost["GS_source_word_xors"] += 2
+                    index += 1
+        factor *= 2
+
+    descriptors = sorted(divmod(tap, word_bits) for tap in taps)
+    all_aligned = all(bit_offset == 0 for _, bit_offset in descriptors)
+    for dst in range(state_words):
+        cost["GS_source_logical_word_reads"] += 1
+        cost["GS_source_logical_word_writes"] += 1
+        if all_aligned:
+            for word_offset, _ in descriptors:
+                if word_offset > dst:
+                    break
+                src = dst - word_offset
+                if src < state_words:
+                    cost["GS_source_aligned_word_contributions"] += 1
+                    cost["GS_source_logical_word_reads"] += 1
+                    cost["GS_source_word_xors"] += 1
+            continue
+
+        index = 0
+        while index < len(descriptors):
+            word_offset = descriptors[index][0]
+            if word_offset > dst:
+                break
+            src = dst - word_offset
+            if src >= state_words:
+                index += 1
+                continue
+            cost["GS_source_logical_word_reads"] += 1 + (src > 0)
+            while (
+                index < len(descriptors)
+                and descriptors[index][0] == word_offset
+            ):
+                bit_offset = descriptors[index][1]
+                if bit_offset == 0:
+                    cost["GS_source_aligned_word_contributions"] += 1
+                    cost["GS_source_word_xors"] += 1
+                else:
+                    cost["GS_source_cross_word_contributions"] += 1
+                    cost["GS_source_word_shifts"] += 2
+                    cost["GS_source_word_xors"] += 2
+                index += 1
+
+    if m % word_bits != 0:
+        cost["GS_source_logical_word_reads"] += 1
+        cost["GS_source_logical_word_writes"] += 1
+    return {"GS_source_cost_model": CURRENT_GS_SOURCE_COST_MODEL, **cost}
+
+
 def validate_benchmark_geometry(
     row: dict[str, object], m: int, taps: list[int]
 ) -> None:
     geometry = derive_geometry(m, taps)
+    try:
+        word_bits = int(str(row.get("word_bits")))
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(
+            f"benchmark emitted invalid word_bits: {row.get('word_bits')!r}"
+        ) from error
+    if word_bits <= 0:
+        raise RuntimeError(f"benchmark emitted invalid word_bits: {word_bits}")
+    source_cost = derive_gs_source_cost(m, taps, word_bits)
     expected = {
         "m": str(m),
         "s": str(geometry["s"]),
@@ -152,6 +281,7 @@ def validate_benchmark_geometry(
         "active_tap_counts": str(geometry["active_tap_counts"]),
         "feedback_active_tap_sum": str(geometry["feedback_active_tap_sum"]),
         "W_fb": str(geometry["W_fb"]),
+        **{field: str(value) for field, value in source_cost.items()},
     }
     for field, value in expected.items():
         if str(row.get(field)) != value:
@@ -204,6 +334,7 @@ def add_derived_fields(
     row["sample_id"] = sample_id
     row["provenance"] = provenance
     row.update(derive_geometry(m, taps))
+    row.update(derive_gs_source_cost(m, taps, int(str(row["word_bits"]))))
 
 
 def main() -> None:
@@ -250,6 +381,14 @@ def main() -> None:
         "active_tap_counts",
         "feedback_active_tap_sum",
         "W_fb",
+        "GS_source_cost_model",
+        "GS_source_aligned_word_contributions",
+        "GS_source_cross_word_contributions",
+        "GS_source_word_shifts",
+        "GS_source_word_xors",
+        "GS_source_logical_word_reads",
+        "GS_source_logical_word_writes",
+        "GS_source_scratch_words",
         "input_distribution",
         "timing_scope",
         "setup_scope",

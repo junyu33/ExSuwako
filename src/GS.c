@@ -420,6 +420,130 @@ size_t gs_plan_feedback_scheduled_coefficient_work(const gs_plan *plan) {
     return total;
 }
 
+/*
+ * Count the abstract scalar data-path operations executed by gs_reduce_into()
+ * for its canonical degree-below-2m input and m-bit output. Descriptor reads,
+ * indexing, comparisons, branches, and scalar locals are outside this model.
+ * Word shifts count only nonzero bit offsets. Logical reads/writes refer to C
+ * word-array accesses, not compiler instructions or hardware transactions.
+ */
+gs_source_cost gs_plan_source_cost(const gs_plan *plan) {
+    gs_source_cost cost = {0};
+    if (!plan) return cost;
+
+    const size_t state_words = plan->state_words;
+    const size_t input_words = poly_words_for_bits(2 * plan->m);
+
+    /* extract_high_part(): state <- input >> m, plus the sentinel write. */
+    size_t extract_word_offset = plan->m / WORD_BITS;
+    unsigned extract_bit_offset = (unsigned)(plan->m % WORD_BITS);
+    for (size_t dst = 0; dst < state_words; ++dst) {
+        size_t source = dst + extract_word_offset;
+        if (source < input_words) {
+            ++cost.logical_word_reads;
+            cost.word_shifts += extract_bit_offset != 0;
+        }
+        if (extract_bit_offset != 0 && source + 1 < input_words) {
+            ++cost.logical_word_reads;
+            ++cost.word_shifts;
+            ++cost.word_xors;
+        }
+        ++cost.logical_word_writes;
+    }
+    ++cost.logical_word_writes;
+
+    /* feedback_stage_in_place(): retain its three source-level fast paths. */
+    for (size_t stage = 0; stage < plan->round_count; ++stage) {
+        const round_desc *round = &plan->rounds[stage];
+        const shift_desc *shifts = plan->feedback_shifts + round->offset;
+        for (size_t dst = 0; dst < round->affected_words; ++dst) {
+            ++cost.logical_word_reads;
+            ++cost.logical_word_writes;
+
+            if (round->aligned_count == round->count) {
+                for (size_t j = 0; j < round->count; ++j) {
+                    if (shifts[j].word_offset >= state_words - dst) break;
+                    ++cost.aligned_word_contributions;
+                    ++cost.logical_word_reads;
+                    ++cost.word_xors;
+                }
+                continue;
+            }
+
+            size_t j = 0;
+            while (j < round->count) {
+                size_t word_offset = shifts[j].word_offset;
+                if (word_offset >= state_words - dst) break;
+                cost.logical_word_reads += 2;
+                do {
+                    if (shifts[j].bit_offset == 0)
+                        ++cost.aligned_word_contributions;
+                    else {
+                        ++cost.cross_word_contributions;
+                        cost.word_shifts += 2;
+                    }
+                    cost.word_xors += 2;
+                    ++j;
+                } while (j < round->count
+                      && shifts[j].word_offset == word_offset);
+            }
+        }
+    }
+
+    /* assemble_low_part(): output <- L + V(state), followed by top masking. */
+    for (size_t dst = 0; dst < state_words; ++dst) {
+        ++cost.logical_word_reads;
+        ++cost.logical_word_writes;
+
+        if (plan->assembly_aligned_count == plan->assembly_count) {
+            for (size_t j = 0; j < plan->assembly_count; ++j) {
+                size_t word_offset = plan->assembly_shifts[j].word_offset;
+                if (word_offset > dst) break;
+                size_t src = dst - word_offset;
+                if (src < state_words) {
+                    ++cost.aligned_word_contributions;
+                    ++cost.logical_word_reads;
+                    ++cost.word_xors;
+                }
+            }
+            continue;
+        }
+
+        size_t j = 0;
+        while (j < plan->assembly_count) {
+            size_t word_offset = plan->assembly_shifts[j].word_offset;
+            if (word_offset > dst) break;
+            size_t src = dst - word_offset;
+            if (src >= state_words) {
+                ++j;
+                continue;
+            }
+
+            ++cost.logical_word_reads;
+            cost.logical_word_reads += src > 0;
+            do {
+                if (plan->assembly_shifts[j].bit_offset == 0) {
+                    ++cost.aligned_word_contributions;
+                    ++cost.word_xors;
+                } else {
+                    ++cost.cross_word_contributions;
+                    cost.word_shifts += 2;
+                    cost.word_xors += 2;
+                }
+                ++j;
+            } while (j < plan->assembly_count
+                  && plan->assembly_shifts[j].word_offset == word_offset);
+        }
+    }
+
+    if (plan->m % WORD_BITS != 0) {
+        ++cost.logical_word_reads;
+        ++cost.logical_word_writes;
+    }
+    cost.scratch_words = state_words + 1;
+    return cost;
+}
+
 void gs_reduce_into(const poly_t *input, gs_plan *plan, poly_t *output) {
     if (output->n < plan->state_words)
         die("GS output buffer is too small");
