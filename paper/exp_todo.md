@@ -398,8 +398,14 @@ The paper-facing definition of this experiment is in
       summary, rejects duplicate supports, incomplete trial sets, mixed
       contracts, and non-random provenance, and never selects supports by
       observed performance.
-- [ ] Include real irreducible moduli and label reducible ring-level stress
-      tests separately.
+- [-] Include real irreducible moduli and label reducible ring-level stress
+      tests separately. [A] Not planned for the frozen reduction-only phase
+      diagram: correctness and timing apply to arbitrary monic binary moduli,
+      and this study makes no field-level performance claim. Controlled and
+      fixed-weight synthetic samples retain explicit ring-level provenance
+      with irreducibility unclassified; they are not labelled reducible
+      without a test. Any future field/application experiment must introduce
+      a separate manifest with reproducible irreducibility evidence.
 - [ ] Produce fixed-$m$ winner panels and mark statistically or operationally
       uncertain cells instead of forcing a clean boundary.
 - [ ] Record $W$, full tap placement, input distribution, implementation,

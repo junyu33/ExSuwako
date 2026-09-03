@@ -225,11 +225,12 @@ Include:
 - fixed-weight monic binary polynomials with support sampled uniformly from
   $\{0,\ldots,m-1\}$;
 - synthetic controlled families for worst-case and friendly tap placement;
-- non-irreducible moduli as the primary ring-level stress tests;
+- arbitrary monic moduli with irreducibility unclassified as the primary
+  ring-level stress tests;
 - $0\in T$ and $0\notin T$ cases;
 - $T=\varnothing$ and the resulting $q=0$ case;
 - constant-free, constant-one, and dense-$q$ cases;
-- reducible moduli and non-word-aligned degrees.
+- non-word-aligned degrees.
 
 Here $s=0$ is the separate $q=0$ boundary case. For each $(m,s)$ with
 $s\ge1$, sample enough independent supports to report median, p90,
@@ -332,6 +333,10 @@ $s$, $h$, $\Delta_{\min}$, $D_{\mathrm{fb}}$, the complete $(h_k)$ profile,
 and $W_{\mathrm{fb}}$ from those fields and cross-checks the native output.
 Irreducibility metadata is required only for field-level experiments whose
 claims depend on it, not for general reduction correctness or timing.
+The frozen phase diagram therefore does not include a separate real
+irreducible-modulus panel and makes no field-level performance claim;
+synthetic rows are identified by provenance but are not called reducible
+unless reducibility has actually been established.
 
 ### 9.4 Planned Figures
 
