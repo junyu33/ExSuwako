@@ -331,12 +331,19 @@ silent deduplication or normalization.
       and balanced timing rotation as GS, and reports reusable plan setup,
       storage, and steady-state reduction. The native differential suite
       checks it against independent long division before timing.
-- [ ] Add justified SIMD implementations, beginning with one frozen ISA, and
-      measure cross-vector shifts and stage barriers separately.
-- [ ] Treat AVX-512, NEON, SVE, and RTL as optional extensions until the scalar
-      evidence gates are complete.
-- [ ] If an RTL prototype is built, report latency, frequency, area/LUTs,
-      registers, throughput, and pipeline depth under one synthesis flow.
+- [-] Add justified SIMD implementations, beginning with one frozen ISA, and
+      measure cross-vector shifts and stage barriers separately. [A] Not
+      applicable to the frozen portable-scalar experiment contract: no vector
+      ISA is selected or implemented, and cross-vector costs require a
+      separately frozen ISA-specific model.
+- [-] Treat AVX-512, NEON, SVE, and RTL as optional extensions until the scalar
+      evidence gates are complete. [A] These targets remain future extensions
+      rather than planned evidence for the current Math. Comp. study; no
+      cross-vector or hardware result is claimed.
+- [-] If an RTL prototype is built, report latency, frequency, area/LUTs,
+      registers, throughput, and pipeline depth under one synthesis flow. [A]
+      No RTL prototype is planned under the current software-reduction
+      contract, so no synthesis flow or hardware metric is claimed.
 
 ## Gate 3: Classical Reduction Phase Diagram
 
@@ -372,8 +379,8 @@ The paper-facing definition of this experiment is in
 - [ ] Produce the operator schematic $U,U^2,U^4,\ldots$ as an explanatory
       figure, clearly labelled as a construction diagram rather than measured
       evidence.
-- [ ] Populate the planned method, theorem, real-modulus, portable-C, SIMD,
-      setup/storage, and optional-hardware tables only from completed gates.
+- [ ] Populate the planned method, theorem, real-modulus, portable-C, and
+      setup/storage tables only from completed gates.
 
 ## Gate 4: Reproducibility and Artifact
 

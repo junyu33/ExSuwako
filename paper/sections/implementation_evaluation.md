@@ -61,15 +61,17 @@ two generated modes separately measure fixed-modulus specialization.
 
 ### 8.4 SIMD
 
-Potential targets:
+SIMD is not planned for the current portable-scalar evaluation. Potential
+future targets include:
 
 - x86 AVX2;
 - x86 AVX-512;
 - ARM NEON;
 - ARM SVE.
 
-Discuss cross-limb shifts, cross-vector shifts, XOR fan-in, memory traffic, and
-stage barriers. A tap is inactive in a feedback stage whenever
+Any future SIMD study must separately freeze cross-limb shifts, cross-vector
+shifts, XOR fan-in, memory traffic, and stage barriers. A tap is inactive in a
+feedback stage whenever
 $2^k(m-t)\ge m$; the same rule applies uniformly to every exponent in $T$.
 
 ### 8.5 Baselines
@@ -89,9 +91,10 @@ Implement or integrate:
 
 ### 8.6 Optional RTL Prototype
 
-Compare serial sparse folding, generalized Suwako, and fixed dense XOR network.
-Report latency, frequency, area/LUTs, registers, throughput, and pipeline
-depth.
+No RTL prototype is planned for the current software-reduction study. A future
+hardware study would compare serial sparse folding, generalized Suwako, and a
+fixed dense XOR network, and would report latency, frequency, area/LUTs,
+registers, throughput, and pipeline depth under one frozen synthesis flow.
 
 ## 9. Evaluation
 
@@ -167,8 +170,9 @@ question whose representation conversions and setup must be accounted for.
 $T_{\mathrm{setup}}+K T_{\mathrm{reduce}}$ behave as the number $K$ of
 reductions per modulus changes?
 
-**RQ5: Architecture dependence.** Do the same parameter regions remain useful
-on scalar, SIMD, and hardware platforms?
+**RQ5: Scalar portability.** Do the same parameter regions remain useful on a
+second scalar machine or ISA? SIMD and hardware require separately frozen
+future experiments.
 
 **RQ6: Random-support behavior.** For fixed non-leading support size $s$ and
 uniformly random support, do the measured active-tap work and feedback depth
@@ -340,9 +344,8 @@ be marked as uncertain rather than forced into a clean region.
 2. theorem and complexity summary;
 3. real sparse moduli;
 4. portable C results;
-5. SIMD results;
-6. setup and storage;
-7. optional hardware results.
+5. scalar cross-platform results;
+6. setup and storage.
 
 ### 9.6 Negative Results
 
