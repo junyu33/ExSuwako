@@ -337,10 +337,19 @@ Exact work depends on every tap distance, not only on $(h,\Dmin)$.  A portable
 synchronous implementation can use two $m$-bit buffers and a public schedule;
 generated code trades traversal for code size.
 
-\drafttodo{Prove exact space, schedule-size, setup-work, and generated-code
-bounds.  Derive word counts for width $W$, separating aligned, cross-word, and
-cross-vector shifts.  Either formalize the bounded-fan-in lower bound or omit
-it.}
+\drafttodo{Prove exact space, schedule-size, and setup-work bounds, and give a
+model-consistent cost account for every ordinary reducer retained in the
+evaluation.  For GS, serial folding, and L\'opez--Dahab, derive scheduled fold
+and word-contribution counts; in particular, compare
+$C_{\rm LD}=\Theta(\lceil m/W\rceil(h-1))$ under $\deg q<m-W$ with
+$C_{\rm GS}^{\rm sched}=\Theta(\lceil m/W\rceil+
+\sum_{t,k:\,2^k\Delta_t<m}\lceil(m-2^k\Delta_t)/W\rceil+
+\sum_t\lceil(m-t)/W\rceil)$.  For Barrett, record the number and operand
+sizes of polynomial multiplications; for the dense map, report setup, storage,
+and row-parity work; analyze Naive only if its timing is retained.  Keep these
+models distinct, separate aligned, cross-word, and cross-vector shifts where
+applicable, and do not identify source-level counts with machine
+instructions.  Either formalize the bounded-fan-in lower bound or omit it.}
 
 \section{Prior Art and Novelty Boundary}
 \label{sec:related}
