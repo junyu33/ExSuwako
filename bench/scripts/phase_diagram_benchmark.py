@@ -531,7 +531,7 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--warmup-runs", type=int, default=0)
     parser.add_argument("--measurement-trials", type=int, default=1)
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=lambda value: int(value, 0), default=0)
     parser.add_argument("--no-naive", action="store_true")
     parser.add_argument("--with-dense", action="store_true")
     parser.add_argument("--with-lopez-dahab", action="store_true")

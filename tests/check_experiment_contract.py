@@ -662,6 +662,22 @@ def check_manifest(binary: Path, driver: Path) -> None:
         ]:
             raise AssertionError("identical driver seeds changed sampled cases")
 
+        hex_output = root / "random-hex-seed.csv"
+        hex_command = list(random_command)
+        hex_command[hex_command.index(str(random_output))] = str(hex_output)
+        hex_command[hex_command.index("17")] = "0x11"
+        run(hex_command)
+        with hex_output.open(newline="", encoding="utf-8") as stream:
+            hex_rows = list(csv.DictReader(stream))
+        if [
+            tuple(row[field] for field in deterministic_fields)
+            for row in random_rows
+        ] != [
+            tuple(row[field] for field in deterministic_fields)
+            for row in hex_rows
+        ]:
+            raise AssertionError("decimal and hexadecimal seeds diverged")
+
         regression_manifest = (
             driver.parent.parent / "manifests" / "regression_supports.jsonl"
         )
