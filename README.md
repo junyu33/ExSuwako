@@ -267,8 +267,11 @@ This builds and runs `tests/check_reduction.c`, which compares GS, serial,
 naive, and Barrett through the common `reduction_method` API. It also runs
 `tests/check_gs_stage.c`, which compares the actual private in-place GS stage
 kernel against an independent out-of-place, bit-level immutable-old reference
-for explicit alignment classes and 20,000 deterministic random stages. The
-production source and API are unchanged. The deterministic
+for explicit alignment classes and 20,000 deterministic random stages, and
+`tests/check_gs_components.c`, which separately checks the complete feedback
+closure and final low-part assembly against bit-level references on five
+explicit classes and 20,000 deterministic random cases. The production source
+and API are unchanged. The deterministic
 native suite includes 700 fixed-degree cases and 10,000 stratified random
 cases with bitwise-random inputs over the full degree-below-$2m$ range. The
 support profiles cover empty, sparse, dense, constant-free, endpoint,
@@ -578,8 +581,10 @@ The algebraic core has passed the current first-round correctness checks:
 manual derivation, comparison against a bit-by-bit reference reducer, and an
 independent reimplementation-based differential check. The in-place scalar
 stage kernel is also checked directly against immutable-old stage semantics.
-These checks are useful evidence against off-by-one, synchronous-update,
-tap-interaction, final assembly, and round-count mistakes.
+The feedback closure and final low-part assembly are each checked separately
+against bit-level references. These checks are useful evidence against
+off-by-one, synchronous-update, tap-interaction, final assembly, and
+round-count mistakes.
 
 This does not yet establish novelty, importance, or a compelling application.
 The next kill steps are prior-art search around reciprocal methods, sparse

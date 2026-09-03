@@ -90,6 +90,11 @@ independent out-of-place, bit-level implementation of the immutable-old stage
 semantics for explicit alignment classes and 20,000 deterministic random
 stages; this is direct implementation evidence for the synchronous-update
 condition, not a replacement for its proof.
+The complete feedback closure and final low-part assembly are also isolated
+and compared separately against out-of-place bit-level references on five
+explicit support classes and 20,000 deterministic random cases. This
+distinguishes schedule/closure errors from assembly errors that an end-to-end
+remainder comparison would otherwise conflate.
 
 **RQ2: Feedback chain.** Does latency scale with
 $1+\log(m/\Delta_{\min})$ rather than $m/\Delta_{\min}$?

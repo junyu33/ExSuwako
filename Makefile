@@ -6,6 +6,7 @@ CFLAGS ?= -O3 -std=c11 -Wall -Wextra
 TARGET = build/reduction_benchmark
 CHECK_TARGET = build/reduction_correctness_check
 GS_STAGE_CHECK_TARGET = build/gs_stage_correctness_check
+GS_COMPONENT_CHECK_TARGET = build/gs_component_correctness_check
 BENCH_SOURCES = bench/scripts/reduction_benchmark.c src/reduction.c src/GS.c src/barrett.c src/naive.c src/serial.c
 CHECK_SOURCES = tests/check_reduction.c src/reduction.c src/GS.c src/barrett.c src/naive.c src/serial.c
 
@@ -26,11 +27,18 @@ $(GS_STAGE_CHECK_TARGET): tests/check_gs_stage.c src/GS.c include/*.h
 	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
 		tests/check_gs_stage.c -L$(GF2X_PREFIX)/lib -lgf2x
 
+$(GS_COMPONENT_CHECK_TARGET): tests/check_gs_components.c src/GS.c include/*.h
+	mkdir -p build
+	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
+		tests/check_gs_components.c -L$(GF2X_PREFIX)/lib -lgf2x
+
 serial-benchmark: $(TARGET)
 
-check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) $(TARGET)
+check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
+	$(GS_COMPONENT_CHECK_TARGET) $(TARGET)
 	$(CHECK_TARGET)
 	$(GS_STAGE_CHECK_TARGET)
+	$(GS_COMPONENT_CHECK_TARGET)
 	$(PYTHON) tests/check_experiment_contract.py --binary $(TARGET)
 	$(MAKE) check-theory
 
@@ -41,4 +49,5 @@ check-theory:
 check-serial: check
 
 clean:
-	rm -f $(TARGET) $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET)
+	rm -f $(TARGET) $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
+		$(GS_COMPONENT_CHECK_TARGET)

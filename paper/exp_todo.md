@@ -180,7 +180,13 @@ silent deduplication or normalization.
       out-of-place, bit-level immutable-old reference for all-aligned,
       all-unaligned, mixed-shift, word-boundary, non-word-aligned-degree, and
       20,000 deterministic random cases.
-- [ ] Test feedback closure and final low-part assembly independently.
+- [x] [Q] Test feedback closure and final low-part assembly independently.
+      [A] `tests/check_gs_components.c` invokes the actual private GS schedule
+      and assembly kernels without changing production code or its public API;
+      for empty, constant-only, constant-free, dense, mixed-boundary, and
+      20,000 deterministic random cases, it separately compares the computed
+      closure with a stage-by-stage out-of-place bit reference and assembly
+      with $L\mathbin\oplus\sum_{t\in T}(X\ll t)\bmod x^m$ evaluated bitwise.
 - [ ] If the coefficient-algebra or positive-characteristic extensions are
       promoted beyond theorem statements, add small exact differential tests
       over at least one non-binary coefficient algebra; do not treat this as
