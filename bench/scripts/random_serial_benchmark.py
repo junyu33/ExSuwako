@@ -54,9 +54,13 @@ def main() -> None:
         row["Delta_min"] = statistics.median(
             int(sample["Delta_min"]) for sample in benchmark_rows
         )
+        row["feedback_stages"] = statistics.median(
+            int(sample["feedback_stages"]) for sample in benchmark_rows
+        )
         # This driver aggregates several random supports into one row, so no
         # single exact tap list represents the resulting median.
         row.pop("taps", None)
+        row.pop("active_tap_counts", None)
         row.pop("sample", None)
         row["power"] = power
         row["driver_seed"] = args.seed
@@ -71,7 +75,8 @@ def main() -> None:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fields = [
-        "power", "m", "word_bits", "s", "h", "Delta_min", "input_distribution",
+        "power", "m", "word_bits", "s", "h", "Delta_min",
+        "feedback_stages", "input_distribution",
         "timing_scope", "setup_scope", "timing_order", "GS_setup_ns", "Serial_setup_ns",
         "Naive_setup_ns", "BarrettGF2X_setup_ns",
         "GS_ns", "Serial_ns", "Naive_ns",

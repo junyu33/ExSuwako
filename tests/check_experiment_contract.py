@@ -43,6 +43,8 @@ def check_exact_cli(binary: Path) -> None:
         "h": "4",
         "taps": "0;3;7",
         "Delta_min": "9",
+        "feedback_stages": "1",
+        "active_tap_counts": "2",
         "input_distribution": "uniform-full-range:v1",
         "timing_scope": "reduction-steady-state:v1",
         "setup_scope": "modulus-plan:v1",
@@ -61,11 +63,16 @@ def check_exact_cli(binary: Path) -> None:
     empty = parse_one_row(
         run(base + ["-", "2", "1", "16", "0x2"]).stdout
     )
-    if (empty["s"], empty["h"], empty["taps"], empty["Delta_min"]) != (
+    if (
+        empty["s"], empty["h"], empty["taps"], empty["Delta_min"],
+        empty["feedback_stages"], empty["active_tap_counts"],
+    ) != (
         "0",
         "1",
         "-",
         "NA",
+        "0",
+        "-",
     ):
         raise AssertionError(f"unexpected empty-support row: {empty}")
 

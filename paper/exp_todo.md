@@ -199,10 +199,16 @@ silent deduplication or normalization.
 
 ## Gate 2: Cost Model
 
-- [ ] Instrument the active taps satisfying
-      $2^k\Delta_t<m$ in every feedback stage.
-- [ ] Check the measured stage count against
-      $r=\lceil\log_2(m/\Delta_{\min})\rceil$.
+- [x] [Q] Instrument the active taps satisfying $2^k\Delta_t<m$ in every
+      feedback stage. [A] The native benchmark obtains
+      `active_tap_counts` from the actual GS plan through read-only schedule
+      accessors, while the phase-diagram driver independently derives the
+      expected profile from $m$ and the complete taps and rejects a mismatch.
+- [x] [Q] Check the measured stage count against
+      $r=\lceil\log_2(m/\Delta_{\min})\rceil$. [A] The same native plan emits
+      `feedback_stages`, including the zero-feedback boundary, and the driver
+      checks it against the independently derived exact count before retaining
+      a row.
 - [ ] Validate the predicted sums of active taps, affected coefficients, word
       shifts, XORs, reads, writes, and temporary words.
 - [x] Validate the formal scheduled coefficient-work sum

@@ -352,7 +352,7 @@ The output is CSV with setup time per fresh plan and steady-state reduction
 time in nanoseconds:
 
 ```text
-m,word_bits,s,h,taps,Delta_min,input_distribution,timing_scope,setup_scope,timing_order,GS_setup_ns,...,GS_ns,...
+m,word_bits,s,h,taps,Delta_min,feedback_stages,active_tap_counts,input_distribution,timing_scope,setup_scope,timing_order,GS_setup_ns,...,GS_ns,...
 ```
 
 The current reduction-only corpus is `uniform-full-range:v1`: it samples

@@ -386,6 +386,16 @@ void gs_plan_destroy(gs_plan *plan) {
     free(plan);
 }
 
+size_t gs_plan_feedback_stage_count(const gs_plan *plan) {
+    return plan ? plan->round_count : 0;
+}
+
+size_t gs_plan_feedback_active_taps(const gs_plan *plan, size_t stage) {
+    if (!plan || stage >= plan->round_count)
+        die("GS feedback stage index is out of range");
+    return plan->rounds[stage].count;
+}
+
 void gs_reduce_into(const poly_t *input, gs_plan *plan, poly_t *output) {
     if (output->n < plan->state_words)
         die("GS output buffer is too small");

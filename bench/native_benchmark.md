@@ -206,8 +206,10 @@ out-of-range taps rather than normalizing them silently.
 
 The manifest stores only the source fields `sample_id`, `provenance`, `m`, and
 `taps`. The driver deterministically derives and emits `s`, `h`, `Delta_min`,
-`feedback_stages`, `active_tap_counts`, and `W_fb`; it also checks the native
-driver's `m`, `s`, `h`, taps, and `Delta_min` against those derived values.
+`feedback_stages`, `active_tap_counts`, and `W_fb`; the native benchmark reads
+the stage count and active-tap profile from the actual GS plan, and the driver
+checks those values together with `m`, `s`, `h`, taps, and `Delta_min` against
+an independent derivation.
 Here `active_tap_counts` serializes
 
 \[

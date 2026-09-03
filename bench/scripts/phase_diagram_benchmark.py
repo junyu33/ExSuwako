@@ -147,6 +147,8 @@ def validate_benchmark_geometry(
         "h": str(geometry["h"]),
         "taps": serialized_taps(taps),
         "Delta_min": str(geometry["Delta_min"]),
+        "feedback_stages": str(geometry["feedback_stages"]),
+        "active_tap_counts": str(geometry["active_tap_counts"]),
     }
     for field, value in expected.items():
         if str(row.get(field)) != value:

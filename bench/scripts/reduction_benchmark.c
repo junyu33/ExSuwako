@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 
+#include "GS.h"
 #include "reduction.h"
 
 #include <ctype.h>
@@ -122,6 +123,32 @@ static char *serialize_taps(const size_t *taps, size_t count) {
         if (i) result[offset++] = ';';
         offset += (size_t)snprintf(result + offset, bytes - offset,
                                    "%zu", taps[i]);
+    }
+    return result;
+}
+
+static char *serialize_active_tap_counts(const gs_plan *plan) {
+    size_t stages = gs_plan_feedback_stage_count(plan);
+    if (stages == 0) {
+        char *empty = malloc(2);
+        if (!empty) die("allocation failed");
+        strcpy(empty, "-");
+        return empty;
+    }
+
+    size_t bytes = 1;
+    for (size_t stage = 0; stage < stages; ++stage)
+        bytes += (size_t)snprintf(
+            NULL, 0, "%zu", gs_plan_feedback_active_taps(plan, stage))
+            + (stage != 0);
+    char *result = malloc(bytes);
+    if (!result) die("allocation failed");
+    size_t offset = 0;
+    for (size_t stage = 0; stage < stages; ++stage) {
+        if (stage) result[offset++] = ';';
+        offset += (size_t)snprintf(
+            result + offset, bytes - offset, "%zu",
+            gs_plan_feedback_active_taps(plan, stage));
     }
     return result;
 }
@@ -357,7 +384,13 @@ int main(int argc, char **argv) {
     size_t *delta_values = calloc((size_t)supports, sizeof(*delta_values));
     int *has_delta = calloc((size_t)supports, sizeof(*has_delta));
     char **tap_values = calloc((size_t)supports, sizeof(*tap_values));
-    if (!delta_values || !has_delta || !tap_values) die("allocation failed");
+    size_t *feedback_stage_values =
+        calloc((size_t)supports, sizeof(*feedback_stage_values));
+    char **active_tap_values =
+        calloc((size_t)supports, sizeof(*active_tap_values));
+    if (!delta_values || !has_delta || !tap_values || !feedback_stage_values ||
+        !active_tap_values)
+        die("allocation failed");
 
     for (int trial = 0; trial < supports; ++trial) {
         size_t *pool = NULL;
@@ -408,6 +441,9 @@ int main(int argc, char **argv) {
         for (size_t method = 0; method < method_count; ++method)
             methods[method] = make_reducer(
                 kinds[method], taps, s, &modulus, m, input_words);
+        gs_plan *gs = methods[0].context;
+        feedback_stage_values[trial] = gs_plan_feedback_stage_count(gs);
+        active_tap_values[trial] = serialize_active_tap_counts(gs);
 
         poly_t *inputs = calloc((size_t)inputs_count, sizeof(*inputs));
         if (!inputs) die("allocation failed");
@@ -435,7 +471,8 @@ int main(int argc, char **argv) {
         free(pool);
     }
 
-    printf("m,word_bits,s,h,taps,Delta_min,input_distribution,timing_scope,setup_scope,timing_order,"
+    printf("m,word_bits,s,h,taps,Delta_min,feedback_stages,active_tap_counts,"
+           "input_distribution,timing_scope,setup_scope,timing_order,"
            "GS_setup_ns,Serial_setup_ns,Naive_setup_ns,BarrettGF2X_setup_ns,"
            "GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
            "Serial/GS,Naive/GS,BarrettGF2X/GS,sample,seed\n");
@@ -448,8 +485,9 @@ int main(int argc, char **argv) {
                s, s + 1, tap_values[trial]);
         if (has_delta[trial]) printf("%zu,", delta_values[trial]);
         else printf("NA,");
-        printf("%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
+        printf("%zu,%s,%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
                "%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
+               feedback_stage_values[trial], active_tap_values[trial],
                input_distribution, timing_scope, setup_scope, timing_order,
                gs_setup_samples[trial], serial_setup_samples[trial],
                naive_setup_samples[trial], barrett_setup_samples[trial],
@@ -457,6 +495,7 @@ int main(int argc, char **argv) {
                serial / gs, skip_naive ? 0.0 : naive / gs, barrett / gs,
                trial, (unsigned long long)seed);
         free(tap_values[trial]);
+        free(active_tap_values[trial]);
     }
 
     free(gs_samples);
@@ -470,6 +509,8 @@ int main(int argc, char **argv) {
     free(delta_values);
     free(has_delta);
     free(tap_values);
+    free(feedback_stage_values);
+    free(active_tap_values);
     free(exact_taps);
     return 0;
 }
