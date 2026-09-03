@@ -2,6 +2,7 @@
 
 #include "barrett.h"
 #include "dense.h"
+#include "generated.h"
 #include "GS.h"
 #include "naive.h"
 #include "serial.h"
@@ -43,6 +44,11 @@ static void dense_reduce_adapter(const poly_t *input, void *context,
     dense_reduce_into(input, context, output);
 }
 
+static void generated_reduce_adapter(const poly_t *input, void *context,
+                                     poly_t *output) {
+    generated_reduce_into(input, context, output);
+}
+
 static void gs_destroy_adapter(void *context) {
     gs_plan_destroy(context);
 }
@@ -67,6 +73,10 @@ static void dense_destroy_adapter(void *context) {
     dense_plan_destroy(context);
 }
 
+static void generated_destroy_adapter(void *context) {
+    generated_plan_destroy(context);
+}
+
 static size_t gs_storage_adapter(const void *context) {
     return gs_plan_storage_bytes(context);
 }
@@ -89,6 +99,10 @@ static size_t barrett_storage_adapter(const void *context) {
 
 static size_t dense_storage_adapter(const void *context) {
     return dense_plan_storage_bytes(context);
+}
+
+static size_t generated_storage_adapter(const void *context) {
+    return generated_plan_storage_bytes(context);
 }
 
 reduction_method reduction_make_gs(const size_t *taps, size_t tap_count,
@@ -160,6 +174,21 @@ reduction_method reduction_make_dense(const poly_t *modulus, size_t m) {
         .reduce_into = dense_reduce_adapter,
         .destroy = dense_destroy_adapter,
         .plan_storage = dense_storage_adapter,
+    };
+}
+
+reduction_method reduction_make_generated(const char *shared_object,
+                                           const size_t *taps,
+                                           size_t tap_count, size_t m) {
+    generated_plan *plan = generated_plan_load(
+        shared_object, m, taps, tap_count);
+    return (reduction_method){
+        .name = "Generated",
+        .output_words = poly_words_for_bits(m),
+        .context = plan,
+        .reduce_into = generated_reduce_adapter,
+        .destroy = generated_destroy_adapter,
+        .plan_storage = generated_storage_adapter,
     };
 }
 

@@ -40,9 +40,13 @@ being measured without collapsing the two algorithms into one loop structure.
 
 ### 8.3 Fixed-Modulus Code Generation
 
-Generate active tap lists, unrolled stages, final low assembly, and optional
-in-place specializations. Iterate uniformly over $t\in T$; do not hard-code an
-extra XOR for $X$. Measure code size.
+The implemented `fixed-unrolled-c-v1` generator expands active tap lists,
+feedback stages, destination words, and final low assembly for one exact
+$(m,T)$, including $t=0$ only where the uniform formulas require it. It emits
+a temporary 64-bit-word shared-object plugin and does not hard-code an extra
+XOR for $X$. Report source generation, compilation, loaded-plan setup, source
+and shared-object bytes, and the ELF `.text` section separately from
+steady-state reduction.
 
 ### 8.4 SIMD
 
@@ -232,9 +236,10 @@ steady-state timing is constructed separately. Preserve the raw per-method
 $T_{\mathrm{setup}}$ and $T_{\mathrm{reduce}}$ values, then derive
 $T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for explicitly stated $K$.
 The dense-map baseline includes map generation and allocation in setup and
-reports map storage separately; generated-code baselines must additionally
-report generation, compilation, code size, and allocation without hiding
-these quantities inside steady-state reduction timing.
+reports map storage separately. The generated-code baseline reports source
+generation, compilation, loaded-plan allocation, their summed setup cost, and
+three explicit code-size quantities without hiding them inside steady-state
+reduction timing.
 The implemented `requested-owned-bytes:v1` model separately reports the
 context structures and lifetime-owned buffers of GS, Serial, Naive, Barrett,
 and the opt-in Dense baseline. Storage is inspected on the plans used for correctness and

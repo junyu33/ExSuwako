@@ -10,7 +10,8 @@ The native reducer implementations live in `src/`; public headers are under
 
 `bench/scripts/reduction_benchmark.c` drives the reduction-only microbenchmark
 through the common `reduction_method` API in `include/reduction.h`. GS, serial sparse
-folding, naive long division, Barrett, and the opt-in dense linear map all expose the same timed
+folding, naive long division, Barrett, the opt-in dense linear map, and an
+opt-in compiled fixed-modulus reducer all expose the same timed
 `reduce_into(input, context, output)` contract to the benchmark. Method setup,
 input generation, output allocation, correctness checks, and checksum
 consumption are outside the timed region.
@@ -150,12 +151,15 @@ The included method-specific work is:
 | Naive | its current lightweight context allocation |
 | Barrett | reciprocal $\mu$, Barrett plan construction, and plan-owned scratch allocation |
 | Dense | construction of the packed fixed-modulus map and plan-owned high-part scratch allocation |
+| Generated | shared-object loading, ABI/modulus validation, and generated plan scratch allocation |
 
 Argument parsing, shared modulus materialization, input/output benchmark
 buffers, correctness checks, reporting, and teardown are excluded uniformly.
 The CSV preserves `GS_setup_ns`, `Serial_setup_ns`, `Naive_setup_ns`,
 `BarrettGF2X_setup_ns`, and `Dense_setup_ns` separately from the steady-state
-reduction fields. For
+reduction fields. `Generated_setup_ns` is the loaded-plan component; its
+source generation and compilation are reported separately by the generated
+driver. For
 an explicitly stated number $K$ of reductions using one plan, derive
 
 \[
@@ -166,9 +170,10 @@ T_{\mathrm{total}}(K)=T_{\mathrm{setup}}+K T_{\mathrm{reduce}},
 
 Do not bake a particular $K$ into the raw CSV. The dense reducer counts map
 construction and allocation as setup and reports stored-map capacity through
-`Dense_plan_bytes`. A future generated-code reducer must likewise count
-method-specific generation and allocation as setup, while reporting
-compilation time and generated code size separately.
+`Dense_plan_bytes`. The generated reducer reports `Generated_generation_ns`,
+`Generated_compile_ns`, `Generated_setup_ns`, and their sum
+`Generated_full_setup_ns`, so compilation is neither discarded nor hidden in
+steady-state reduction.
 
 Plan storage uses `plan_storage_model=requested-owned-bytes:v1`. It sums each
 reducer's context structure and the byte capacities of every heap buffer owned
@@ -176,13 +181,16 @@ for the plan's lifetime. GS includes its round and shift descriptors plus the
 state and sentinel; Serial includes tap descriptors and both state buffers;
 Naive includes its lightweight context; Barrett includes its adapter context,
 reciprocal, plan, and both reusable product buffers; Dense includes its packed
-$m\times m$ row-major matrix and reusable high-part buffer. Shared modulus storage,
+$m\times m$ row-major matrix and reusable high-part buffer; Generated includes
+the loader wrapper and generated state buffer, while mapped code is reported
+through separate code-size fields. Shared modulus storage,
 benchmark inputs and outputs, allocator metadata and slack, temporary
 setup-only allocations, generated code, and external-library transient
 workspace are excluded.
 
 The benchmark reads `GS_plan_bytes`, `Serial_plan_bytes`, `Naive_plan_bytes`,
-`BarrettGF2X_plan_bytes`, and `Dense_plan_bytes` from the separately constructed plans only after
+`BarrettGF2X_plan_bytes`, `Dense_plan_bytes`, and `Generated_plan_bytes` from
+the separately constructed plans only after
 all setup samples have stopped. Thus storage inspection cannot enter
 `T_setup`, and the inspected plans are the same plans subsequently used for
 correctness and steady-state timing. The contract tests require the storage
@@ -225,7 +233,8 @@ build/reduction_benchmark 12 64 5
 ```
 
 Random-mode arguments are `supports`, `inputs`, `repeats`, `m`, `s`, `seed`,
-and optional `no-naive` and `with-dense` flags. The output is reduction-only timing in
+and optional `no-naive` and `with-dense` flags. The output is reduction-only
+timing in
 nanoseconds per input. Correctness is checked across all enabled reducers
 before each timed trial.
 
@@ -242,7 +251,8 @@ build/reduction_benchmark --taps 0,7,12 8 5 283 0x1 no-naive
 ```
 
 The exact-mode arguments are `--taps LIST`, `inputs`, `repeats`, `m`, `seed`,
-and the optional `no-naive` and `with-dense` flags. `LIST` is comma-separated, strictly
+and optional `no-naive`, `with-dense`, or `generated=PATH` flags. `LIST` is
+comma-separated, strictly
 increasing, duplicate-free, and contains only exponents in `[0,m)`; use `-`
 for the empty support. The CSV serializes taps with semicolons so the complete
 support occupies one field.
@@ -261,6 +271,42 @@ packed matrix above 64 MiB before setup; `Dense_enabled` and
 runs emit zero for all Dense timing and storage fields and allocate no matrix.
 The phase-diagram driver exposes the same policy as `--with-dense
 --no-naive`.
+
+## Fixed-Modulus Generated Reducer
+
+`generate_fixed_reducer.py` emits `fixed-unrolled-c-v1`: a C plugin specialized
+to one exact degree and tap list. It expands every active feedback stage and
+the final low-part assembly into literal word operations. Generated code is
+currently frozen to 64-bit `word_t`; the translation unit contains a compile-
+time assertion and must not be compared across word widths without
+regeneration.
+
+Use the orchestration driver rather than retaining generated files manually:
+
+```text
+python3 bench/scripts/generated_reducer_benchmark.py \
+  --binary build/reduction_benchmark \
+  --output bench/data/generated-m283.csv \
+  --m 283 --taps 0,5,7,12 --inputs 8 --repeats 12 --seed 0x1
+```
+
+The driver generates and compiles inside a temporary directory, then invokes
+the native benchmark as `no-naive generated=PATH`. Thus GS, Serial, Barrett,
+and Generated retain the balanced four-method rotation. It records:
+
+- `Generated_generation_ns`: source construction and write time;
+- `Generated_compile_ns`: compilation and shared-object link time;
+- `Generated_setup_ns`: repeated load, metadata validation, and plan creation;
+- `Generated_full_setup_ns`: the sum of those three components;
+- `Generated_source_bytes`, `Generated_shared_object_bytes`, and
+  `Generated_text_bytes`: respectively UTF-8 source length, complete file
+  length, and the `.text` section reported by GNU `size -A`;
+- `Generated_plan_bytes`, `Generated_ns`, and `Generated/GS`: loaded-plan
+  storage, steady-state reduction, and its GS ratio.
+
+The shared-object file size is contextual; `elf-text-section:v1` is the frozen
+machine-code size metric. `make check` independently verifies generated
+kernels against Naive long division before the benchmark contract is tested.
 
 For a versionable suite of exact supports, use a JSON Lines manifest:
 

@@ -62,6 +62,7 @@ def check_exact_cli(binary: Path) -> None:
         "timing_order": "cyclic-method-rotation:v1",
         "Dense_enabled": "0",
         "Dense_matrix_limit_bytes": "67108864",
+        "Generated_enabled": "0",
     }
     for field, value in expected.items():
         if row[field] != value:
@@ -69,6 +70,7 @@ def check_exact_cli(binary: Path) -> None:
     for field in [
         "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
         "BarrettGF2X_setup_ns", "Dense_setup_ns",
+        "Generated_setup_ns",
     ]:
         if float(row[field]) < 0:
             raise AssertionError(f"{field} must be nonnegative")
@@ -83,6 +85,12 @@ def check_exact_cli(binary: Path) -> None:
     ]:
         if float(row[field]) != 0:
             raise AssertionError(f"disabled dense field {field} must be zero")
+    for field in [
+        "Generated_plan_bytes", "Generated_setup_ns", "Generated_ns",
+        "Generated/GS",
+    ]:
+        if float(row[field]) != 0:
+            raise AssertionError(f"disabled generated field {field} must be zero")
 
     dense = parse_one_row(
         run(
@@ -277,6 +285,7 @@ def check_manifest(binary: Path, driver: Path) -> None:
             for field in [
                 "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
                 "BarrettGF2X_setup_ns", "Dense_setup_ns",
+                "Generated_setup_ns",
             ]
         ):
             raise AssertionError("setup timings must be nonnegative")
@@ -425,6 +434,7 @@ def check_manifest(binary: Path, driver: Path) -> None:
             "plan_storage_model", "GS_plan_bytes", "Serial_plan_bytes",
             "Naive_plan_bytes", "BarrettGF2X_plan_bytes",
             "Dense_plan_bytes", "Dense_enabled", "Dense_matrix_limit_bytes",
+            "Generated_plan_bytes", "Generated_enabled",
             "seed",
         ]
         if [

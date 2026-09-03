@@ -379,6 +379,23 @@ def validate_benchmark_geometry(
         for value in (dense_bytes, dense_setup, dense_ns, dense_ratio)
     ):
         raise RuntimeError("disabled dense baseline emitted nonzero measurements")
+    try:
+        generated_enabled = int(str(row.get("Generated_enabled")))
+        generated_bytes = int(str(row.get("Generated_plan_bytes")))
+        generated_setup = float(str(row.get("Generated_setup_ns")))
+        generated_ns = float(str(row.get("Generated_ns")))
+        generated_ratio = float(str(row.get("Generated/GS")))
+    except (TypeError, ValueError) as error:
+        raise RuntimeError("benchmark emitted invalid generated fields") from error
+    if generated_enabled != 0:
+        raise RuntimeError("phase driver does not accept generated plugins")
+    if any(
+        value != 0
+        for value in (
+            generated_bytes, generated_setup, generated_ns, generated_ratio
+        )
+    ):
+        raise RuntimeError("disabled generated reducer emitted nonzero fields")
 
 
 def add_derived_fields(
@@ -455,6 +472,8 @@ def main() -> None:
         "Dense_plan_bytes",
         "Dense_enabled",
         "Dense_matrix_limit_bytes",
+        "Generated_plan_bytes",
+        "Generated_enabled",
         "input_distribution",
         "timing_scope",
         "setup_scope",
@@ -470,15 +489,18 @@ def main() -> None:
         "Naive_setup_ns",
         "BarrettGF2X_setup_ns",
         "Dense_setup_ns",
+        "Generated_setup_ns",
         "GS_ns",
         "Serial_ns",
         "Naive_ns",
         "BarrettGF2X_ns",
         "Dense_ns",
+        "Generated_ns",
         "Serial/GS",
         "Naive/GS",
         "BarrettGF2X/GS",
         "Dense/GS",
+        "Generated/GS",
         "sample",
         "seed",
     ]

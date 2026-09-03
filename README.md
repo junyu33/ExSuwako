@@ -199,7 +199,7 @@ reduce_into(input, context, output)
 
 This wrapper is intentionally small: it lets correctness tests and benchmark
 drivers call GS, serial sparse folding, naive long division, Barrett, and the
-opt-in dense linear map
+opt-in dense and generated fixed-modulus reducers
 through the same API without hiding each algorithm's real setup and scratch
 requirements.
 
@@ -215,6 +215,9 @@ requirements.
   through `poly_mul_gf2x`.
 - `src/dense.c`: fixed-modulus row-major binary linear map, with setup and
   lifetime storage exposed separately from steady-state row-parity reduction.
+- `src/generated.c`: ABI-checked loader for temporary fixed-modulus plugins
+  emitted by `bench/scripts/generate_fixed_reducer.py`; generated source and
+  binaries remain outside `src/`.
 - `src/reduction.c`: common wrapper API used by tests and native benchmarks.
 
 ### Python Reference
@@ -390,7 +393,7 @@ four schedule quantities against the actual GS plan. It likewise checks the
 `scalar-source-v1` GS word-operation fields through an independent Python
 derivation. Random-mode rows use provenance
 `synthetic-fixed-weight-uniform:v1` and seed-qualified sample identifiers.
-Each row also reports all four reducers' plan-owned requested bytes under
+Each row also reports every enabled reducer's plan-owned requested bytes under
 `requested-owned-bytes:v1`, separately from setup and reduction timing.
 
 Deterministic failures and anomalous supports are promoted into versioned

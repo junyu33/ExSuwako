@@ -49,9 +49,11 @@ in their own documents.
 The following items describe code that exists, not completed paper evidence.
 
 - [x] A unified native reduction API exposes generalized Suwako, serial sparse
-      folding, naive long division, and gf2x-backed Barrett reduction.
-- [x] The native correctness check compares the four reducers across
-      representative aligned and non-aligned degrees.
+      folding, naive long division, gf2x-backed Barrett, dense linear-map, and
+      loaded fixed-modulus generated reduction.
+- [x] The native correctness checks compare the four always-built reducers
+      across representative aligned and non-aligned degrees and separately
+      verify opt-in Dense and Generated reducers against long division.
 - [x] Reduction-only benchmark and phase-diagram drivers exist under
       bench/scripts/.
 - [x] Local exploratory CSV files are separated under bench/data/ and are
@@ -122,9 +124,9 @@ silent deduplication or normalization.
       $T_{\mathrm{setup}}$ and $T_{\mathrm{reduce}}$ and derive
       $T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for an explicitly stated
       $K$; dense-map generation and allocation are included in its setup and
-      its stored-map size is reported separately, while future generated-code
-      baselines must additionally report generation, compilation, code size,
-      and allocation separately.
+      its stored-map size is reported separately; generated-code experiments
+      separately report source generation, compilation, loaded-plan setup,
+      source/shared-object/`.text` size, and their summed full setup cost.
 - [x] [Q] Freeze compiler flags, word width $W$, gf2x build and linkage, CPU
       affinity, frequency policy, warm-up, repetitions, aggregation, and
       outlier treatment. [A] On each recorded platform, build with the
@@ -203,7 +205,12 @@ silent deduplication or normalization.
       non-binary implementation or performance claim.
 - [ ] Verify every new specialized or generated reducer
       against an independent long-division or computer-algebra result before
-      timing it.
+      timing it. [A] The generated reducer now satisfies this prerequisite:
+      `make check` generates and compiles eight fixed-modulus kernels, then
+      compares every input basis vector and 128 deterministic random inputs
+      per modulus against Naive long division before exercising its benchmark
+      driver.  This item remains open for the specialized trinomial and
+      pentanomial reducers that have not yet been implemented.
 - [ ] Preserve exact irreducibility certificates or reproducible Sage checks
       for every modulus labelled irreducible.
 
@@ -246,7 +253,7 @@ silent deduplication or normalization.
       and stops before destruction, while `requested-owned-bytes:v1` obtains
       each reducer's context-and-owned-buffer bytes from the separate plan used
       for correctness and steady-state timing only after setup sampling has
-      finished. Contract tests preserve all four setup and plan-storage fields;
+      finished. Contract tests preserve every enabled setup and plan-storage field;
       shared modulus, benchmark buffers, allocator overhead, and transient
       library workspace remain excluded.
 - [x] Correlate predicted word work with measured reduction runtime without
@@ -326,8 +333,17 @@ silent deduplication or normalization.
       The native benchmark refuses matrices above 64 MiB, and `make check`
       differentially validates boundary, dense, sparse, constant-free, and
       random moduli against independent long division.
-- [ ] Add a fixed-modulus code generator for active stages and low-part
-      assembly; report generated code size.
+- [x] Add a fixed-modulus code generator for active stages and low-part
+      assembly; report generated code size. [A]
+      `fixed-unrolled-c-v1` emits a 64-bit-word C plugin whose feedback stages,
+      active shifts, destination words, and low-part assembly are specialized
+      to one exact $(m,T)$; the generated source asserts its word-width ABI.
+      `generated_reducer_benchmark.py` compiles the plugin in a temporary
+      directory, loads it as the fourth method in place of Naive, and reports
+      source-generation, compilation, loaded-plan setup, steady-state time,
+      plan storage, UTF-8 source bytes, shared-object bytes, and GNU `size -A`
+      `.text` bytes.  `Generated_full_setup_ns` is their explicit summed setup
+      cost; no generated source or binary is left under `src/` or committed.
 - [ ] Add optimized fixed-modulus trinomial and pentanomial reducers needed by
       the strongest-baseline gate, including Lopez--Dahab when its degree
       assumptions hold.
