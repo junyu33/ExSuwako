@@ -187,10 +187,14 @@ silent deduplication or normalization.
       20,000 deterministic random cases, it separately compares the computed
       closure with a stage-by-stage out-of-place bit reference and assembly
       with $L\mathbin\oplus\sum_{t\in T}(X\ll t)\bmod x^m$ evaluated bitwise.
-- [ ] If the coefficient-algebra or positive-characteristic extensions are
+- [x] [Q] If the coefficient-algebra or positive-characteristic extensions are
       promoted beyond theorem statements, add small exact differential tests
       over at least one non-binary coefficient algebra; do not treat this as
-      evidence for the native binary kernel.
+      evidence for the native binary kernel. [A] Round 2 already supplies
+      266,304 exhaustive dual-number cases, 20,000 randomized GF(4) cases, and
+      10,000 randomized GF(3) cases through `make check`; these validate the
+      stated extension identities and sign convention only, not a native
+      non-binary implementation or performance claim.
 - [ ] Verify every new specialized or generated reducer
       against an independent long-division or computer-algebra result before
       timing it.
