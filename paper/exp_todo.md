@@ -165,15 +165,6 @@ silent deduplication or normalization.
       independent long division, totaling 299,592 exhaustive modulus/input
       pairs, and adds 20,000 random GF(2) cases with $m\le128$, all with no
       mismatch.
-- [x] [Q] Run deterministic theorem-falsification suites for the
-      coefficient-algebra and positive-characteristic extensions through
-      `make check`. [A]
-      [Round 2](../tests/check_theory_round2_algebras.py) checks 20,000 random
-      and 266,304 exhaustive cases over
-      $\mathbb F_2[\varepsilon]/(\varepsilon^2)$, 20,000 random cases over
-      $\mathbb F_4$, and 10,000 random radix-$p$ identity and reduction-sign
-      cases over $\mathbb F_3$; it also exposed the nilpotent-coefficient
-      qualification now recorded in the [validation record](raw/math_3.md).
 - [x] [Q] Cover $\Delta_{\min}=1$, taps at both ends, mixed aligned and
       unaligned shifts, dense supports, constant-free moduli, reducible
       moduli, and non-word-aligned degrees. [A] The deterministic native suite
@@ -207,8 +198,13 @@ silent deduplication or normalization.
       [A] The native differential suite compares ordinary-loop GS, Serial,
       Naive, Barrett, and López--Dahab wherever its degree assumption holds;
       invalid López--Dahab parameters are rejected before timing.
-- [ ] Preserve exact irreducibility certificates or reproducible Sage checks
-      for every modulus labelled irreducible.
+- [-] Preserve exact irreducibility certificates or reproducible Sage checks
+      for every modulus labelled irreducible. [A] Not applicable to the
+      frozen general-reduction correctness contract: every reducer is tested
+      on arbitrary monic binary moduli, and neither correctness nor
+      reduction-only timing depends on irreducibility.  Any later field-level
+      claim that labels a modulus irreducible must carry its own certificate
+      or reproducible Sage check.
 
 ## Gate 2: Cost Model
 
@@ -235,7 +231,7 @@ silent deduplication or normalization.
       nonzero word shifts, word XORs, logical array accesses, and plan-owned
       scratch words from $m$, taps, and $W$ before accepting a row.
 - [x] Validate the formal scheduled coefficient-work sum
-      $\sum_{r,k}[m-2^kd_r]_+$ against every constructed binary schedule and
+      $\sum_{r,k}[m-2^kd_r]_+$ against every generated binary schedule and
       exhaustively enumerate support geometry for $2\le m\le18$; see
       [math_3.md](raw/math_3.md).  This does not validate an instruction-count
       or minimal-circuit model.
