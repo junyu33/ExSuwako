@@ -206,17 +206,17 @@ out-of-range taps rather than normalizing them silently.
 
 The manifest stores only the source fields `sample_id`, `provenance`, `m`, and
 `taps`. The driver deterministically derives and emits `s`, `h`, `Delta_min`,
-`feedback_stages`, `active_tap_counts`, and `W_fb`; the native benchmark reads
-the stage count and active-tap profile from the actual GS plan, and the driver
-checks those values together with `m`, `s`, `h`, taps, and `Delta_min` against
-an independent derivation.
+`feedback_stages`, `active_tap_counts`, `feedback_active_tap_sum`, and `W_fb`;
+the native benchmark reads all four schedule quantities from the actual GS
+plan, and the driver checks those values together with `m`, `s`, `h`, taps,
+and `Delta_min` against an independent derivation.
 Here `active_tap_counts` serializes
 
 \[
 h_k=\#\{t\in T:2^k(m-t)<m\}
 \]
 
-with semicolons, and `W_fb` is
+with semicolons, `feedback_active_tap_sum` is \(\sum_k h_k\), and `W_fb` is
 \(\sum_{t,k}[m-2^k(m-t)]_+\). A zero-stage profile is written as `-`.
 Irreducibility is not part of this general reduction contract; field-level
 experiments must record it separately when their claims require it.

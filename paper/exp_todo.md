@@ -209,8 +209,14 @@ silent deduplication or normalization.
       `feedback_stages`, including the zero-feedback boundary, and the driver
       checks it against the independently derived exact count before retaining
       a row.
-- [ ] Validate the predicted sums of active taps, affected coefficients, word
-      shifts, XORs, reads, writes, and temporary words.
+- [x] [Q] Validate the predicted sums of active taps and scheduled coefficient
+      applications. [A] The native benchmark obtains
+      `feedback_active_tap_sum` and `W_fb` from the actual GS plan, while the
+      phase-diagram driver independently checks them against
+      $\sum_k h_k$ and $\sum_{t,k}[m-2^k\Delta_t]_+$ before accepting a row.
+- [ ] Define and validate source-level word shifts, XORs, reads, writes, and
+      temporary words without treating them as compiler instructions or
+      hardware memory transactions.
 - [x] Validate the formal scheduled coefficient-work sum
       $\sum_{r,k}[m-2^kd_r]_+$ against every generated binary schedule and
       exhaustively enumerate support geometry for $2\le m\le18$; see

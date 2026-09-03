@@ -133,6 +133,7 @@ def derive_geometry(m: int, taps: list[int]) -> dict[str, object]:
             if active_counts
             else "-"
         ),
+        "feedback_active_tap_sum": sum(active_counts),
         "W_fb": scheduled_work,
     }
 
@@ -149,6 +150,8 @@ def validate_benchmark_geometry(
         "Delta_min": str(geometry["Delta_min"]),
         "feedback_stages": str(geometry["feedback_stages"]),
         "active_tap_counts": str(geometry["active_tap_counts"]),
+        "feedback_active_tap_sum": str(geometry["feedback_active_tap_sum"]),
+        "W_fb": str(geometry["W_fb"]),
     }
     for field, value in expected.items():
         if str(row.get(field)) != value:
@@ -245,6 +248,7 @@ def main() -> None:
         "log2_m_over_delta",
         "feedback_stages",
         "active_tap_counts",
+        "feedback_active_tap_sum",
         "W_fb",
         "input_distribution",
         "timing_scope",

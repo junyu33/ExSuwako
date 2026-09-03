@@ -45,6 +45,8 @@ def check_exact_cli(binary: Path) -> None:
         "Delta_min": "9",
         "feedback_stages": "1",
         "active_tap_counts": "2",
+        "feedback_active_tap_sum": "2",
+        "W_fb": "10",
         "input_distribution": "uniform-full-range:v1",
         "timing_scope": "reduction-steady-state:v1",
         "setup_scope": "modulus-plan:v1",
@@ -66,6 +68,7 @@ def check_exact_cli(binary: Path) -> None:
     if (
         empty["s"], empty["h"], empty["taps"], empty["Delta_min"],
         empty["feedback_stages"], empty["active_tap_counts"],
+        empty["feedback_active_tap_sum"], empty["W_fb"],
     ) != (
         "0",
         "1",
@@ -73,6 +76,8 @@ def check_exact_cli(binary: Path) -> None:
         "NA",
         "0",
         "-",
+        "0",
+        "0",
     ):
         raise AssertionError(f"unexpected empty-support row: {empty}")
 
@@ -105,6 +110,12 @@ def check_manifest(binary: Path, driver: Path) -> None:
                 "m": 16,
                 "taps": [0],
             },
+            {
+                "sample_id": "gap-one",
+                "provenance": "synthetic-boundary:v1",
+                "m": 16,
+                "taps": [15],
+            },
         ]
         manifest.write_text(
             "".join(json.dumps(entry) + "\n" for entry in entries),
@@ -134,21 +145,29 @@ def check_manifest(binary: Path, driver: Path) -> None:
             "empty",
             "exact-0-3-7",
             "constant-only",
+            "gap-one",
         ]:
             raise AssertionError("manifest sample identifiers were not preserved")
         if [row["provenance"] for row in rows] != [
             "synthetic-boundary:v1",
             "hand-constructed-example:v1",
             "synthetic-boundary:v1",
+            "synthetic-boundary:v1",
         ]:
             raise AssertionError("manifest provenance was not preserved")
-        if [row["taps"] for row in rows] != ["-", "0;3;7", "0"]:
+        if [row["taps"] for row in rows] != ["-", "0;3;7", "0", "15"]:
             raise AssertionError("manifest tap lists were not preserved")
-        if [row["feedback_stages"] for row in rows] != ["0", "1", "0"]:
+        if [row["feedback_stages"] for row in rows] != ["0", "1", "0", "4"]:
             raise AssertionError("incorrect derived feedback-stage counts")
-        if [row["active_tap_counts"] for row in rows] != ["-", "2", "-"]:
+        if [row["active_tap_counts"] for row in rows] != [
+            "-", "2", "-", "1;1;1;1"
+        ]:
             raise AssertionError("incorrect derived active-tap profiles")
-        if [row["W_fb"] for row in rows] != ["0", "10", "0"]:
+        if [row["feedback_active_tap_sum"] for row in rows] != [
+            "0", "2", "0", "4"
+        ]:
+            raise AssertionError("incorrect active-tap sums")
+        if [row["W_fb"] for row in rows] != ["0", "10", "0", "49"]:
             raise AssertionError("incorrect derived scheduled work")
         if any(
             row["input_distribution"] != "uniform-full-range:v1"
@@ -301,7 +320,8 @@ def check_manifest(binary: Path, driver: Path) -> None:
             repeated_rows = list(csv.DictReader(stream))
         deterministic_fields = [
             "sample_id", "provenance", "m", "s", "h", "taps",
-            "Delta_min", "feedback_stages", "active_tap_counts", "W_fb",
+            "Delta_min", "feedback_stages", "active_tap_counts",
+            "feedback_active_tap_sum", "W_fb",
             "seed",
         ]
         if [

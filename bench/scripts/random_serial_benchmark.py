@@ -57,6 +57,13 @@ def main() -> None:
         row["feedback_stages"] = statistics.median(
             int(sample["feedback_stages"]) for sample in benchmark_rows
         )
+        row["feedback_active_tap_sum"] = statistics.median(
+            int(sample["feedback_active_tap_sum"])
+            for sample in benchmark_rows
+        )
+        row["W_fb"] = statistics.median(
+            int(sample["W_fb"]) for sample in benchmark_rows
+        )
         # This driver aggregates several random supports into one row, so no
         # single exact tap list represents the resulting median.
         row.pop("taps", None)
@@ -76,7 +83,8 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fields = [
         "power", "m", "word_bits", "s", "h", "Delta_min",
-        "feedback_stages", "input_distribution",
+        "feedback_stages", "feedback_active_tap_sum", "W_fb",
+        "input_distribution",
         "timing_scope", "setup_scope", "timing_order", "GS_setup_ns", "Serial_setup_ns",
         "Naive_setup_ns", "BarrettGF2X_setup_ns",
         "GS_ns", "Serial_ns", "Naive_ns",

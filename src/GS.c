@@ -396,6 +396,30 @@ size_t gs_plan_feedback_active_taps(const gs_plan *plan, size_t stage) {
     return plan->rounds[stage].count;
 }
 
+size_t gs_plan_feedback_active_tap_sum(const gs_plan *plan) {
+    if (!plan) return 0;
+    size_t total = 0;
+    for (size_t stage = 0; stage < plan->round_count; ++stage)
+        total += plan->rounds[stage].count;
+    return total;
+}
+
+/* Sum the nonzero coefficient destinations scheduled for every shift. */
+size_t gs_plan_feedback_scheduled_coefficient_work(const gs_plan *plan) {
+    if (!plan) return 0;
+    size_t total = 0;
+    for (size_t stage = 0; stage < plan->round_count; ++stage) {
+        const round_desc *round = &plan->rounds[stage];
+        for (size_t j = 0; j < round->count; ++j) {
+            const shift_desc *desc =
+                &plan->feedback_shifts[round->offset + j];
+            size_t shift = desc->word_offset * WORD_BITS + desc->bit_offset;
+            total += plan->m - shift;
+        }
+    }
+    return total;
+}
+
 void gs_reduce_into(const poly_t *input, gs_plan *plan, poly_t *output) {
     if (output->n < plan->state_words)
         die("GS output buffer is too small");

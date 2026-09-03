@@ -99,12 +99,13 @@ remainder comparison would otherwise conflate.
 **RQ2: Feedback chain.** Does latency scale with
 $1+\log(m/\Delta_{\min})$ rather than $m/\Delta_{\min}$?
 
-The native benchmark exports the feedback-stage count and per-stage active-tap
-profile read from the constructed GS plan.  The phase-diagram driver derives
-both quantities independently from the complete tap set and rejects any row
-whose measured schedule metadata disagrees with the predicted geometry.  This
-checks the structural predictor before it is correlated with timing data; it
-does not by itself establish the latency-scaling claim.
+The native benchmark exports the feedback-stage count, per-stage active-tap
+profile, total active-tap count, and scheduled coefficient work read from the
+constructed GS plan.  The phase-diagram driver derives these quantities
+independently from the complete tap set and rejects any row whose schedule
+metadata disagrees with the predicted geometry.  This checks the structural
+predictor before it is correlated with timing data; it does not by itself
+establish the latency-scaling claim or an instruction-count model.
 
 **RQ3: Crossover.** For which triples $(m,s,\Delta_{\min})$ does generalized
 Suwako outperform serial folding and Barrett/Montgomery?

@@ -352,7 +352,7 @@ The output is CSV with setup time per fresh plan and steady-state reduction
 time in nanoseconds:
 
 ```text
-m,word_bits,s,h,taps,Delta_min,feedback_stages,active_tap_counts,input_distribution,timing_scope,setup_scope,timing_order,GS_setup_ns,...,GS_ns,...
+m,word_bits,s,h,taps,Delta_min,feedback_stages,active_tap_counts,feedback_active_tap_sum,W_fb,input_distribution,timing_scope,setup_scope,timing_order,GS_setup_ns,...,GS_ns,...
 ```
 
 The current reduction-only corpus is `uniform-full-range:v1`: it samples
@@ -381,8 +381,9 @@ number $K$ of reductions per plan. See
 For repeatable support suites, `phase_diagram_benchmark.py --manifest FILE`
 accepts JSON Lines records containing `sample_id`, `provenance`, `m`, and
 `taps`. The driver retains the source fields and deterministically derives
-`s`, `h`, `Delta_min`, `feedback_stages`, `active_tap_counts`, and `W_fb` in
-its output CSV. Random-mode rows use provenance
+`s`, `h`, `Delta_min`, `feedback_stages`, `active_tap_counts`,
+`feedback_active_tap_sum`, and `W_fb` in its output CSV, after checking the
+four schedule quantities against the actual GS plan. Random-mode rows use provenance
 `synthetic-fixed-weight-uniform:v1` and seed-qualified sample identifiers.
 
 Deterministic failures and anomalous supports are promoted into versioned

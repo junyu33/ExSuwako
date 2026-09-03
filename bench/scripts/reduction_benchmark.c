@@ -388,8 +388,12 @@ int main(int argc, char **argv) {
         calloc((size_t)supports, sizeof(*feedback_stage_values));
     char **active_tap_values =
         calloc((size_t)supports, sizeof(*active_tap_values));
+    size_t *active_tap_sum_values =
+        calloc((size_t)supports, sizeof(*active_tap_sum_values));
+    size_t *scheduled_work_values =
+        calloc((size_t)supports, sizeof(*scheduled_work_values));
     if (!delta_values || !has_delta || !tap_values || !feedback_stage_values ||
-        !active_tap_values)
+        !active_tap_values || !active_tap_sum_values || !scheduled_work_values)
         die("allocation failed");
 
     for (int trial = 0; trial < supports; ++trial) {
@@ -444,6 +448,10 @@ int main(int argc, char **argv) {
         gs_plan *gs = methods[0].context;
         feedback_stage_values[trial] = gs_plan_feedback_stage_count(gs);
         active_tap_values[trial] = serialize_active_tap_counts(gs);
+        active_tap_sum_values[trial] =
+            gs_plan_feedback_active_tap_sum(gs);
+        scheduled_work_values[trial] =
+            gs_plan_feedback_scheduled_coefficient_work(gs);
 
         poly_t *inputs = calloc((size_t)inputs_count, sizeof(*inputs));
         if (!inputs) die("allocation failed");
@@ -472,6 +480,7 @@ int main(int argc, char **argv) {
     }
 
     printf("m,word_bits,s,h,taps,Delta_min,feedback_stages,active_tap_counts,"
+           "feedback_active_tap_sum,W_fb,"
            "input_distribution,timing_scope,setup_scope,timing_order,"
            "GS_setup_ns,Serial_setup_ns,Naive_setup_ns,BarrettGF2X_setup_ns,"
            "GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
@@ -485,9 +494,10 @@ int main(int argc, char **argv) {
                s, s + 1, tap_values[trial]);
         if (has_delta[trial]) printf("%zu,", delta_values[trial]);
         else printf("NA,");
-        printf("%zu,%s,%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
+        printf("%zu,%s,%zu,%zu,%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
                "%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
                feedback_stage_values[trial], active_tap_values[trial],
+               active_tap_sum_values[trial], scheduled_work_values[trial],
                input_distribution, timing_scope, setup_scope, timing_order,
                gs_setup_samples[trial], serial_setup_samples[trial],
                naive_setup_samples[trial], barrett_setup_samples[trial],
@@ -511,6 +521,8 @@ int main(int argc, char **argv) {
     free(tap_values);
     free(feedback_stage_values);
     free(active_tap_values);
+    free(active_tap_sum_values);
+    free(scheduled_work_values);
     free(exact_taps);
     return 0;
 }
