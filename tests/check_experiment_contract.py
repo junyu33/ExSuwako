@@ -368,6 +368,84 @@ def check_manifest(binary: Path, driver: Path) -> None:
         ):
             raise AssertionError("enabled Dense measurements must be positive")
 
+        ld_manifest = root / "lopez-dahab.jsonl"
+        ld_output = root / "lopez-dahab.csv"
+        ld_manifest.write_text(
+            json.dumps({
+                "sample_id": "ld-pentanomial-m163",
+                "provenance": "lopez-dahab-domain-test:v1",
+                "m": 163,
+                "taps": [0, 3, 6, 7],
+            }) + "\n",
+            encoding="utf-8",
+        )
+        ld_command = [
+            sys.executable,
+            str(driver),
+            "--binary",
+            str(binary),
+            "--manifest",
+            str(ld_manifest),
+            "--output",
+            str(ld_output),
+            "--inputs",
+            "2",
+            "--repeats",
+            "4",
+            "--seed",
+            "19",
+            "--no-naive",
+            "--with-lopez-dahab",
+        ]
+        run(ld_command)
+        with ld_output.open(newline="", encoding="utf-8") as stream:
+            ld_rows = list(csv.DictReader(stream))
+        if len(ld_rows) != 1:
+            raise AssertionError("expected one loop Lopez-Dahab phase row")
+        ld_row = ld_rows[0]
+        if (
+            ld_row["LopezDahabLoop_enabled"] != "1"
+            or int(ld_row["LopezDahabLoop_plan_bytes"]) <= 0
+            or float(ld_row["LopezDahabLoop_setup_ns"]) < 0
+            or float(ld_row["LopezDahabLoop_ns"]) <= 0
+            or float(ld_row["LopezDahabLoop/GS"]) <= 0
+        ):
+            raise AssertionError(
+                "enabled loop Lopez-Dahab phase measurements are invalid"
+            )
+        run(
+            [argument for argument in ld_command if argument != "--no-naive"],
+            succeeds=False,
+        )
+        run(ld_command + ["--with-dense"], succeeds=False)
+        run(
+            [
+                sys.executable, str(driver), "--binary", str(binary),
+                "--output", str(root / "random-ld.csv"), "--m", "163",
+                "--s", "4", "--no-naive", "--with-lopez-dahab",
+            ],
+            succeeds=False,
+        )
+        invalid_ld_manifest = root / "invalid-lopez-dahab.jsonl"
+        invalid_ld_output = root / "invalid-lopez-dahab.csv"
+        invalid_ld_manifest.write_text(
+            json.dumps({
+                "sample_id": "ld-invalid-high-tap",
+                "provenance": "lopez-dahab-domain-test:v1",
+                "m": 163,
+                "taps": [0, 100],
+            }) + "\n",
+            encoding="utf-8",
+        )
+        invalid_ld_command = list(ld_command)
+        invalid_ld_command[invalid_ld_command.index(str(ld_manifest))] = str(
+            invalid_ld_manifest
+        )
+        invalid_ld_command[invalid_ld_command.index(str(ld_output))] = str(
+            invalid_ld_output
+        )
+        run(invalid_ld_command, succeeds=False)
+
         invalid_manifests = [
             [
                 {

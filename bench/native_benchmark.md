@@ -257,7 +257,8 @@ build/reduction_benchmark --taps 0,7,12 8 5 283 0x1 no-naive
 ```
 
 The exact-mode arguments are `--taps LIST`, `inputs`, `repeats`, `m`, `seed`,
-and optional `no-naive`, `with-dense`, or `generated=PATH` flags. `LIST` is
+and optional `no-naive`, `with-dense`, `with-lopez-dahab`, or
+`generated=PATH` flags. `LIST` is
 comma-separated, strictly
 increasing, duplicate-free, and contains only exponents in `[0,m)`; use `-`
 for the empty support. The CSV serializes taps with semicolons so the complete
@@ -290,6 +291,23 @@ This enables GS, Serial, Barrett, and `LopezDahabLoop` in the same balanced
 four-method rotation. The CSV reports its plan storage, setup time,
 steady-state time, and ratio to GS; it generates or compiles no
 modulus-specific source.
+
+The phase-diagram driver exposes the same baseline for exact-support manifests:
+
+```text
+python3 bench/scripts/phase_diagram_benchmark.py \
+  --binary build/reduction_benchmark \
+  --manifest ld-supports.jsonl --output bench/data/ld-phase.csv \
+  --inputs 8 --repeats 12 --seed 1 --no-naive --with-lopez-dahab
+```
+
+Every manifest entry must satisfy $m>W$ and $\deg q<m-W$ or the native
+benchmark rejects it before timing. `--with-lopez-dahab` requires
+`--no-naive`, requires manifest mode, and is mutually exclusive with
+`--with-dense`; either opt-in therefore retains a balanced four-method
+comparison with GS, Serial, and Barrett. Dense remains a diagnostic baseline
+subject to its matrix-size limit. Whether either opt-in belongs in a final
+winner panel is decided from the formal sweep, not assumed from its presence.
 
 ## Fixed-Modulus Generated Reducer
 

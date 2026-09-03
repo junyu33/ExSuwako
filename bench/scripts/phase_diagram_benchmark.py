@@ -260,7 +260,8 @@ def derive_gs_source_cost(
 
 
 def validate_benchmark_geometry(
-    row: dict[str, object], m: int, taps: list[int]
+    row: dict[str, object], m: int, taps: list[int],
+    *, expect_dense: bool, expect_lopez_dahab: bool,
 ) -> None:
     geometry = derive_geometry(m, taps)
     try:
@@ -367,6 +368,8 @@ def validate_benchmark_geometry(
         raise RuntimeError("benchmark emitted invalid dense-baseline fields") from error
     if dense_enabled not in (0, 1) or dense_limit <= 0:
         raise RuntimeError("benchmark emitted invalid dense-baseline metadata")
+    if dense_enabled != int(expect_dense):
+        raise RuntimeError("benchmark emitted an unexpected dense-baseline state")
     if dense_enabled:
         if (
             dense_bytes <= 0
@@ -405,17 +408,27 @@ def validate_benchmark_geometry(
         ld_ratio = float(str(row.get("LopezDahabLoop/GS")))
     except (TypeError, ValueError) as error:
         raise RuntimeError("benchmark emitted invalid loop Lopez-Dahab fields") from error
-    if ld_enabled != 0:
-        raise RuntimeError("phase driver does not enable loop Lopez-Dahab")
-    if any(value != 0 for value in (ld_bytes, ld_setup, ld_ns, ld_ratio)):
+    if ld_enabled != int(expect_lopez_dahab):
+        raise RuntimeError(
+            "benchmark emitted an unexpected loop Lopez-Dahab state"
+        )
+    if ld_enabled:
+        if ld_bytes <= 0 or ld_setup < 0 or ld_ns <= 0 or ld_ratio <= 0:
+            raise RuntimeError(
+                "enabled loop Lopez-Dahab emitted invalid measurements"
+            )
+    elif any(value != 0 for value in (ld_bytes, ld_setup, ld_ns, ld_ratio)):
         raise RuntimeError("disabled loop Lopez-Dahab emitted nonzero fields")
 
 
 def add_derived_fields(
     row: dict[str, object], sample_id: str, provenance: str,
-    m: int, taps: list[int]
+    m: int, taps: list[int], *, with_dense: bool, with_lopez_dahab: bool,
 ) -> None:
-    validate_benchmark_geometry(row, m, taps)
+    validate_benchmark_geometry(
+        row, m, taps, expect_dense=with_dense,
+        expect_lopez_dahab=with_lopez_dahab,
+    )
     row["sample_id"] = sample_id
     row["provenance"] = provenance
     row.update(derive_geometry(m, taps))
@@ -442,6 +455,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--no-naive", action="store_true")
     parser.add_argument("--with-dense", action="store_true")
+    parser.add_argument("--with-lopez-dahab", action="store_true")
     args = parser.parse_args()
 
     if args.inputs <= 0 or args.repeats <= 0:
@@ -452,6 +466,12 @@ def main() -> None:
         )
     if args.with_dense and not args.no_naive:
         raise ValueError("--with-dense requires --no-naive")
+    if args.with_lopez_dahab and not args.no_naive:
+        raise ValueError("--with-lopez-dahab requires --no-naive")
+    if args.with_lopez_dahab and args.with_dense:
+        raise ValueError("--with-lopez-dahab and --with-dense are mutually exclusive")
+    if args.with_lopez_dahab and args.manifest is None:
+        raise ValueError("--with-lopez-dahab requires an exact-support manifest")
 
     rng = random.Random(args.seed)
     rows: list[dict[str, object]] = []
@@ -535,6 +555,8 @@ def main() -> None:
             command.append("no-naive")
         if args.with_dense:
             command.append("with-dense")
+        if args.with_lopez_dahab:
+            command.append("with-lopez-dahab")
         completed = subprocess.run(
             command, check=True, capture_output=True, text=True
         )
@@ -581,7 +603,8 @@ def main() -> None:
                 row["seed"] = c_seed
                 add_derived_fields(
                     row, entry["sample_id"], entry["provenance"],
-                    entry["m"], taps
+                    entry["m"], taps, with_dense=args.with_dense,
+                    with_lopez_dahab=args.with_lopez_dahab,
                 )
                 add_measurement_fields(row, trial)
                 rows.append(row)
@@ -622,7 +645,8 @@ def main() -> None:
                 )
                 add_derived_fields(
                     row, sample_id, "synthetic-fixed-weight-uniform:v1",
-                    args.m, taps
+                    args.m, taps, with_dense=args.with_dense,
+                    with_lopez_dahab=args.with_lopez_dahab,
                 )
                 add_measurement_fields(row, trial)
                 rows.append(row)

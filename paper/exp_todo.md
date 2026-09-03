@@ -367,8 +367,17 @@ The paper-facing definition of this experiment is in
       retains positive `GS_ns`, `Serial_ns`, `BarrettGF2X_ns`, `Serial/GS`,
       and `BarrettGF2X/GS` fields under the common timing metadata, and its
       contract test rejects a missing primary comparison.
-- [ ] Add optimized ordinary-loop trinomial/pentanomial folding and dense
-      linear reduction where they are credible strongest baselines.
+- [x] Add optimized ordinary-loop trinomial/pentanomial folding and dense
+      linear reduction where they are credible strongest baselines. [A]
+      The exact-manifest phase path can opt into ordinary-loop López--Dahab
+      Algorithm 2 for every support satisfying $m>W$ and $\deg q<m-W$, or
+      into the row-parity Dense map below its 64 MiB matrix limit.  Each mode
+      replaces Naive to retain a balanced GS/Serial/Barrett/fourth-method
+      rotation, and the driver rejects random-mode López--Dahab runs,
+      incompatible options, applicability violations, or missing method
+      measurements.  Dense is retained as a diagnostic baseline; promotion
+      of either method into final winner panels remains conditional on the
+      formal sweep rather than an exploratory timing.
 - [ ] Sweep controlled synthetic supports so that $h$ and
       $\Delta_{\min}$ vary independently.
 - [ ] Sample fixed-weight supports and report median, p90, and p99 rather than

@@ -89,6 +89,13 @@ Implement or integrate:
 6. the existing `Naive` ordinary polynomial long division as the generic
    correctness/portability reference, not a tuned performance competitor.
 
+The implemented exact-manifest phase path admits either Dense or ordinary-loop
+López--Dahab as the fourth method beside GS, Serial, and Barrett. Dense retains
+its explicit matrix-size ceiling; López--Dahab retains $m>W$ and
+$\deg q<m-W$. The two modes are mutually exclusive and neither is promoted to
+a final winner panel unless the formal sweep shows that it is a credible
+strong baseline in the corresponding region.
+
 ### 8.6 Optional RTL Prototype
 
 No RTL prototype is planned for the current software-reduction study. A future
