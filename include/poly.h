@@ -15,28 +15,28 @@ typedef struct {
     size_t n;
 } poly_t;
 
-static void die(const char *message) {
+static inline void die(const char *message) {
     fprintf(stderr, "%s\n", message);
     exit(EXIT_FAILURE);
 }
 
-static size_t poly_words_for_bits(size_t bits) {
+static inline size_t poly_words_for_bits(size_t bits) {
     return (bits + WORD_BITS - 1) / WORD_BITS;
 }
 
-static poly_t poly_new(size_t n) {
+static inline poly_t poly_new(size_t n) {
     poly_t p = {calloc(n ? n : 1, sizeof(word_t)), n};
     if (!p.v) die("allocation failed");
     return p;
 }
 
-static void poly_free(poly_t *p) {
+static inline void poly_free(poly_t *p) {
     free(p->v);
     p->v = NULL;
     p->n = 0;
 }
 
-static long poly_degree(const poly_t *p) {
+static inline long poly_degree(const poly_t *p) {
     size_t i = p->n;
     while (i && p->v[i - 1] == 0) --i;
     if (!i) return -1;
@@ -46,12 +46,13 @@ static long poly_degree(const poly_t *p) {
     return (long)((i - 1) * WORD_BITS + (size_t)top);
 }
 
-static void poly_set_bit(poly_t *p, size_t bit) {
+static inline void poly_set_bit(poly_t *p, size_t bit) {
     if (bit / WORD_BITS >= p->n) die("polynomial bit capacity exceeded");
     p->v[bit / WORD_BITS] |= (word_t)1 << (bit % WORD_BITS);
 }
 
-static void poly_xor_left_shift(poly_t *dst, const poly_t *src, size_t shift) {
+static inline void poly_xor_left_shift(poly_t *dst, const poly_t *src,
+                                       size_t shift) {
     size_t whole = shift / WORD_BITS;
     unsigned bits = (unsigned)(shift % WORD_BITS);
     for (size_t i = 0; i < src->n && i + whole < dst->n; ++i) {
@@ -61,7 +62,8 @@ static void poly_xor_left_shift(poly_t *dst, const poly_t *src, size_t shift) {
     }
 }
 
-static void poly_xor_right_shift(poly_t *dst, const poly_t *src, size_t shift) {
+static inline void poly_xor_right_shift(poly_t *dst, const poly_t *src,
+                                        size_t shift) {
     size_t whole = shift / WORD_BITS;
     unsigned bits = (unsigned)(shift % WORD_BITS);
     for (size_t i = whole; i < src->n; ++i) {
@@ -73,19 +75,22 @@ static void poly_xor_right_shift(poly_t *dst, const poly_t *src, size_t shift) {
     }
 }
 
-static poly_t poly_shift_right(const poly_t *src, size_t shift) {
+static inline poly_t poly_shift_right(const poly_t *src, size_t shift) {
     poly_t dst = poly_new(src->n);
     poly_xor_right_shift(&dst, src, shift);
     return dst;
 }
 
-static poly_t poly_from_exponents(size_t bits, const size_t *exponents, size_t count) {
+static inline poly_t poly_from_exponents(size_t bits,
+                                         const size_t *exponents,
+                                         size_t count) {
     poly_t p = poly_new(poly_words_for_bits(bits));
     for (size_t i = 0; i < count; ++i) poly_set_bit(&p, exponents[i]);
     return p;
 }
 
-static int poly_mul_gf2x(poly_t *out, const poly_t *a, const poly_t *b) {
+static inline int poly_mul_gf2x(poly_t *out, const poly_t *a,
+                                const poly_t *b) {
     size_t an = a->n, bn = b->n;
     while (an && a->v[an - 1] == 0) --an;
     while (bn && b->v[bn - 1] == 0) --bn;
@@ -96,8 +101,9 @@ static int poly_mul_gf2x(poly_t *out, const poly_t *a, const poly_t *b) {
                     b->v, (unsigned long)bn);
 }
 
-static void poly_divmod(const poly_t *numerator, const poly_t *denominator,
-                        poly_t *quotient, poly_t *remainder) {
+static inline void poly_divmod(const poly_t *numerator,
+                               const poly_t *denominator,
+                               poly_t *quotient, poly_t *remainder) {
     memcpy(remainder->v, numerator->v, remainder->n * sizeof(word_t));
     memset(quotient->v, 0, quotient->n * sizeof(word_t));
     long den_degree = poly_degree(denominator);
