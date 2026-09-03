@@ -589,7 +589,11 @@ stage kernel is also checked directly against immutable-old stage semantics.
 The feedback closure and final low-part assembly are each checked separately
 against bit-level references. These checks are useful evidence against
 off-by-one, synchronous-update, tap-interaction, final assembly, and
-round-count mistakes.
+round-count mistakes. The native differential suite additionally surrounds
+the first three machine-word boundaries, checks canonical top padding and
+oversized-output tails, and exercises the shared scalar right-shift primitive
+at every bit offset. The same native paths pass the repository's ASan/UBSan
+target.
 
 This does not yet establish novelty, importance, or a compelling application.
 The next kill steps are prior-art search around reciprocal methods, sparse

@@ -105,6 +105,9 @@ reduction_method reduction_make_serial(const size_t *taps, size_t tap_count,
 
 reduction_method reduction_make_naive(const poly_t *modulus, size_t m,
                                       size_t input_words) {
+    if (m == 0) die("naive modulus degree must be positive");
+    if (!modulus || poly_degree(modulus) != (long)m)
+        die("naive modulus must be monic of degree m");
     naive_context *context = malloc(sizeof(*context));
     if (!context) die("allocation failed");
     context->modulus = modulus;

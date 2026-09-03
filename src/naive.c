@@ -16,6 +16,9 @@ void naive_reduce_into(const poly_t *input, const poly_t *modulus,
 }
 
 poly_t naive_reduce(const poly_t *input, const poly_t *modulus, size_t m) {
+    if (m == 0) die("naive modulus degree must be positive");
+    if (!modulus || poly_degree(modulus) != (long)m)
+        die("naive modulus must be monic of degree m");
     poly_t r = poly_new(input->n);
     naive_reduce_into(input, modulus, m, &r);
     return r;

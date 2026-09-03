@@ -51,6 +51,26 @@ static int poly_equal(const poly_t *a, const poly_t *b) {
     return 1;
 }
 
+static void check_canonical_output(const poly_t *output, size_t m,
+                                   const char *method) {
+    size_t words = poly_words_for_bits(m);
+    if (output->n < words) die("reducer returned an undersized output");
+    unsigned top_bits = (unsigned)(m % WORD_BITS);
+    if (top_bits != 0
+            && (output->v[words - 1] >> top_bits) != 0) {
+        fprintf(stderr, "%s left nonzero top-word padding for m=%zu\n",
+                method, m);
+        exit(EXIT_FAILURE);
+    }
+    for (size_t i = words; i < output->n; ++i) {
+        if (output->v[i] != 0) {
+            fprintf(stderr, "%s left nonzero output tail for m=%zu\n",
+                    method, m);
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 static void choose_taps(size_t *taps, size_t count, size_t m,
                         int force_unit_gap) {
     taps[0] = 0;
@@ -149,8 +169,10 @@ static void check_methods(const reduction_method *methods,
     if (!outputs) die("allocation failed");
 
     for (size_t i = 0; i < method_count; ++i) {
-        outputs[i] = poly_new(methods[i].output_words);
+        outputs[i] = poly_new(methods[i].output_words + 2);
+        memset(outputs[i].v, 0xff, outputs[i].n * sizeof(*outputs[i].v));
         methods[i].reduce_into(input, methods[i].context, &outputs[i]);
+        check_canonical_output(&outputs[i], m, methods[i].name);
     }
 
     for (size_t i = 1; i < method_count; ++i) {
@@ -227,7 +249,11 @@ static void check_regression_cases(void) {
 }
 
 int main(void) {
-    const size_t degrees[] = {8, 31, 64, 65, 127, 128, 257};
+    const size_t degrees[] = {
+        1, 2, 8, 31, WORD_BITS - 1, WORD_BITS, WORD_BITS + 1,
+        2 * WORD_BITS - 1, 2 * WORD_BITS, 2 * WORD_BITS + 1,
+        3 * WORD_BITS - 1, 3 * WORD_BITS, 3 * WORD_BITS + 1, 257
+    };
 
     check_regression_cases();
 

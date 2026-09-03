@@ -266,9 +266,19 @@ silent deduplication or normalization.
 
 ## Native Implementation Backlog
 
-- [ ] Audit the portable scalar implementation for arbitrary public taps,
+- [x] Audit the portable scalar implementation for arbitrary public taps,
       non-word-aligned $m$, constant-free moduli, top-word masking, and
-      undefined shifts.
+      undefined shifts. [A] GS and Serial now reject zero degree, missing tap
+      arrays, and taps outside $[0,m)$; Naive and Barrett validate a monic
+      degree-$m$ modulus.  GS and Barrett canonicalize oversized output
+      buffers, and GS masks the actual degree-$m$ word rather than the final
+      capacity word.  The native differential suite checks top padding and
+      output tails around $W$, $2W$, and $3W$ boundaries, while the dedicated
+      shared-shift test exhausts offsets across zero, aligned, unaligned, and
+      beyond-source shifts.  Both `make check` and `make check-sanitize` pass;
+      the latter runs the reducer, GS component/stage, and shared-shift suites
+      under ASan and UBSan, and GCC `-fanalyzer` reports no scalar-source
+      diagnostic.
 - [ ] Retain the fair shared word-level shift primitive while keeping the
       distinct GS and serial traversals.
 - [ ] Complete a matched Montgomery baseline where its representation and

@@ -41,6 +41,10 @@ static size_t used_words(const poly_t *p) {
 }
 
 poly_t barrett_setup(const poly_t *modulus, size_t m) {
+    if (m == 0) die("Barrett modulus degree must be positive");
+    if (!modulus || poly_degree(modulus) != (long)m)
+        die("Barrett modulus must be monic of degree m");
+
     poly_t numerator = poly_new(poly_words_for_bits(2 * m + 1));
     poly_set_bit(&numerator, 2 * m);
     /* deg(floor(x^(2m) / modulus)) = m, so m + 1 bits suffice. */
@@ -54,6 +58,11 @@ poly_t barrett_setup(const poly_t *modulus, size_t m) {
 
 barrett_plan *barrett_plan_create(const poly_t *modulus,
                                   const poly_t *mu, size_t m) {
+    if (m == 0) die("Barrett modulus degree must be positive");
+    if (!modulus || !mu) die("Barrett plan inputs are missing");
+    if (poly_degree(modulus) != (long)m)
+        die("Barrett modulus must be monic of degree m");
+
     barrett_plan *plan = calloc(1, sizeof(*plan));
     if (!plan) die("allocation failed");
 
@@ -117,6 +126,9 @@ void barrett_reduce_into(const poly_t *c, barrett_plan *plan, poly_t *output) {
 
     memcpy(output->v, plan->small.v,
            plan->output_words * sizeof(word_t));
+    if (output->n > plan->output_words)
+        memset(output->v + plan->output_words, 0,
+               (output->n - plan->output_words) * sizeof(*output->v));
     unsigned top_bits = (unsigned)(plan->m % WORD_BITS);
     if (top_bits != 0)
         output->v[plan->output_words - 1] &= ((word_t)1 << top_bits) - 1;

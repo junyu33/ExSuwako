@@ -15,6 +15,30 @@ folding, naive long division, and Barrett all expose the same timed
 input generation, output allocation, correctness checks, and checksum
 consumption are outside the timed region.
 
+## Portable scalar boundary validation
+
+`make check` differentially compares GS, Serial, Naive, and Barrett around
+$W$, $2W$, and $3W$ word boundaries as well as on deterministic random degrees
+through 512.  Reducer outputs are deliberately allocated two words larger
+than their minimum capacity and prefilled with ones, so the suite verifies
+both degree-$m$ top-word masking and zeroed output tails.  The support profiles
+include empty, dense, sparse, constant-free, endpoint, aligned/unaligned, and
+unrestricted tap sets.
+
+The separate `sparse_shift_correctness_check` exhausts right-shift distances
+from zero through two words beyond source capacity for small source and
+destination sizes.  It also exercises the shared two-word gather primitive at
+every bit offset $0,\ldots,W-1$.  Run the same reducer, GS stage/component,
+and shared-shift suites with memory and undefined-behavior instrumentation via:
+
+```text
+make check-sanitize
+```
+
+This uses ASan with leak detection and UBSan with fail-fast behavior.  Passing
+the suite establishes coverage of the exercised scalar paths; it is not a
+formal proof that arbitrary C object sizes cannot overflow `size_t`.
+
 ## Input Distribution Registry
 
 Every result row carries an `input_distribution` label. The frozen names and

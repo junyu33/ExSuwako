@@ -80,11 +80,16 @@ randomized and exhaustive tests, and separately tests the coefficient-algebra
 identity over GF(4) and \(\mathbb F_2[\varepsilon]/(\varepsilon^2)\).  These
 tests can falsify an implementation or a stated identity; they do not replace
 the correctness proof. The portable-C differential suite additionally checks
-GS, serial folding, naive long division, and gf2x-backed Barrett on 700
+GS, serial folding, naive long division, and gf2x-backed Barrett on 1,400
 fixed-degree and 10,000 deterministic stratified-random cases with complete
 bitwise-random degree-below-$2m$ inputs. Its support profiles include the
 empty, sparse, dense, constant-free, endpoint, mixed-alignment, and
 unrestricted boundaries for $1\le m\le512$.
+The fixed degrees surround the first three machine-word boundaries, and every
+reducer receives an oversized, nonzero-prefilled output so top-word masking
+and tail clearing are checked independently of remainder equality.  A
+dedicated shared-shift suite exhausts small source/destination capacities and
+all bit offsets, and the native suites also pass under ASan and UBSan.
 The private scalar feedback-stage kernel is additionally tested against an
 independent out-of-place, bit-level implementation of the immutable-old stage
 semantics for explicit alignment classes and 20,000 deterministic random

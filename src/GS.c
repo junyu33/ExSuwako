@@ -257,19 +257,19 @@ static void assemble_low_part(
     size_t m)
 {
     if (aligned_count == 0) {
-        for (size_t dst = 0; dst < output->n; ++dst) {
+        for (size_t dst = 0; dst < state_words; ++dst) {
             word_t acc = dst < input->n ? input->v[dst] : 0;
             output->v[dst] = assembly_unaligned_accumulate(
                 state, state_words, dst, shifts, shift_count, acc);
         }
     } else if (aligned_count == shift_count) {
-        for (size_t dst = 0; dst < output->n; ++dst) {
+        for (size_t dst = 0; dst < state_words; ++dst) {
             word_t acc = dst < input->n ? input->v[dst] : 0;
             output->v[dst] = assembly_aligned_accumulate(
                 state, state_words, dst, shifts, shift_count, acc);
         }
     } else {
-        for (size_t dst = 0; dst < output->n; ++dst) {
+        for (size_t dst = 0; dst < state_words; ++dst) {
             word_t acc = dst < input->n ? input->v[dst] : 0;
             size_t j = 0;
             while (j < shift_count) {
@@ -298,12 +298,21 @@ static void assemble_low_part(
         }
     }
 
+    if (output->n > state_words)
+        memset(output->v + state_words, 0,
+               (output->n - state_words) * sizeof(*output->v));
+
     unsigned top_bits = (unsigned)(m % WORD_BITS);
     if (top_bits != 0)
-        output->v[output->n - 1] &= ((word_t)1 << top_bits) - 1;
+        output->v[state_words - 1] &= ((word_t)1 << top_bits) - 1;
 }
 
 gs_plan *gs_plan_create(const size_t *taps, size_t s, size_t m) {
+    if (m == 0) die("GS modulus degree must be positive");
+    if (s && !taps) die("GS taps are missing");
+    for (size_t i = 0; i < s; ++i)
+        if (taps[i] >= m) die("GS tap must be smaller than m");
+
     gs_plan *plan = calloc(1, sizeof(*plan));
     shift_desc *round_shifts = s ? malloc(s * sizeof(*round_shifts)) : NULL;
     size_t feedback_count = 0;

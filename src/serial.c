@@ -35,6 +35,7 @@ static void mask_top_word(word_t *words, size_t count, size_t m) {
 
 serial_plan *serial_plan_create(const size_t *taps, size_t s, size_t m) {
     if (m == 0) die("serial modulus degree must be positive");
+    if (s && !taps) die("serial taps are missing");
 
     serial_plan *plan = calloc(1, sizeof(*plan));
     if (!plan) die("allocation failed");
