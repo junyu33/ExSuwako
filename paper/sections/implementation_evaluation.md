@@ -113,6 +113,19 @@ scratch words. The native profile is checked against an independent Python
 reconstruction. These are source-model quantities rather than compiler
 instructions or hardware memory transactions; cross-vector behavior remains
 outside the scalar model.
+The cost-model analysis aggregates trial medians by exact support, collapses
+duplicate tap sets, and reports Spearman correlation with `GS_ns` only within
+fixed-$m$ panels.  It also uses
+leave-one-support-out affine prediction from source word XORs and stratifies
+the residuals by logical-access fraction, feedback-stage band, and word
+alignment.  The resulting flags show where the simple predictor is
+insufficient; because these are source-level proxies, they are not causal
+cache, barrier, or instruction-counter evidence.  The present response is
+nanoseconds per reduction, not cycles; a future cycle claim requires a frozen
+PMU and core-type contract.
+A deterministic bootstrap interval marks support timings with relative
+half-width above 1% as uncertain; these points are retained and counted rather
+than removed from the correlation or residual diagnostics.
 
 **RQ3: Crossover.** For which triples $(m,s,\Delta_{\min})$ does generalized
 Suwako outperform serial folding and Barrett/Montgomery?
@@ -228,7 +241,9 @@ theoretical coordinate as a complete implementation model.
 
 ### 9.3 Metrics
 
-- cycles per reduction;
+- nanoseconds per reduction under the implemented portable timing contract;
+- cycles per reduction only under a future explicitly frozen PMU and
+  core-type contract;
 - throughput;
 - latency;
 - dependent stages;

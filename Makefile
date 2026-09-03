@@ -40,6 +40,7 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(GS_STAGE_CHECK_TARGET)
 	$(GS_COMPONENT_CHECK_TARGET)
 	$(PYTHON) tests/check_experiment_contract.py --binary $(TARGET)
+	$(PYTHON) tests/check_cost_model_analysis.py
 	$(MAKE) check-theory
 
 check-theory:

@@ -243,10 +243,26 @@ silent deduplication or normalization.
       finished. Contract tests preserve all four setup and plan-storage fields;
       shared modulus, benchmark buffers, allocator overhead, and transient
       library workspace remain excluded.
-- [ ] Correlate predicted word work with measured cycles without relabelling
-      either quantity as the other.
-- [ ] Record regimes where memory traffic, stage barriers, or instruction
-      alignment invalidate a simple operation-count predictor.
+- [x] Correlate predicted word work with measured reduction runtime without
+      relabelling either quantity as the other. [A]
+      `analyze_gs_cost_model.py` aggregates retained trials by exact support,
+      collapses duplicate tap sets to avoid accidental weighting, and
+      computes fixed-$m$ Spearman correlations between `GS_ns` and each
+      formal/source predictor separately.  A deterministic bootstrap marks
+      supports whose median-runtime interval has relative half-width above 1%
+      as uncertain without deleting them.  It explicitly reports nanoseconds,
+      not cycles, because the current benchmark has no frozen portable PMU
+      contract, and it never calls source-model counts instructions or
+      hardware events.
+- [x] Record regimes where memory traffic, stage barriers, or instruction
+      alignment invalidate a simple operation-count predictor. [A] The same
+      analysis uses leave-one-support-out affine prediction from source word
+      XORs, preserves per-support residuals, and reports thresholded residual
+      diagnostics by logical-access-pressure proxy, feedback-stage band, and
+      alignment class.  These source-level partitions identify model-mismatch
+      candidates without claiming hardware-level causation; PMU evidence must
+      be added under a separately frozen contract before attributing a
+      residual to cache traffic or executed instructions.
 
 ## Native Implementation Backlog
 

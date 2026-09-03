@@ -265,6 +265,63 @@ and require a separately named SIMD model if that implementation is added.
 The phase-diagram driver independently reconstructs `scalar-source-v1` from
 $m$, the complete taps, and the emitted word width, and rejects mismatches.
 
+### Cost-model correlation and residual diagnostics
+
+`analyze_gs_cost_model.py` consumes raw phase-diagram rows and keeps the two
+sides of the comparison distinct.  Its measured response is `GS_ns` under
+`reduction-steady-state:v1`; its predictors are `W_fb` and the individual
+`scalar-source-v1` word-XOR, word-shift, logical-read, and logical-write
+counts.  Nanoseconds are not labelled as cycles, and none of the source
+counts is labelled as an instruction count or hardware event.
+
+The script first takes the median `GS_ns` across retained trials for each
+exact `sample_id`.  Repeated samples of the same $(m,\mathtt{taps})$ are then
+collapsed to one support-level observation, so the empty support and random
+collisions cannot receive accidental statistical weight.  Spearman
+correlations are computed separately within each fixed-$m$ panel, preventing
+degree scaling from creating a spurious correlation.  The simple predictive
+baseline is an affine fit from source word XORs to `GS_ns`, evaluated by
+leave-one-support-out prediction rather than in-sample residuals.  At least
+four distinct supports per fixed-$m$ panel are required.  The input must come
+from one recorded environment; the analyzer also rejects missing or duplicate
+measurement-trial indices and rows below the requested trial, batch-repeat,
+or warm-up minima.
+For each unique support it additionally reports a deterministic 10,000-resample
+bootstrap 95% interval for the median.  A relative interval half-width above
+1% sets `timing_status=uncertain`; uncertain observations remain in the output
+and are counted in every summary rather than silently deleted.
+
+The residual diagnostics partition each panel three ways:
+
+- logical-access fraction as a source-level proxy for memory pressure;
+- zero, one, two-to-four, and at least five feedback stages as a proxy for
+  stage barriers; and
+- aligned-only, mixed, and cross-word-only contributions.
+
+A regime is flagged when its median bias or median absolute relative residual
+exceeds the explicit `--mismatch-threshold` (10% by default).  These labels
+identify where a simple XOR-count predictor is inadequate; they do not prove
+that cache traffic, barriers, or alignment caused the residual.  Establishing
+such causality requires separately named hardware-counter evidence.
+
+For a paper-grade input with the frozen minimum of 31 retained trials per
+support, run:
+
+```text
+python3 bench/scripts/analyze_gs_cost_model.py \
+  --input bench/data/phase_raw.csv \
+  --correlations bench/data/gs_cost_correlations.csv \
+  --residuals bench/data/gs_cost_residuals.csv \
+  --diagnostics bench/data/gs_cost_diagnostics.csv \
+  --min-trials 31 --mismatch-threshold 0.10
+```
+
+All three outputs remain local raw/derived experiment data under
+`bench/data/`.  The correlation output states `response=GS_ns` and the kind
+of every predictor.  The residual output preserves each exact support and its
+three diagnostic regimes.  The diagnostic output records the threshold,
+sample count, and `causal_claim=none-source-proxy-only`.
+
 The current native binary emits
 `input_distribution=uniform-full-range:v1` and
 `timing_scope=reduction-steady-state:v1`, together with
