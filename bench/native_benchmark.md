@@ -127,6 +127,24 @@ setup, while reporting compilation time, generated code size, and stored-map
 size as separate quantities. None of those future baselines is currently
 measured.
 
+Plan storage uses `plan_storage_model=requested-owned-bytes:v1`. It sums each
+reducer's context structure and the byte capacities of every heap buffer owned
+for the plan's lifetime. GS includes its round and shift descriptors plus the
+state and sentinel; Serial includes tap descriptors and both state buffers;
+Naive includes its lightweight context; Barrett includes its adapter context,
+reciprocal, plan, and both reusable product buffers. Shared modulus storage,
+benchmark inputs and outputs, allocator metadata and slack, temporary
+setup-only allocations, generated code, and external-library transient
+workspace are excluded.
+
+The benchmark reads `GS_plan_bytes`, `Serial_plan_bytes`, `Naive_plan_bytes`,
+and `BarrettGF2X_plan_bytes` from the separately constructed plans only after
+all setup samples have stopped. Thus storage inspection cannot enter
+`T_setup`, and the inspected plans are the same plans subsequently used for
+correctness and steady-state timing. The contract tests require the storage
+model and values to be present and deterministic, while setup timings remain
+separate nonnegative observations rather than being inferred from storage.
+
 ## Seed and Regression Registry
 
 The native xorshift generator is deterministic. Its nonzero C seed controls

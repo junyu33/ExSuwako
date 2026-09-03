@@ -77,6 +77,13 @@ void barrett_plan_destroy(barrett_plan *plan) {
     free(plan);
 }
 
+size_t barrett_plan_storage_bytes(const barrett_plan *plan) {
+    if (!plan) return 0;
+    return sizeof(*plan)
+         + plan->small.n * sizeof(*plan->small.v)
+         + plan->large.n * sizeof(*plan->large.v);
+}
+
 void barrett_reduce_into(const poly_t *c, barrett_plan *plan, poly_t *output) {
     if (output->n < plan->output_words)
         die("Barrett output buffer is too small");

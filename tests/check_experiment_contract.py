@@ -55,6 +55,7 @@ def check_exact_cli(binary: Path) -> None:
         "GS_source_logical_word_reads": "7",
         "GS_source_logical_word_writes": "5",
         "GS_source_scratch_words": "2",
+        "plan_storage_model": "requested-owned-bytes:v1",
         "input_distribution": "uniform-full-range:v1",
         "timing_scope": "reduction-steady-state:v1",
         "setup_scope": "modulus-plan:v1",
@@ -69,6 +70,12 @@ def check_exact_cli(binary: Path) -> None:
     ]:
         if float(row[field]) < 0:
             raise AssertionError(f"{field} must be nonnegative")
+    for field in [
+        "GS_plan_bytes", "Serial_plan_bytes", "Naive_plan_bytes",
+        "BarrettGF2X_plan_bytes",
+    ]:
+        if int(row[field]) <= 0:
+            raise AssertionError(f"{field} must be positive")
 
     empty = parse_one_row(
         run(base + ["-", "2", "1", "16", "0x2"]).stdout
@@ -84,6 +91,7 @@ def check_exact_cli(binary: Path) -> None:
         empty["GS_source_logical_word_reads"],
         empty["GS_source_logical_word_writes"],
         empty["GS_source_scratch_words"],
+        empty["plan_storage_model"],
     ) != (
         "0",
         "1",
@@ -101,6 +109,7 @@ def check_exact_cli(binary: Path) -> None:
         "3",
         "4",
         "2",
+        "requested-owned-bytes:v1",
     ):
         raise AssertionError(f"unexpected empty-support row: {empty}")
 
@@ -243,6 +252,21 @@ def check_manifest(binary: Path, driver: Path) -> None:
             ]
         ):
             raise AssertionError("setup timings must be nonnegative")
+        if any(
+            row["plan_storage_model"] != "requested-owned-bytes:v1"
+            for row in rows
+        ):
+            raise AssertionError("plan-storage model was not preserved")
+        if any(
+            int(row[field]) <= 0
+            for row in rows
+            for field in [
+                "GS_plan_bytes", "Serial_plan_bytes", "BarrettGF2X_plan_bytes"
+            ]
+        ):
+            raise AssertionError("required plan-storage fields must be positive")
+        if any(int(row["Naive_plan_bytes"]) != 0 for row in rows):
+            raise AssertionError("disabled Naive plan storage must be zero")
 
         invalid_manifests = [
             [
@@ -363,6 +387,8 @@ def check_manifest(binary: Path, driver: Path) -> None:
             "GS_source_word_shifts", "GS_source_word_xors",
             "GS_source_logical_word_reads",
             "GS_source_logical_word_writes", "GS_source_scratch_words",
+            "plan_storage_model", "GS_plan_bytes", "Serial_plan_bytes",
+            "Naive_plan_bytes", "BarrettGF2X_plan_bytes",
             "seed",
         ]
         if [

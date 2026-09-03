@@ -75,6 +75,14 @@ void serial_plan_destroy(serial_plan *plan) {
     free(plan);
 }
 
+size_t serial_plan_storage_bytes(const serial_plan *plan) {
+    if (!plan) return 0;
+    return sizeof(*plan)
+         + plan->tap_count * sizeof(*plan->taps)
+         + plan->current.n * sizeof(*plan->current.v)
+         + plan->next.n * sizeof(*plan->next.v);
+}
+
 /*
  * Compute one conventional sparse feedback step.
  *

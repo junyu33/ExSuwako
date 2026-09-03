@@ -420,6 +420,16 @@ size_t gs_plan_feedback_scheduled_coefficient_work(const gs_plan *plan) {
     return total;
 }
 
+size_t gs_plan_storage_bytes(const gs_plan *plan) {
+    if (!plan) return 0;
+    return sizeof(*plan)
+         + plan->round_count * sizeof(*plan->rounds)
+         + gs_plan_feedback_active_tap_sum(plan)
+               * sizeof(*plan->feedback_shifts)
+         + plan->assembly_count * sizeof(*plan->assembly_shifts)
+         + plan->state.n * sizeof(*plan->state.v);
+}
+
 /*
  * Count the abstract scalar data-path operations executed by gs_reduce_into()
  * for its canonical degree-below-2m input and m-bit output. Descriptor reads,

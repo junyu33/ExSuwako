@@ -203,6 +203,13 @@ $T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for explicitly stated $K$.
 Generated-code and dense-map baselines must additionally report generation,
 compilation, code or map size, and allocation without hiding these quantities
 inside steady-state reduction timing.
+The implemented `requested-owned-bytes:v1` model separately reports the
+context structures and lifetime-owned buffers of GS, Serial, Naive, and
+Barrett. Storage is inspected on the plans used for correctness and
+steady-state timing only after the independent setup samples have stopped, so
+the inspection itself is outside both timed regions. Allocator overhead,
+shared modulus storage, benchmark buffers, and transient library workspace are
+not estimated.
 
 For the algorithm-selection plots, use the modulus Hamming weight $h=s+1$ as
 the primary horizontal coordinate and report $s=|T|$ as the secondary support

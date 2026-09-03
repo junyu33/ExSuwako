@@ -352,7 +352,7 @@ The output is CSV with setup time per fresh plan and steady-state reduction
 time in nanoseconds:
 
 ```text
-m,word_bits,s,h,taps,Delta_min,feedback_stages,active_tap_counts,feedback_active_tap_sum,W_fb,GS_source_cost_model,GS_source_...,input_distribution,timing_scope,setup_scope,timing_order,GS_setup_ns,...,GS_ns,...
+m,word_bits,s,h,taps,Delta_min,feedback_stages,active_tap_counts,feedback_active_tap_sum,W_fb,GS_source_cost_model,GS_source_...,plan_storage_model,GS_plan_bytes,...,input_distribution,timing_scope,setup_scope,timing_order,GS_setup_ns,...,GS_ns,...
 ```
 
 The current reduction-only corpus is `uniform-full-range:v1`: it samples
@@ -387,6 +387,8 @@ four schedule quantities against the actual GS plan. It likewise checks the
 `scalar-source-v1` GS word-operation fields through an independent Python
 derivation. Random-mode rows use provenance
 `synthetic-fixed-weight-uniform:v1` and seed-qualified sample identifiers.
+Each row also reports all four reducers' plan-owned requested bytes under
+`requested-owned-bytes:v1`, separately from setup and reduction timing.
 
 Deterministic failures and anomalous supports are promoted into versioned
 regression inputs rather than left only in console output or local CSV. Native

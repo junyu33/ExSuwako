@@ -235,8 +235,14 @@ silent deduplication or normalization.
       nonzero-bit-offset cross-word contributions separately. Cross-vector
       shifts are explicitly not applicable to the scalar kernel and require a
       separately named SIMD model if that optional implementation is added.
-- [ ] Validate setup time and stored schedule size independently of steady
-      state reduction time.
+- [x] [Q] Validate setup time and stored schedule size independently of steady
+      state reduction time. [A] `modulus-plan:v1` times fresh plan construction
+      and stops before destruction, while `requested-owned-bytes:v1` obtains
+      each reducer's context-and-owned-buffer bytes from the separate plan used
+      for correctness and steady-state timing only after setup sampling has
+      finished. Contract tests preserve all four setup and plan-storage fields;
+      shared modulus, benchmark buffers, allocator overhead, and transient
+      library workspace remain excluded.
 - [ ] Correlate predicted word work with measured cycles without relabelling
       either quantity as the other.
 - [ ] Record regimes where memory traffic, stage barriers, or instruction

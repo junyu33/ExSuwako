@@ -18,6 +18,7 @@ CURRENT_SETUP_SCOPE = "modulus-plan:v1"
 CURRENT_TIMING_ORDER = "cyclic-method-rotation:v1"
 CURRENT_AGGREGATION = "median-of-trial-medians:no-outlier-removal:v1"
 CURRENT_GS_SOURCE_COST_MODEL = "scalar-source-v1"
+CURRENT_PLAN_STORAGE_MODEL = "requested-owned-bytes:v1"
 
 
 def validate_manifest_entry(value: Any, line_number: int) -> dict[str, Any]:
@@ -304,6 +305,11 @@ def validate_benchmark_geometry(
             "benchmark emitted an unexpected setup scope: "
             f"{row.get('setup_scope')!r}"
         )
+    if row.get("plan_storage_model") != CURRENT_PLAN_STORAGE_MODEL:
+        raise RuntimeError(
+            "benchmark emitted an unexpected plan-storage model: "
+            f"{row.get('plan_storage_model')!r}"
+        )
     if row.get("timing_order") != CURRENT_TIMING_ORDER:
         raise RuntimeError(
             "benchmark emitted an unexpected timing order: "
@@ -324,6 +330,31 @@ def validate_benchmark_geometry(
             raise RuntimeError(
                 f"benchmark emitted negative setup timing for {field}: {value}"
             )
+    for field in [
+        "GS_plan_bytes", "Serial_plan_bytes", "BarrettGF2X_plan_bytes"
+    ]:
+        try:
+            value = int(str(row.get(field)))
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                f"benchmark emitted invalid plan storage for {field}: "
+                f"{row.get(field)!r}"
+            ) from error
+        if value <= 0:
+            raise RuntimeError(
+                f"benchmark emitted nonpositive plan storage for {field}: {value}"
+            )
+    try:
+        naive_bytes = int(str(row.get("Naive_plan_bytes")))
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(
+            "benchmark emitted invalid plan storage for Naive_plan_bytes: "
+            f"{row.get('Naive_plan_bytes')!r}"
+        ) from error
+    if naive_bytes < 0:
+        raise RuntimeError(
+            f"benchmark emitted negative Naive plan storage: {naive_bytes}"
+        )
 
 
 def add_derived_fields(
@@ -389,6 +420,11 @@ def main() -> None:
         "GS_source_logical_word_reads",
         "GS_source_logical_word_writes",
         "GS_source_scratch_words",
+        "plan_storage_model",
+        "GS_plan_bytes",
+        "Serial_plan_bytes",
+        "Naive_plan_bytes",
+        "BarrettGF2X_plan_bytes",
         "input_distribution",
         "timing_scope",
         "setup_scope",

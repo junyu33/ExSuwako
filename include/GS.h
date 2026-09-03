@@ -21,6 +21,7 @@ size_t gs_plan_feedback_stage_count(const gs_plan *plan);
 size_t gs_plan_feedback_active_taps(const gs_plan *plan, size_t stage);
 size_t gs_plan_feedback_active_tap_sum(const gs_plan *plan);
 size_t gs_plan_feedback_scheduled_coefficient_work(const gs_plan *plan);
+size_t gs_plan_storage_bytes(const gs_plan *plan);
 gs_source_cost gs_plan_source_cost(const gs_plan *plan);
 void gs_reduce_into(const poly_t *input, gs_plan *plan, poly_t *output);
 poly_t gs_reduce_planned(const poly_t *input, gs_plan *plan);

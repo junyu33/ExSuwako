@@ -57,25 +57,49 @@ static void barrett_destroy_adapter(void *context) {
     free(barrett);
 }
 
+static size_t gs_storage_adapter(const void *context) {
+    return gs_plan_storage_bytes(context);
+}
+
+static size_t serial_storage_adapter(const void *context) {
+    return serial_plan_storage_bytes(context);
+}
+
+static size_t naive_storage_adapter(const void *context) {
+    return context ? sizeof(naive_context) : 0;
+}
+
+static size_t barrett_storage_adapter(const void *context) {
+    const barrett_context *barrett = context;
+    if (!barrett) return 0;
+    return sizeof(*barrett)
+         + barrett->mu.n * sizeof(*barrett->mu.v)
+         + barrett_plan_storage_bytes(barrett->plan);
+}
+
 reduction_method reduction_make_gs(const size_t *taps, size_t tap_count,
                                    size_t m) {
+    gs_plan *plan = gs_plan_create(taps, tap_count, m);
     return (reduction_method){
-        "GS",
-        poly_words_for_bits(m),
-        gs_plan_create(taps, tap_count, m),
-        gs_reduce_adapter,
-        gs_destroy_adapter
+        .name = "GS",
+        .output_words = poly_words_for_bits(m),
+        .context = plan,
+        .reduce_into = gs_reduce_adapter,
+        .destroy = gs_destroy_adapter,
+        .plan_storage = gs_storage_adapter,
     };
 }
 
 reduction_method reduction_make_serial(const size_t *taps, size_t tap_count,
                                        size_t m) {
+    serial_plan *plan = serial_plan_create(taps, tap_count, m);
     return (reduction_method){
-        "Serial",
-        poly_words_for_bits(m),
-        serial_plan_create(taps, tap_count, m),
-        serial_reduce_adapter,
-        serial_destroy_adapter
+        .name = "Serial",
+        .output_words = poly_words_for_bits(m),
+        .context = plan,
+        .reduce_into = serial_reduce_adapter,
+        .destroy = serial_destroy_adapter,
+        .plan_storage = serial_storage_adapter,
     };
 }
 
@@ -86,11 +110,12 @@ reduction_method reduction_make_naive(const poly_t *modulus, size_t m,
     context->modulus = modulus;
     context->m = m;
     return (reduction_method){
-        "Naive",
-        input_words,
-        context,
-        naive_reduce_adapter,
-        naive_destroy_adapter
+        .name = "Naive",
+        .output_words = input_words,
+        .context = context,
+        .reduce_into = naive_reduce_adapter,
+        .destroy = naive_destroy_adapter,
+        .plan_storage = naive_storage_adapter,
     };
 }
 
@@ -100,12 +125,19 @@ reduction_method reduction_make_barrett(const poly_t *modulus, size_t m) {
     context->mu = barrett_setup(modulus, m);
     context->plan = barrett_plan_create(modulus, &context->mu, m);
     return (reduction_method){
-        "BarrettGF2X",
-        poly_words_for_bits(m),
-        context,
-        barrett_reduce_adapter,
-        barrett_destroy_adapter
+        .name = "BarrettGF2X",
+        .output_words = poly_words_for_bits(m),
+        .context = context,
+        .reduce_into = barrett_reduce_adapter,
+        .destroy = barrett_destroy_adapter,
+        .plan_storage = barrett_storage_adapter,
     };
+}
+
+size_t reduction_method_plan_storage_bytes(const reduction_method *method) {
+    return method && method->plan_storage
+        ? method->plan_storage(method->context)
+        : 0;
 }
 
 void reduction_method_destroy(reduction_method *method) {
@@ -114,5 +146,6 @@ void reduction_method_destroy(reduction_method *method) {
     method->context = NULL;
     method->reduce_into = NULL;
     method->destroy = NULL;
+    method->plan_storage = NULL;
     method->output_words = 0;
 }
