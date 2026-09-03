@@ -350,7 +350,7 @@ timing and then summarize trials separately from support-to-support variation:
 python3 bench/scripts/generate_fixed_weight_supports.py \
   --output bench/data/random-fixed-weight-m512.jsonl \
   --m 512 --h 2 3 5 9 17 33 65 --samples 256 \
-  --seed 0x4558535557414b4f
+  --seed 0x4558535557414b4f --constant-policy absent
 python3 bench/scripts/phase_diagram_benchmark.py \
   --binary build/reduction_benchmark \
   --manifest bench/data/random-fixed-weight-m512.jsonl \
@@ -371,8 +371,11 @@ supports, 31 complete trials per support, 12 batch repeats, and one warm-up
 invocation. Duplicate supports, mixed timing contracts, incomplete trial
 indices, and non-fixed-weight provenance are rejected rather than silently
 pooled or removed. The formal design requests 256 unique supports per cell;
-if $\binom{m}{h-1}<256$, the manifest generator exhausts that complete
-population and reports the cap explicitly.
+For the frozen constant-free panels, the sampling universe is
+$\{1,\ldots,m-1\}$; if $\binom{m-1}{h-1}<256$, the manifest generator
+exhausts that complete population and reports the cap explicitly. The
+generator's default `either` policy remains available for explicitly labelled
+ring-level exploratory samples.
 
 Classify controlled winner points and render the measured panels with:
 
@@ -400,6 +403,14 @@ fastest primary method and therefore requires a new five-method contract.
 
 ### Paper-grade run metadata
 
+The tracked winner suite is regenerated with `make freeze-winner-manifests`.
+It freezes the six main controlled and constant-free random panels, five
+intermediate controlled panels, three constant-present sensitivity suites,
+the large-degree slices, and the Dense diagnostic screen. Controlled points
+are split into `*-core.jsonl` and `*-ld.jsonl`: the latter contains exactly
+the points with $\Delta_{\min}>64$ at which the López--Dahab loop joins GS,
+Serial, and BarrettGF2X.
+
 After building from a clean experiment commit, capture a metadata snapshot
 outside the worktree and pass it to every formal phase invocation:
 
@@ -410,8 +421,8 @@ python3 bench/scripts/capture_benchmark_metadata.py \
   --cflags '-O3 -std=c11 -Wall -Wextra' --cpu 3
 python3 bench/scripts/phase_diagram_benchmark.py \
   --binary build/reduction_benchmark \
-  --manifest bench/manifests/paper/controlled-m512.jsonl \
-  --output bench/data/controlled-m512.csv \
+  --manifest bench/manifests/paper/main-m512-core.jsonl \
+  --output bench/data/main-m512-core.csv \
   --inputs 8 --repeats 12 --warmup-runs 1 --measurement-trials 31 \
   --seed 0x9e3779b97f4a7c15 --no-naive \
   --metadata /tmp/exsuwako-run-metadata.json --paper-grade

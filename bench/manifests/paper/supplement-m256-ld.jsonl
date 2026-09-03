@@ -1,0 +1,7 @@
+{"sample_id":"controlled-m256-h2-d128-constant-free","provenance":"synthetic-controlled-cartesian-spread-constant-free:v1","m":256,"taps":[128]}
+{"sample_id":"controlled-m256-h3-d128-constant-free","provenance":"synthetic-controlled-cartesian-spread-constant-free:v1","m":256,"taps":[64,128]}
+{"sample_id":"controlled-m256-h5-d128-constant-free","provenance":"synthetic-controlled-cartesian-spread-constant-free:v1","m":256,"taps":[32,64,96,128]}
+{"sample_id":"controlled-m256-h9-d128-constant-free","provenance":"synthetic-controlled-cartesian-spread-constant-free:v1","m":256,"taps":[16,32,48,64,80,96,112,128]}
+{"sample_id":"controlled-m256-h17-d128-constant-free","provenance":"synthetic-controlled-cartesian-spread-constant-free:v1","m":256,"taps":[8,16,24,32,40,48,56,64,72,80,88,96,104,112,120,128]}
+{"sample_id":"controlled-m256-h33-d128-constant-free","provenance":"synthetic-controlled-cartesian-spread-constant-free:v1","m":256,"taps":[4,8,12,16,20,24,28,32,36,40,44,48,52,56,60,64,68,72,76,80,84,88,92,96,100,104,108,112,116,120,124,128]}
+{"sample_id":"controlled-m256-h65-d128-constant-free","provenance":"synthetic-controlled-cartesian-spread-constant-free:v1","m":256,"taps":[2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,86,88,90,92,94,96,98,100,102,104,106,108,110,112,114,116,118,120,122,124,126,128]}

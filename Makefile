@@ -102,6 +102,10 @@ $(SAN_GENERATED_CHECK_TARGET): tests/check_generated.c src/generated.c \
 
 serial-benchmark: $(TARGET)
 
+freeze-winner-manifests:
+	$(PYTHON) bench/scripts/freeze_winner_manifests.py \
+		--output-dir bench/manifests/paper
+
 check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(GS_COMPONENT_CHECK_TARGET) $(SPARSE_SHIFT_CHECK_TARGET) \
 	$(DENSE_CHECK_TARGET) $(GENERATED_CHECK_TARGET) $(TARGET)

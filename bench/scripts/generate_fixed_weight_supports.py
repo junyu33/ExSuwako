@@ -12,6 +12,7 @@ from pathlib import Path
 
 MASK64 = (1 << 64) - 1
 PROVENANCE = "synthetic-fixed-weight-uniform:v1"
+CONSTANT_FREE_PROVENANCE = "synthetic-fixed-weight-uniform-constant-free:v1"
 SAMPLER = "splitmix64-floyd-distinct:v1"
 
 
@@ -55,25 +56,30 @@ def cell_seed(seed: int, m: int, h: int) -> int:
 
 
 def generate_cell(
-    m: int, h: int, requested: int, seed: int
+    m: int, h: int, requested: int, seed: int, constant_policy: str = "either"
 ) -> tuple[list[tuple[int, ...]], int, str]:
-    if m <= 0 or not 2 <= h <= m + 1:
+    domain_start = 1 if constant_policy == "absent" else 0
+    domain_size = m - domain_start
+    if m <= 0 or not 2 <= h <= domain_size + 1:
         raise ValueError(f"invalid fixed-weight cell m={m}, h={h}")
     size = h - 1
-    population = math.comb(m, size)
+    population = math.comb(domain_size, size)
     count = min(requested, population)
     if population <= requested:
         return (
-            list(itertools.combinations(range(m), size)),
+            list(itertools.combinations(range(domain_start, m), size)),
             population,
             "exhaustive-fixed-weight:v1",
         )
 
-    rng = SplitMix64(cell_seed(seed, m, h))
+    policy_seed = seed ^ (0x243F6A8885A308D3 if constant_policy == "absent" else 0)
+    rng = SplitMix64(cell_seed(policy_seed, m, h))
     supports: list[tuple[int, ...]] = []
     seen: set[tuple[int, ...]] = set()
     while len(supports) < count:
-        support = sample_subset(m, size, rng)
+        support = tuple(
+            tap + domain_start for tap in sample_subset(domain_size, size, rng)
+        )
         if support not in seen:
             seen.add(support)
             supports.append(support)
@@ -92,6 +98,9 @@ def main() -> None:
     parser.add_argument("--h", type=int, nargs="+", required=True)
     parser.add_argument("--samples", type=int, default=256)
     parser.add_argument("--seed", type=lambda value: int(value, 0), required=True)
+    parser.add_argument(
+        "--constant-policy", choices=["either", "absent"], default="either"
+    )
     args = parser.parse_args()
     if args.samples <= 0:
         raise ValueError("samples must be positive")
@@ -103,14 +112,20 @@ def main() -> None:
     for m in args.m:
         for h in args.h:
             supports, population, sampler = generate_cell(
-                m, h, args.samples, args.seed
+                m, h, args.samples, args.seed, args.constant_policy
             )
             if len(supports) < args.samples:
                 capped_cells.append(f"m{m}-h{h}:{len(supports)}")
             for index, taps in enumerate(supports):
                 entries.append({
-                    "sample_id": f"fixed-weight-m{m}-h{h}-sample{index:04d}",
-                    "provenance": PROVENANCE,
+                    "sample_id": (
+                        f"fixed-weight-m{m}-h{h}-sample{index:04d}-"
+                        f"constant-{args.constant_policy}"
+                    ),
+                    "provenance": (
+                        CONSTANT_FREE_PROVENANCE
+                        if args.constant_policy == "absent" else PROVENANCE
+                    ),
                     "m": m,
                     "taps": list(taps),
                     "support_sampler": sampler,
@@ -118,6 +133,7 @@ def main() -> None:
                     "cell_population": str(population),
                     "requested_supports": args.samples,
                     "realized_supports": len(supports),
+                    "constant_policy": args.constant_policy,
                 })
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -128,7 +144,8 @@ def main() -> None:
     print(
         f"points={len(entries)} cells={len(args.m) * len(args.h)} "
         f"requested_per_cell={args.samples} capped_cells={capped} "
-        f"sampler={SAMPLER} output={args.output}"
+        f"sampler={SAMPLER} constant_policy={args.constant_policy} "
+        f"output={args.output}"
     )
 
 

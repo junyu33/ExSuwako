@@ -11,7 +11,10 @@ from collections import defaultdict
 from pathlib import Path
 
 
-PROVENANCE = "synthetic-fixed-weight-uniform:v1"
+PROVENANCES = {
+    "synthetic-fixed-weight-uniform:v1",
+    "synthetic-fixed-weight-uniform-constant-free:v1",
+}
 TIMING_SCOPE = "reduction-steady-state:v1"
 SUMMARY_CONTRACT = "trial-median-then-support-quantiles:v1"
 INVARIANT_FIELDS = (
@@ -141,7 +144,7 @@ def load_supports(
 
     grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in raw_rows:
-        if row["provenance"] != PROVENANCE:
+        if row["provenance"] not in PROVENANCES:
             raise ValueError(
                 f"sample {row['sample_id']!r} has non-random provenance "
                 f"{row['provenance']!r}"

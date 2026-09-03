@@ -392,7 +392,8 @@ The paper-facing definition of this experiment is in
       only favorable examples. [A] `generate_fixed_weight_supports.py`
       materializes deterministic exact-support manifests before timing, using
       256 distinct supports per requested $(m,h)$ cell or the complete
-      $\binom{m}{h-1}$ population when it is smaller. The sampler, seed,
+      constant-free $\binom{m-1}{h-1}$ population when it is smaller. The
+      explicit constant policy, sampler, seed,
       population, and realized count remain in the manifest.
       `summarize_fixed_weight.py` first takes the median across retained
       timing trials for each support, then reports the median and nearest-rank

@@ -244,8 +244,8 @@ polynomials" without specifying the fixed weight: unconstrained random
 polynomials are typically dense.
 
 The formal grid requests 256 distinct exact supports per $(m,h)$ cell.  When
-the population is smaller, it uses the complete population; in particular,
-$(m,h)=(128,2)$ contains only 128 supports.  The deterministic manifest
+the constant-free population is smaller, it uses the complete population; in
+particular, $(m,h)=(128,2)$ contains only 127 supports.  The deterministic manifest
 generator records the sampler, master seed, population, requested count, and
 realized count before timing.  The implemented fixed-weight summarizer
 requires at least 100 distinct exact supports per cell by default and first
@@ -254,7 +254,9 @@ trial measurements for each support and only then computes the cross-support
 median and nearest-rank p90/p99. Thus machine-level timing repetition is not
 treated as additional draws from the support distribution. Duplicate tap
 sets, incomplete trial sequences, mixed experiment contracts, and provenance
-other than `synthetic-fixed-weight-uniform:v1` are rejected. Both the
+outside the registered fixed-weight families are rejected. The formal panels
+use `synthetic-fixed-weight-uniform-constant-free:v1`; the older unrestricted
+family remains separately labelled. Both the
 support-level medians and the cell summaries are retained, so losing and tail
 cases remain auditable rather than being replaced by favorable examples.
 
