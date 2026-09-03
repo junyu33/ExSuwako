@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "GS.h"
+#include "dense.h"
 #include "reduction.h"
 
 #include <ctype.h>
@@ -15,13 +16,32 @@ static const char *setup_scope = "modulus-plan:v1";
 static const char *timing_order = "cyclic-method-rotation:v1";
 static const char *gs_source_cost_model = "scalar-source-v1";
 static const char *plan_storage_model = "requested-owned-bytes:v1";
+static const size_t dense_matrix_limit_bytes = 64u * 1024u * 1024u;
 
 typedef enum {
     REDUCER_GS,
     REDUCER_SERIAL,
     REDUCER_NAIVE,
-    REDUCER_BARRETT
+    REDUCER_BARRETT,
+    REDUCER_DENSE
 } reducer_kind;
+
+static void parse_method_options(int argc, char **argv, int first,
+                                 int *skip_naive, int *with_dense) {
+    *skip_naive = 0;
+    *with_dense = 0;
+    for (int i = first; i < argc; ++i) {
+        if (strcmp(argv[i], "no-naive") == 0 && !*skip_naive) {
+            *skip_naive = 1;
+        } else if (strcmp(argv[i], "with-dense") == 0 && !*with_dense) {
+            *with_dense = 1;
+        } else {
+            die("unknown or duplicate benchmark option");
+        }
+    }
+    if (*with_dense && !*skip_naive)
+        die("with-dense requires no-naive to retain four-method rotation");
+}
 
 static uint64_t rng_next(void) {
     rng_state ^= rng_state << 7;
@@ -210,6 +230,8 @@ static reduction_method make_reducer(reducer_kind kind, const size_t *taps,
         return reduction_make_naive(modulus, m, input_words);
     case REDUCER_BARRETT:
         return reduction_make_barrett(modulus, m);
+    case REDUCER_DENSE:
+        return reduction_make_dense(modulus, m);
     }
     die("unknown reducer kind");
     return (reduction_method){0};
@@ -334,18 +356,19 @@ int main(int argc, char **argv) {
     size_t s;
     uint64_t seed;
     int skip_naive;
+    int with_dense;
     size_t *exact_taps = NULL;
 
     if (exact_mode) {
-        if (argc < 7 || argc > 8)
-            die("usage: reduction_benchmark --taps LIST inputs repeats m seed [no-naive]");
+        if (argc < 7 || argc > 9)
+            die("usage: reduction_benchmark --taps LIST inputs repeats m seed [no-naive] [with-dense]");
         supports = 1;
         inputs_count = parse_positive_int(argv[3], "input count");
         repeats = parse_positive_int(argv[4], "repeat count");
         m = parse_size(argv[5], "modulus degree");
         seed = parse_seed(argv[6]);
-        skip_naive = argc == 8 && strcmp(argv[7], "no-naive") == 0;
-        if (argc == 8 && !skip_naive) die("unknown exact-mode option");
+        parse_method_options(
+            argc, argv, 7, &skip_naive, &with_dense);
         if (m == 0) die("modulus degree must be positive");
         exact_taps = parse_tap_list(argv[2], m, &s);
     } else {
@@ -357,20 +380,27 @@ int main(int argc, char **argv) {
         seed = argc > 6
             ? (uint64_t)strtoull(argv[6], NULL, 0)
             : 0x9e3779b97f4a7c15ULL;
-        skip_naive = argc > 7 && strcmp(argv[7], "no-naive") == 0;
-        if (argc > 8 || (argc == 8 && !skip_naive))
-            die("unknown random-mode option");
+        if (argc > 9) die("too many random-mode arguments");
+        parse_method_options(
+            argc, argv, 7, &skip_naive, &with_dense);
         if (m == 0 || s > m) die("invalid m or support size");
     }
     if (supports <= 0 || inputs_count <= 0 || repeats <= 0)
         die("supports, inputs, and repeats must be positive");
     if (seed == 0) die("seed must be nonzero for the xorshift generator");
+    if (with_dense) {
+        size_t matrix_bytes;
+        if (!dense_matrix_bytes(m, &matrix_bytes)
+                || matrix_bytes > dense_matrix_limit_bytes)
+            die("dense matrix exceeds the 64 MiB benchmark limit");
+    }
 
     rng_state = seed;
     double *gs_samples = calloc((size_t)supports, sizeof(*gs_samples));
     double *serial_samples = calloc((size_t)supports, sizeof(*serial_samples));
     double *naive_samples = calloc((size_t)supports, sizeof(*naive_samples));
     double *barrett_samples = calloc((size_t)supports, sizeof(*barrett_samples));
+    double *dense_samples = calloc((size_t)supports, sizeof(*dense_samples));
     double *gs_setup_samples =
         calloc((size_t)supports, sizeof(*gs_setup_samples));
     double *serial_setup_samples =
@@ -379,9 +409,12 @@ int main(int argc, char **argv) {
         calloc((size_t)supports, sizeof(*naive_setup_samples));
     double *barrett_setup_samples =
         calloc((size_t)supports, sizeof(*barrett_setup_samples));
+    double *dense_setup_samples =
+        calloc((size_t)supports, sizeof(*dense_setup_samples));
     if (!gs_samples || !serial_samples || !naive_samples || !barrett_samples ||
+        !dense_samples ||
         !gs_setup_samples || !serial_setup_samples || !naive_setup_samples ||
-        !barrett_setup_samples)
+        !barrett_setup_samples || !dense_setup_samples)
         die("allocation failed");
     size_t *delta_values = calloc((size_t)supports, sizeof(*delta_values));
     int *has_delta = calloc((size_t)supports, sizeof(*has_delta));
@@ -403,10 +436,12 @@ int main(int argc, char **argv) {
         calloc((size_t)supports, sizeof(*naive_plan_bytes));
     size_t *barrett_plan_bytes =
         calloc((size_t)supports, sizeof(*barrett_plan_bytes));
+    size_t *dense_plan_bytes =
+        calloc((size_t)supports, sizeof(*dense_plan_bytes));
     if (!delta_values || !has_delta || !tap_values || !feedback_stage_values ||
         !active_tap_values || !active_tap_sum_values || !scheduled_work_values ||
         !source_cost_values || !gs_plan_bytes || !serial_plan_bytes ||
-        !naive_plan_bytes || !barrett_plan_bytes)
+        !naive_plan_bytes || !barrett_plan_bytes || !dense_plan_bytes)
         die("allocation failed");
 
     for (int trial = 0; trial < supports; ++trial) {
@@ -444,7 +479,10 @@ int main(int argc, char **argv) {
         kinds[method_count++] = REDUCER_GS;
         kinds[method_count++] = REDUCER_SERIAL;
         if (!skip_naive) kinds[method_count++] = REDUCER_NAIVE;
+        size_t barrett_index = method_count;
         kinds[method_count++] = REDUCER_BARRETT;
+        size_t dense_index = method_count;
+        if (with_dense) kinds[method_count++] = REDUCER_DENSE;
 
         double setup_timings[4] = {0};
         time_setups_rotating(kinds, method_count, taps, s, &modulus, m,
@@ -452,7 +490,9 @@ int main(int argc, char **argv) {
         gs_setup_samples[trial] = setup_timings[0];
         serial_setup_samples[trial] = setup_timings[1];
         if (!skip_naive) naive_setup_samples[trial] = setup_timings[2];
-        barrett_setup_samples[trial] = setup_timings[method_count - 1];
+        barrett_setup_samples[trial] = setup_timings[barrett_index];
+        if (with_dense)
+            dense_setup_samples[trial] = setup_timings[dense_index];
 
         reduction_method methods[4];
         for (size_t method = 0; method < method_count; ++method)
@@ -466,7 +506,10 @@ int main(int argc, char **argv) {
             naive_plan_bytes[trial] =
                 reduction_method_plan_storage_bytes(&methods[2]);
         barrett_plan_bytes[trial] =
-            reduction_method_plan_storage_bytes(&methods[method_count - 1]);
+            reduction_method_plan_storage_bytes(&methods[barrett_index]);
+        if (with_dense)
+            dense_plan_bytes[trial] =
+                reduction_method_plan_storage_bytes(&methods[dense_index]);
         gs_plan *gs = methods[0].context;
         feedback_stage_values[trial] = gs_plan_feedback_stage_count(gs);
         active_tap_values[trial] = serialize_active_tap_counts(gs);
@@ -491,7 +534,8 @@ int main(int argc, char **argv) {
         gs_samples[trial] = timings[0];
         serial_samples[trial] = timings[1];
         if (!skip_naive) naive_samples[trial] = timings[2];
-        barrett_samples[trial] = timings[method_count - 1];
+        barrett_samples[trial] = timings[barrett_index];
+        if (with_dense) dense_samples[trial] = timings[dense_index];
 
         for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
         free(inputs);
@@ -509,25 +553,27 @@ int main(int argc, char **argv) {
            "GS_source_word_xors,GS_source_logical_word_reads,"
            "GS_source_logical_word_writes,GS_source_scratch_words,"
            "plan_storage_model,GS_plan_bytes,Serial_plan_bytes,"
-           "Naive_plan_bytes,BarrettGF2X_plan_bytes,"
+           "Naive_plan_bytes,BarrettGF2X_plan_bytes,Dense_plan_bytes,"
+           "Dense_enabled,Dense_matrix_limit_bytes,"
            "input_distribution,timing_scope,setup_scope,timing_order,"
            "GS_setup_ns,Serial_setup_ns,Naive_setup_ns,BarrettGF2X_setup_ns,"
-           "GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,"
-           "Serial/GS,Naive/GS,BarrettGF2X/GS,sample,seed\n");
+           "Dense_setup_ns,GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,Dense_ns,"
+           "Serial/GS,Naive/GS,BarrettGF2X/GS,Dense/GS,sample,seed\n");
     for (int trial = 0; trial < supports; ++trial) {
         double gs = gs_samples[trial];
         double serial = serial_samples[trial];
         double naive = naive_samples[trial];
         double barrett = barrett_samples[trial];
+        double dense = dense_samples[trial];
         printf("%zu,%d,%zu,%zu,%s,", m, (int)(sizeof(word_t) * CHAR_BIT),
                s, s + 1, tap_values[trial]);
         if (has_delta[trial]) printf("%zu,", delta_values[trial]);
         else printf("NA,");
         const gs_source_cost *source_cost = &source_cost_values[trial];
         printf("%zu,%s,%zu,%zu,%s,%zu,%zu,%zu,%zu,%zu,%zu,%zu,"
-               "%s,%zu,%zu,%zu,%zu,"
-               "%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,"
-               "%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%d,%llu\n",
+               "%s,%zu,%zu,%zu,%zu,%zu,%d,%zu,"
+               "%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,%.1f,"
+               "%.1f,%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%.3f,%d,%llu\n",
                feedback_stage_values[trial], active_tap_values[trial],
                active_tap_sum_values[trial], scheduled_work_values[trial],
                gs_source_cost_model,
@@ -539,12 +585,14 @@ int main(int argc, char **argv) {
                source_cost->scratch_words,
                plan_storage_model, gs_plan_bytes[trial],
                serial_plan_bytes[trial], naive_plan_bytes[trial],
-               barrett_plan_bytes[trial],
+               barrett_plan_bytes[trial], dense_plan_bytes[trial],
+               with_dense, dense_matrix_limit_bytes,
                input_distribution, timing_scope, setup_scope, timing_order,
                gs_setup_samples[trial], serial_setup_samples[trial],
                naive_setup_samples[trial], barrett_setup_samples[trial],
-               gs, serial, naive, barrett,
+               dense_setup_samples[trial], gs, serial, naive, barrett, dense,
                serial / gs, skip_naive ? 0.0 : naive / gs, barrett / gs,
+               with_dense ? dense / gs : 0.0,
                trial, (unsigned long long)seed);
         free(tap_values[trial]);
         free(active_tap_values[trial]);
@@ -554,10 +602,12 @@ int main(int argc, char **argv) {
     free(serial_samples);
     free(naive_samples);
     free(barrett_samples);
+    free(dense_samples);
     free(gs_setup_samples);
     free(serial_setup_samples);
     free(naive_setup_samples);
     free(barrett_setup_samples);
+    free(dense_setup_samples);
     free(delta_values);
     free(has_delta);
     free(tap_values);
@@ -570,6 +620,7 @@ int main(int argc, char **argv) {
     free(serial_plan_bytes);
     free(naive_plan_bytes);
     free(barrett_plan_bytes);
+    free(dense_plan_bytes);
     free(exact_taps);
     return 0;
 }

@@ -198,7 +198,8 @@ reduce_into(input, context, output)
 ```
 
 This wrapper is intentionally small: it lets correctness tests and benchmark
-drivers call GS, serial sparse folding, naive long division, and Barrett
+drivers call GS, serial sparse folding, naive long division, Barrett, and the
+opt-in dense linear map
 through the same API without hiding each algorithm's real setup and scratch
 requirements.
 
@@ -212,6 +213,8 @@ requirements.
 - `src/naive.c`: simple long-division reference baseline.
 - `src/barrett.c`: Barrett-style GF(2) polynomial reduction using `gf2x_mul`
   through `poly_mul_gf2x`.
+- `src/dense.c`: fixed-modulus row-major binary linear map, with setup and
+  lifetime storage exposed separately from steady-state row-parity reduction.
 - `src/reduction.c`: common wrapper API used by tests and native benchmarks.
 
 ### Python Reference

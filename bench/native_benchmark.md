@@ -10,7 +10,7 @@ The native reducer implementations live in `src/`; public headers are under
 
 `bench/scripts/reduction_benchmark.c` drives the reduction-only microbenchmark
 through the common `reduction_method` API in `include/reduction.h`. GS, serial sparse
-folding, naive long division, and Barrett all expose the same timed
+folding, naive long division, Barrett, and the opt-in dense linear map all expose the same timed
 `reduce_into(input, context, output)` contract to the benchmark. Method setup,
 input generation, output allocation, correctness checks, and checksum
 consumption are outside the timed region.
@@ -30,6 +30,9 @@ than their minimum capacity and prefilled with ones, so the suite verifies
 both degree-$m$ top-word masking and zeroed output tails.  The support profiles
 include empty, dense, sparse, constant-free, endpoint, aligned/unaligned, and
 unrestricted tap sets.
+
+The dedicated dense-map suite compares its basis columns and random inputs
+against Naive long division over the same boundary-oriented modulus profiles.
 
 The separate `sparse_shift_correctness_check` exhausts right-shift distances
 from zero through two words beyond source capacity for small source and
@@ -146,11 +149,13 @@ The included method-specific work is:
 | Serial | tap descriptors, sorting, and plan-owned state allocation |
 | Naive | its current lightweight context allocation |
 | Barrett | reciprocal $\mu$, Barrett plan construction, and plan-owned scratch allocation |
+| Dense | construction of the packed fixed-modulus map and plan-owned high-part scratch allocation |
 
 Argument parsing, shared modulus materialization, input/output benchmark
 buffers, correctness checks, reporting, and teardown are excluded uniformly.
-The CSV preserves `GS_setup_ns`, `Serial_setup_ns`, `Naive_setup_ns`, and
-`BarrettGF2X_setup_ns` separately from the steady-state reduction fields. For
+The CSV preserves `GS_setup_ns`, `Serial_setup_ns`, `Naive_setup_ns`,
+`BarrettGF2X_setup_ns`, and `Dense_setup_ns` separately from the steady-state
+reduction fields. For
 an explicitly stated number $K$ of reductions using one plan, derive
 
 \[
@@ -159,24 +164,25 @@ T_{\mathrm{total}}(K)=T_{\mathrm{setup}}+K T_{\mathrm{reduce}},
 \bar T(K)=T_{\mathrm{reduce}}+\frac{T_{\mathrm{setup}}}{K}.
 \]
 
-Do not bake a particular $K$ into the raw CSV. A future generated-code or
-dense-map reducer must count method-specific generation and allocation as
-setup, while reporting compilation time, generated code size, and stored-map
-size as separate quantities. None of those future baselines is currently
-measured.
+Do not bake a particular $K$ into the raw CSV. The dense reducer counts map
+construction and allocation as setup and reports stored-map capacity through
+`Dense_plan_bytes`. A future generated-code reducer must likewise count
+method-specific generation and allocation as setup, while reporting
+compilation time and generated code size separately.
 
 Plan storage uses `plan_storage_model=requested-owned-bytes:v1`. It sums each
 reducer's context structure and the byte capacities of every heap buffer owned
 for the plan's lifetime. GS includes its round and shift descriptors plus the
 state and sentinel; Serial includes tap descriptors and both state buffers;
 Naive includes its lightweight context; Barrett includes its adapter context,
-reciprocal, plan, and both reusable product buffers. Shared modulus storage,
+reciprocal, plan, and both reusable product buffers; Dense includes its packed
+$m\times m$ row-major matrix and reusable high-part buffer. Shared modulus storage,
 benchmark inputs and outputs, allocator metadata and slack, temporary
 setup-only allocations, generated code, and external-library transient
 workspace are excluded.
 
 The benchmark reads `GS_plan_bytes`, `Serial_plan_bytes`, `Naive_plan_bytes`,
-and `BarrettGF2X_plan_bytes` from the separately constructed plans only after
+`BarrettGF2X_plan_bytes`, and `Dense_plan_bytes` from the separately constructed plans only after
 all setup samples have stopped. Thus storage inspection cannot enter
 `T_setup`, and the inspected plans are the same plans subsequently used for
 correctness and steady-state timing. The contract tests require the storage
@@ -219,7 +225,7 @@ build/reduction_benchmark 12 64 5
 ```
 
 Random-mode arguments are `supports`, `inputs`, `repeats`, `m`, `s`, `seed`,
-and an optional `no-naive` flag. The output is reduction-only timing in
+and optional `no-naive` and `with-dense` flags. The output is reduction-only timing in
 nanoseconds per input. Correctness is checked across all enabled reducers
 before each timed trial.
 
@@ -236,10 +242,25 @@ build/reduction_benchmark --taps 0,7,12 8 5 283 0x1 no-naive
 ```
 
 The exact-mode arguments are `--taps LIST`, `inputs`, `repeats`, `m`, `seed`,
-and the optional `no-naive` flag. `LIST` is comma-separated, strictly
+and the optional `no-naive` and `with-dense` flags. `LIST` is comma-separated, strictly
 increasing, duplicate-free, and contains only exponents in `[0,m)`; use `-`
 for the empty support. The CSV serializes taps with semicolons so the complete
 support occupies one field.
+
+The dense baseline is a fixed-modulus matrix implementation rather than a
+sparse competitor. Enable it only as the fourth method replacing Naive:
+
+```text
+build/reduction_benchmark --taps 0,7,12 8 12 283 0x1 no-naive with-dense
+```
+
+`with-dense` requires `no-naive`, preserving an exactly balanced four-method
+rotation when the repeat count is divisible by four. The benchmark rejects a
+packed matrix above 64 MiB before setup; `Dense_enabled` and
+`Dense_matrix_limit_bytes` make this policy explicit in every row. Disabled
+runs emit zero for all Dense timing and storage fields and allocate no matrix.
+The phase-diagram driver exposes the same policy as `--with-dense
+--no-naive`.
 
 For a versionable suite of exact supports, use a JSON Lines manifest:
 

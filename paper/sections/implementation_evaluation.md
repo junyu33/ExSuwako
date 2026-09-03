@@ -67,7 +67,8 @@ Implement or integrate:
 3. Barrett;
 4. Montgomery only in a separately frozen Montgomery-domain multiplication
    workload, not in the current direct $A\mapsto A\bmod g$ microbenchmark;
-5. dense linear reduction;
+5. the implemented opt-in row-major dense linear map for
+   $H\mapsto x^mH\bmod g$, evaluated by packed row parity;
 6. the existing `Naive` ordinary polynomial long division as the generic
    correctness/portability reference, not a tuned performance competitor.
 
@@ -230,12 +231,13 @@ excluded. Setup is sampled through fresh plan constructions; the plan used for
 steady-state timing is constructed separately. Preserve the raw per-method
 $T_{\mathrm{setup}}$ and $T_{\mathrm{reduce}}$ values, then derive
 $T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for explicitly stated $K$.
-Generated-code and dense-map baselines must additionally report generation,
-compilation, code or map size, and allocation without hiding these quantities
-inside steady-state reduction timing.
+The dense-map baseline includes map generation and allocation in setup and
+reports map storage separately; generated-code baselines must additionally
+report generation, compilation, code size, and allocation without hiding
+these quantities inside steady-state reduction timing.
 The implemented `requested-owned-bytes:v1` model separately reports the
-context structures and lifetime-owned buffers of GS, Serial, Naive, and
-Barrett. Storage is inspected on the plans used for correctness and
+context structures and lifetime-owned buffers of GS, Serial, Naive, Barrett,
+and the opt-in Dense baseline. Storage is inspected on the plans used for correctness and
 steady-state timing only after the independent setup samples have stopped, so
 the inspection itself is outside both timed regions. Allocator overhead,
 shared modulus storage, benchmark buffers, and transient library workspace are

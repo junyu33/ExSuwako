@@ -317,7 +317,7 @@ def validate_benchmark_geometry(
         )
     for field in [
         "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
-        "BarrettGF2X_setup_ns",
+        "BarrettGF2X_setup_ns", "Dense_setup_ns",
     ]:
         try:
             value = float(str(row.get(field)))
@@ -355,6 +355,30 @@ def validate_benchmark_geometry(
         raise RuntimeError(
             f"benchmark emitted negative Naive plan storage: {naive_bytes}"
         )
+    try:
+        dense_enabled = int(str(row.get("Dense_enabled")))
+        dense_limit = int(str(row.get("Dense_matrix_limit_bytes")))
+        dense_bytes = int(str(row.get("Dense_plan_bytes")))
+        dense_setup = float(str(row.get("Dense_setup_ns")))
+        dense_ns = float(str(row.get("Dense_ns")))
+        dense_ratio = float(str(row.get("Dense/GS")))
+    except (TypeError, ValueError) as error:
+        raise RuntimeError("benchmark emitted invalid dense-baseline fields") from error
+    if dense_enabled not in (0, 1) or dense_limit <= 0:
+        raise RuntimeError("benchmark emitted invalid dense-baseline metadata")
+    if dense_enabled:
+        if (
+            dense_bytes <= 0
+            or dense_setup < 0
+            or dense_ns <= 0
+            or dense_ratio <= 0
+        ):
+            raise RuntimeError("enabled dense baseline emitted invalid measurements")
+    elif any(
+        value != 0
+        for value in (dense_bytes, dense_setup, dense_ns, dense_ratio)
+    ):
+        raise RuntimeError("disabled dense baseline emitted nonzero measurements")
 
 
 def add_derived_fields(
@@ -387,6 +411,7 @@ def main() -> None:
     parser.add_argument("--measurement-trials", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--no-naive", action="store_true")
+    parser.add_argument("--with-dense", action="store_true")
     args = parser.parse_args()
 
     if args.inputs <= 0 or args.repeats <= 0:
@@ -395,6 +420,8 @@ def main() -> None:
         raise ValueError(
             "warmup-runs must be nonnegative and measurement-trials positive"
         )
+    if args.with_dense and not args.no_naive:
+        raise ValueError("--with-dense requires --no-naive")
 
     rng = random.Random(args.seed)
     rows: list[dict[str, object]] = []
@@ -425,6 +452,9 @@ def main() -> None:
         "Serial_plan_bytes",
         "Naive_plan_bytes",
         "BarrettGF2X_plan_bytes",
+        "Dense_plan_bytes",
+        "Dense_enabled",
+        "Dense_matrix_limit_bytes",
         "input_distribution",
         "timing_scope",
         "setup_scope",
@@ -439,13 +469,16 @@ def main() -> None:
         "Serial_setup_ns",
         "Naive_setup_ns",
         "BarrettGF2X_setup_ns",
+        "Dense_setup_ns",
         "GS_ns",
         "Serial_ns",
         "Naive_ns",
         "BarrettGF2X_ns",
+        "Dense_ns",
         "Serial/GS",
         "Naive/GS",
         "BarrettGF2X/GS",
+        "Dense/GS",
         "sample",
         "seed",
     ]
@@ -460,6 +493,8 @@ def main() -> None:
     def run(command: list[str]) -> list[dict[str, str]]:
         if args.no_naive:
             command.append("no-naive")
+        if args.with_dense:
+            command.append("with-dense")
         completed = subprocess.run(
             command, check=True, capture_output=True, text=True
         )

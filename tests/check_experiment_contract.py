@@ -60,13 +60,15 @@ def check_exact_cli(binary: Path) -> None:
         "timing_scope": "reduction-steady-state:v1",
         "setup_scope": "modulus-plan:v1",
         "timing_order": "cyclic-method-rotation:v1",
+        "Dense_enabled": "0",
+        "Dense_matrix_limit_bytes": "67108864",
     }
     for field, value in expected.items():
         if row[field] != value:
             raise AssertionError(f"{field}: expected {value!r}, got {row[field]!r}")
     for field in [
         "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
-        "BarrettGF2X_setup_ns",
+        "BarrettGF2X_setup_ns", "Dense_setup_ns",
     ]:
         if float(row[field]) < 0:
             raise AssertionError(f"{field} must be nonnegative")
@@ -76,6 +78,31 @@ def check_exact_cli(binary: Path) -> None:
     ]:
         if int(row[field]) <= 0:
             raise AssertionError(f"{field} must be positive")
+    for field in [
+        "Dense_plan_bytes", "Dense_setup_ns", "Dense_ns", "Dense/GS"
+    ]:
+        if float(row[field]) != 0:
+            raise AssertionError(f"disabled dense field {field} must be zero")
+
+    dense = parse_one_row(
+        run(
+            base
+            + ["0,3,7", "2", "1", "16", "0x1", "no-naive", "with-dense"]
+        ).stdout
+    )
+    if dense["Dense_enabled"] != "1":
+        raise AssertionError("dense baseline was not enabled")
+    if (
+        int(dense["Dense_plan_bytes"]) <= 0
+        or float(dense["Dense_setup_ns"]) < 0
+    ):
+        raise AssertionError("dense setup/storage measurements are invalid")
+    if float(dense["Dense_ns"]) <= 0 or float(dense["Dense/GS"]) <= 0:
+        raise AssertionError("dense steady-state measurements are invalid")
+    run(
+        base + ["0,3,7", "1", "1", "16", "0x1", "with-dense"],
+        succeeds=False,
+    )
 
     empty = parse_one_row(
         run(base + ["-", "2", "1", "16", "0x2"]).stdout
@@ -175,6 +202,7 @@ def check_manifest(binary: Path, driver: Path) -> None:
             "--seed",
             "17",
             "--no-naive",
+            "--with-dense",
         ]
         run(command)
         with output.open(newline="", encoding="utf-8") as stream:
@@ -248,7 +276,7 @@ def check_manifest(binary: Path, driver: Path) -> None:
             for row in rows
             for field in [
                 "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
-                "BarrettGF2X_setup_ns",
+                "BarrettGF2X_setup_ns", "Dense_setup_ns",
             ]
         ):
             raise AssertionError("setup timings must be nonnegative")
@@ -267,6 +295,13 @@ def check_manifest(binary: Path, driver: Path) -> None:
             raise AssertionError("required plan-storage fields must be positive")
         if any(int(row["Naive_plan_bytes"]) != 0 for row in rows):
             raise AssertionError("disabled Naive plan storage must be zero")
+        if any(
+            row["Dense_enabled"] != "1"
+            or int(row["Dense_plan_bytes"]) <= 0
+            or float(row["Dense_ns"]) <= 0
+            for row in rows
+        ):
+            raise AssertionError("enabled Dense measurements must be positive")
 
         invalid_manifests = [
             [
@@ -389,6 +424,7 @@ def check_manifest(binary: Path, driver: Path) -> None:
             "GS_source_logical_word_writes", "GS_source_scratch_words",
             "plan_storage_model", "GS_plan_bytes", "Serial_plan_bytes",
             "Naive_plan_bytes", "BarrettGF2X_plan_bytes",
+            "Dense_plan_bytes", "Dense_enabled", "Dense_matrix_limit_bytes",
             "seed",
         ]
         if [

@@ -121,9 +121,10 @@ silent deduplication or normalization.
       validation, reporting, and teardown; preserve raw
       $T_{\mathrm{setup}}$ and $T_{\mathrm{reduce}}$ and derive
       $T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for an explicitly stated
-      $K$, while future generated-code and dense-map baselines must
-      additionally report generation, compilation, code/storage size, and
-      allocation separately.
+      $K$; dense-map generation and allocation are included in its setup and
+      its stored-map size is reported separately, while future generated-code
+      baselines must additionally report generation, compilation, code size,
+      and allocation separately.
 - [x] [Q] Freeze compiler flags, word width $W$, gf2x build and linkage, CPU
       affinity, frequency policy, warm-up, repetitions, aggregation, and
       outlier treatment. [A] On each recorded platform, build with the
@@ -313,7 +314,18 @@ silent deduplication or normalization.
       correctness/portability reference; `Naive_ns` may be retained as
       contextual data but is not described as a tuned or strongest
       performance baseline.
-- [ ] Add a dense linear-map baseline with setup time and storage reported.
+- [x] Add a dense linear-map baseline with setup time and storage reported.
+      [A] `dense-row-parity:v1` materializes the fixed-modulus $m\times m$
+      binary map $H\mapsto x^mH\bmod g$ in row-major packed words, keeps the
+      low-part identity implicit, and evaluates every output row by a
+      constant-trip-count parity loop.  It is opt-in through `--with-dense`
+      together with `--no-naive`, so four-method timing rotation remains
+      balanced and default large-$m$ runs allocate no matrix.  Setup includes
+      map construction and plan allocation; `Dense_setup_ns`,
+      `Dense_plan_bytes`, `Dense_ns`, and `Dense/GS` are emitted separately.
+      The native benchmark refuses matrices above 64 MiB, and `make check`
+      differentially validates boundary, dense, sparse, constant-free, and
+      random moduli against independent long division.
 - [ ] Add a fixed-modulus code generator for active stages and low-part
       assembly; report generated code size.
 - [ ] Add optimized fixed-modulus trinomial and pentanomial reducers needed by

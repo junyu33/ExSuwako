@@ -1,6 +1,7 @@
 #include "reduction.h"
 
 #include "barrett.h"
+#include "dense.h"
 #include "GS.h"
 #include "naive.h"
 #include "serial.h"
@@ -37,6 +38,11 @@ static void barrett_reduce_adapter(const poly_t *input, void *context,
     barrett_reduce_into(input, barrett->plan, output);
 }
 
+static void dense_reduce_adapter(const poly_t *input, void *context,
+                                 poly_t *output) {
+    dense_reduce_into(input, context, output);
+}
+
 static void gs_destroy_adapter(void *context) {
     gs_plan_destroy(context);
 }
@@ -57,6 +63,10 @@ static void barrett_destroy_adapter(void *context) {
     free(barrett);
 }
 
+static void dense_destroy_adapter(void *context) {
+    dense_plan_destroy(context);
+}
+
 static size_t gs_storage_adapter(const void *context) {
     return gs_plan_storage_bytes(context);
 }
@@ -75,6 +85,10 @@ static size_t barrett_storage_adapter(const void *context) {
     return sizeof(*barrett)
          + barrett->mu.n * sizeof(*barrett->mu.v)
          + barrett_plan_storage_bytes(barrett->plan);
+}
+
+static size_t dense_storage_adapter(const void *context) {
+    return dense_plan_storage_bytes(context);
 }
 
 reduction_method reduction_make_gs(const size_t *taps, size_t tap_count,
@@ -134,6 +148,18 @@ reduction_method reduction_make_barrett(const poly_t *modulus, size_t m) {
         .reduce_into = barrett_reduce_adapter,
         .destroy = barrett_destroy_adapter,
         .plan_storage = barrett_storage_adapter,
+    };
+}
+
+reduction_method reduction_make_dense(const poly_t *modulus, size_t m) {
+    dense_plan *plan = dense_plan_create(modulus, m);
+    return (reduction_method){
+        .name = "Dense",
+        .output_words = poly_words_for_bits(m),
+        .context = plan,
+        .reduce_into = dense_reduce_adapter,
+        .destroy = dense_destroy_adapter,
+        .plan_storage = dense_storage_adapter,
     };
 }
 
