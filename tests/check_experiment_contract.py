@@ -69,6 +69,14 @@ def check_exact_cli(binary: Path) -> None:
         if row[field] != value:
             raise AssertionError(f"{field}: expected {value!r}, got {row[field]!r}")
     for field in [
+        "GS_ns", "Serial_ns", "BarrettGF2X_ns",
+        "Serial/GS", "BarrettGF2X/GS",
+    ]:
+        if float(row[field]) <= 0:
+            raise AssertionError(
+                f"primary matched-comparison field {field} must be positive"
+            )
+    for field in [
         "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
         "BarrettGF2X_setup_ns", "Dense_setup_ns",
         "Generated_setup_ns",
@@ -303,6 +311,17 @@ def check_manifest(binary: Path, driver: Path) -> None:
             for row in rows
         ):
             raise AssertionError("timing order was not preserved")
+        if any(
+            float(row[field]) <= 0
+            for row in rows
+            for field in [
+                "GS_ns", "Serial_ns", "BarrettGF2X_ns",
+                "Serial/GS", "BarrettGF2X/GS",
+            ]
+        ):
+            raise AssertionError(
+                "primary matched reducer measurements were not preserved"
+            )
         if any(
             row["aggregation"]
             != "median-of-trial-medians:no-outlier-removal:v1"

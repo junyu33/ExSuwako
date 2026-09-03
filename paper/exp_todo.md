@@ -358,8 +358,15 @@ The paper-facing definition of this experiment is in
       $T=\varnothing$ coordinate is counted and annotated separately rather
       than placed on the logarithmic axis; winner assignment remains a later
       Gate 3 item.
-- [ ] Compare serial sparse folding (shift/XOR), generalized Suwako, and
+- [x] Compare serial sparse folding (shift/XOR), generalized Suwako, and
       gf2x-backed Barrett under the same reduction contract and input corpus.
+      [A] For each support, the native benchmark materializes one
+      `uniform-full-range:v1` input array, differentially checks all enabled
+      plans on that array, and then passes the same immutable array to the
+      cyclically rotated `reduction-steady-state:v1` timer.  The phase driver
+      retains positive `GS_ns`, `Serial_ns`, `BarrettGF2X_ns`, `Serial/GS`,
+      and `BarrettGF2X/GS` fields under the common timing metadata, and its
+      contract test rejects a missing primary comparison.
 - [ ] Add optimized ordinary-loop trinomial/pentanomial folding and dense
       linear reduction where they are credible strongest baselines.
 - [ ] Sweep controlled synthetic supports so that $h$ and

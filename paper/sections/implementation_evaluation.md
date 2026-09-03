@@ -165,6 +165,9 @@ Suwako outperform serial folding and Barrett under the matched direct-
 reduction contract? Montgomery is excluded here because REDC returns
 $AR^{-1}\bmod g$; it belongs to a distinct Montgomery-domain multiplication
 question whose representation conversions and setup must be accounted for.
+The implemented primary path materializes one input batch per support, checks
+GS, Serial, and gf2x-backed Barrett on that batch, and then times all three on
+the same immutable inputs under cyclic method-order rotation.
 
 **RQ4: Modulus agility.** How does
 $T_{\mathrm{setup}}+K T_{\mathrm{reduce}}$ behave as the number $K$ of
