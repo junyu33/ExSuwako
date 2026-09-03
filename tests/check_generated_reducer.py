@@ -12,13 +12,18 @@ import tempfile
 from pathlib import Path
 
 
-def run(command: list[str]) -> None:
+def run(
+    command: list[str], *, succeeds: bool = True
+) -> subprocess.CompletedProcess[str]:
     completed = subprocess.run(command, capture_output=True, text=True)
-    if completed.returncode != 0:
+    if succeeds and completed.returncode != 0:
         raise AssertionError(
             f"command failed: {' '.join(command)}\n"
             f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
         )
+    if not succeeds and completed.returncode == 0:
+        raise AssertionError(f"invalid command succeeded: {' '.join(command)}")
+    return completed
 
 
 def main() -> None:
@@ -38,18 +43,29 @@ def main() -> None:
     )
     benchmark_driver = generator.with_name("generated_reducer_benchmark.py")
     cases = [
-        (1, []),
-        (2, [0, 1]),
-        (7, [1, 6]),
-        (63, [0, 3, 62]),
-        (64, [0, 7, 63]),
-        (65, [1, 32, 64]),
-        (127, [0, 64, 126]),
-        (129, list(range(0, 129, 7))),
+        ("gs", 1, []),
+        ("gs", 2, [0, 1]),
+        ("gs", 7, [1, 6]),
+        ("gs", 63, [0, 3, 62]),
+        ("gs", 64, [0, 7, 63]),
+        ("gs", 65, [1, 32, 64]),
+        ("gs", 127, [0, 64, 126]),
+        ("gs", 129, list(range(0, 129, 7))),
+        ("lopez-dahab", 163, [0, 7]),
+        ("lopez-dahab", 163, [0, 3, 6, 7]),
+        ("lopez-dahab", 233, [0, 74]),
+        ("lopez-dahab", 283, [0, 5, 7, 12]),
+        ("lopez-dahab", 409, [0, 87]),
+        ("lopez-dahab", 192, [1, 63]),
+        ("lopez-dahab", 256, [1, 7, 31, 127]),
+        ("lopez-dahab", 257, list(range(0, 64, 8))),
+        ("lopez-dahab", 257, list(range(0, 128, 8))),
+        ("lopez-dahab", 257, list(range(0, 128, 4))),
+        ("lopez-dahab", 257, list(range(0, 128, 2))),
     ]
     with tempfile.TemporaryDirectory(prefix="exsuwako-generated-check-") as tmp:
         root = Path(tmp)
-        for index, (m, taps) in enumerate(cases):
+        for index, (algorithm, m, taps) in enumerate(cases):
             source = root / f"generated-{index}.c"
             shared = root / f"generated-{index}.so"
             tap_text = ",".join(map(str, taps)) if taps else "-"
@@ -63,6 +79,8 @@ def main() -> None:
                     tap_text,
                     "--output",
                     str(source),
+                    "--algorithm",
+                    algorithm,
                 ]
             )
             run(
@@ -96,9 +114,9 @@ def main() -> None:
                 "--output",
                 str(benchmark_output),
                 "--m",
-                "65",
+                "163",
                 "--taps",
-                "0,7,64",
+                "0,3,6,7",
                 "--inputs",
                 "2",
                 "--repeats",
@@ -109,6 +127,8 @@ def main() -> None:
                 args.cc,
                 "--gf2x-prefix",
                 str(args.gf2x_include.parent),
+                "--algorithm",
+                "lopez-dahab",
             ]
         )
         with benchmark_output.open(newline="", encoding="utf-8") as stream:
@@ -133,11 +153,33 @@ def main() -> None:
         if row["Generated_enabled"] != "1":
             raise AssertionError("generated benchmark did not enable the plugin")
         if (
-            row["Generated_code_model"] != "fixed-unrolled-c-v1"
+            row["Generated_code_model"]
+            != "lopez-dahab-algorithm2-fixed-c:v1"
             or row["Generated_code_size_model"] != "elf-text-section:v1"
             or row["Generated_word_bits"] != "64"
+            or row["Generated_algorithm"] != "lopez-dahab"
+            or row["Generated_applicability"]
+            != "arbitrary-weight-and-deg-q-lt-m-minus-W:v1"
         ):
             raise AssertionError("generated benchmark metadata is incorrect")
+        invalid_source = root / "invalid-lopez-dahab.c"
+        run(
+            [
+                sys.executable,
+                str(generator),
+                "--algorithm",
+                "lopez-dahab",
+                "--m",
+                "163",
+                "--taps",
+                "0,100",
+                "--output",
+                str(invalid_source),
+            ],
+            succeeds=False,
+        )
+        if invalid_source.exists():
+            raise AssertionError("invalid Lopez-Dahab source was materialized")
     print(f"generated reducers: ok ({len(cases)} fixed moduli)")
 
 

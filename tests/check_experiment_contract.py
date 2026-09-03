@@ -63,6 +63,7 @@ def check_exact_cli(binary: Path) -> None:
         "Dense_enabled": "0",
         "Dense_matrix_limit_bytes": "67108864",
         "Generated_enabled": "0",
+        "LopezDahabLoop_enabled": "0",
     }
     for field, value in expected.items():
         if row[field] != value:
@@ -71,6 +72,7 @@ def check_exact_cli(binary: Path) -> None:
         "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
         "BarrettGF2X_setup_ns", "Dense_setup_ns",
         "Generated_setup_ns",
+        "LopezDahabLoop_setup_ns",
     ]:
         if float(row[field]) < 0:
             raise AssertionError(f"{field} must be nonnegative")
@@ -91,6 +93,41 @@ def check_exact_cli(binary: Path) -> None:
     ]:
         if float(row[field]) != 0:
             raise AssertionError(f"disabled generated field {field} must be zero")
+
+    lopez_dahab = parse_one_row(
+        run(
+            base
+            + [
+                "0,3,6,7", "2", "4", "163", "0x1", "no-naive",
+                "with-lopez-dahab",
+            ]
+        ).stdout
+    )
+    if lopez_dahab["LopezDahabLoop_enabled"] != "1":
+        raise AssertionError("loop Lopez-Dahab baseline was not enabled")
+    for field in [
+        "LopezDahabLoop_plan_bytes", "LopezDahabLoop_setup_ns",
+        "LopezDahabLoop_ns", "LopezDahabLoop/GS",
+    ]:
+        if float(lopez_dahab[field]) <= 0:
+            raise AssertionError(f"enabled loop Lopez-Dahab field {field} is invalid")
+    run(
+        base
+        + [
+            "0,100", "1", "4", "163", "0x1", "no-naive",
+            "with-lopez-dahab",
+        ],
+        succeeds=False,
+    )
+
+    for field in [
+        "LopezDahabLoop_plan_bytes", "LopezDahabLoop_setup_ns",
+        "LopezDahabLoop_ns", "LopezDahabLoop/GS",
+    ]:
+        if float(row[field]) != 0:
+            raise AssertionError(
+                f"disabled loop Lopez-Dahab field {field} must be zero"
+            )
 
     dense = parse_one_row(
         run(

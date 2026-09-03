@@ -7,7 +7,6 @@ DL_LIBS ?=
 else
 DL_LIBS ?= -ldl
 endif
-
 TARGET = build/reduction_benchmark
 CHECK_TARGET = build/reduction_correctness_check
 GS_STAGE_CHECK_TARGET = build/gs_stage_correctness_check
@@ -24,7 +23,7 @@ SAN_GENERATED_CHECK_TARGET = build/generated_correctness_check_sanitize
 SAN_CFLAGS = -O1 -g -std=c11 -Wall -Wextra -fno-omit-frame-pointer \
 	-fsanitize=address,undefined
 REDUCTION_SOURCES = src/reduction.c src/GS.c src/barrett.c src/dense.c \
-	src/generated.c src/naive.c src/serial.c
+	src/generated.c src/lopez_dahab.c src/naive.c src/serial.c
 BENCH_SOURCES = bench/scripts/reduction_benchmark.c $(REDUCTION_SOURCES)
 CHECK_SOURCES = tests/check_reduction.c $(REDUCTION_SOURCES)
 

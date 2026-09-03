@@ -5,6 +5,7 @@
 #include "generated.h"
 #include "GS.h"
 #include "naive.h"
+#include "lopez_dahab.h"
 #include "serial.h"
 
 typedef struct {
@@ -44,6 +45,11 @@ static void dense_reduce_adapter(const poly_t *input, void *context,
     dense_reduce_into(input, context, output);
 }
 
+static void lopez_dahab_reduce_adapter(const poly_t *input, void *context,
+                                       poly_t *output) {
+    lopez_dahab_reduce_into(input, context, output);
+}
+
 static void generated_reduce_adapter(const poly_t *input, void *context,
                                      poly_t *output) {
     generated_reduce_into(input, context, output);
@@ -73,6 +79,10 @@ static void dense_destroy_adapter(void *context) {
     dense_plan_destroy(context);
 }
 
+static void lopez_dahab_destroy_adapter(void *context) {
+    lopez_dahab_plan_destroy(context);
+}
+
 static void generated_destroy_adapter(void *context) {
     generated_plan_destroy(context);
 }
@@ -99,6 +109,10 @@ static size_t barrett_storage_adapter(const void *context) {
 
 static size_t dense_storage_adapter(const void *context) {
     return dense_plan_storage_bytes(context);
+}
+
+static size_t lopez_dahab_storage_adapter(const void *context) {
+    return lopez_dahab_plan_storage_bytes(context);
 }
 
 static size_t generated_storage_adapter(const void *context) {
@@ -174,6 +188,20 @@ reduction_method reduction_make_dense(const poly_t *modulus, size_t m) {
         .reduce_into = dense_reduce_adapter,
         .destroy = dense_destroy_adapter,
         .plan_storage = dense_storage_adapter,
+    };
+}
+
+reduction_method reduction_make_lopez_dahab(
+    const size_t *taps, size_t tap_count, size_t m)
+{
+    lopez_dahab_plan *plan = lopez_dahab_plan_create(taps, tap_count, m);
+    return (reduction_method){
+        .name = "LopezDahabLoop",
+        .output_words = poly_words_for_bits(m),
+        .context = plan,
+        .reduce_into = lopez_dahab_reduce_adapter,
+        .destroy = lopez_dahab_destroy_adapter,
+        .plan_storage = lopez_dahab_storage_adapter,
     };
 }
 

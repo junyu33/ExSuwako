@@ -50,12 +50,14 @@ def main() -> None:
             "GS_source_scratch_words",
             "GS_plan_bytes", "Serial_plan_bytes", "Naive_plan_bytes",
             "BarrettGF2X_plan_bytes", "Dense_plan_bytes",
-            "Generated_plan_bytes",
+            "Generated_plan_bytes", "LopezDahabLoop_plan_bytes",
             "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
             "BarrettGF2X_setup_ns", "Dense_setup_ns", "Generated_setup_ns",
+            "LopezDahabLoop_setup_ns",
             "GS_ns", "Serial_ns", "Naive_ns", "BarrettGF2X_ns", "Dense_ns",
             "Generated_ns", "Serial/GS", "Naive/GS", "BarrettGF2X/GS",
-            "Dense/GS", "Generated/GS",
+            "Dense/GS", "Generated/GS", "LopezDahabLoop_ns",
+            "LopezDahabLoop/GS",
         ]:
             row[field] = statistics.median(
                 float(sample[field]) for sample in benchmark_rows
@@ -101,14 +103,17 @@ def main() -> None:
         "Naive_plan_bytes", "BarrettGF2X_plan_bytes", "Dense_plan_bytes",
         "Dense_enabled", "Dense_matrix_limit_bytes",
         "Generated_plan_bytes", "Generated_enabled",
+        "LopezDahabLoop_plan_bytes", "LopezDahabLoop_enabled",
         "input_distribution",
         "timing_scope", "setup_scope", "timing_order", "GS_setup_ns", "Serial_setup_ns",
         "Naive_setup_ns", "BarrettGF2X_setup_ns",
         "Dense_setup_ns",
         "Generated_setup_ns",
+        "LopezDahabLoop_setup_ns",
         "GS_ns", "Serial_ns", "Naive_ns",
-        "BarrettGF2X_ns", "Dense_ns", "Generated_ns", "Serial/GS",
-        "Naive/GS", "BarrettGF2X/GS", "Dense/GS", "Generated/GS",
+        "BarrettGF2X_ns", "Dense_ns", "Generated_ns", "LopezDahabLoop_ns",
+        "Serial/GS", "Naive/GS", "BarrettGF2X/GS", "Dense/GS",
+        "Generated/GS", "LopezDahabLoop/GS",
         "driver_seed", "seed",
     ]
     with args.output.open("w", newline="") as stream:

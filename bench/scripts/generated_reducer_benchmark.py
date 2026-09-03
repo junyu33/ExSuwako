@@ -46,6 +46,9 @@ def main() -> None:
     parser.add_argument("--cflags", default="-O3 -std=c11 -Wall -Wextra")
     parser.add_argument("--gf2x-prefix", type=Path, default=Path("/usr/local"))
     parser.add_argument("--size-tool", default="size")
+    parser.add_argument(
+        "--algorithm", choices=["gs", "lopez-dahab"], default="gs"
+    )
     args = parser.parse_args()
     if args.inputs <= 0 or args.repeats <= 0:
         raise ValueError("inputs and repeats must be positive")
@@ -58,7 +61,7 @@ def main() -> None:
         shared_path = root / "fixed_reducer.so"
 
         started = time.perf_counter_ns()
-        source = generate_source(args.m, taps)
+        source = generate_source(args.m, taps, args.algorithm)
         source_path.write_text(source, encoding="utf-8")
         generation_ns = time.perf_counter_ns() - started
 
@@ -104,7 +107,17 @@ def main() -> None:
         row["Generated_text_bytes"] = str(
             text_section_bytes(args.size_tool, shared_path)
         )
-        row["Generated_code_model"] = "fixed-unrolled-c-v1"
+        row["Generated_code_model"] = (
+            "fixed-unrolled-gs-c:v1"
+            if args.algorithm == "gs"
+            else "lopez-dahab-algorithm2-fixed-c:v1"
+        )
+        row["Generated_algorithm"] = args.algorithm
+        row["Generated_applicability"] = (
+            "arbitrary-monic-binary-modulus:v1"
+            if args.algorithm == "gs"
+            else "arbitrary-weight-and-deg-q-lt-m-minus-W:v1"
+        )
         row["Generated_code_size_model"] = "elf-text-section:v1"
         row["Generated_word_bits"] = "64"
         row["Generated_cc"] = args.cc

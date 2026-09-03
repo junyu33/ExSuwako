@@ -26,6 +26,8 @@ reduction_method reduction_make_naive(const poly_t *modulus, size_t m,
                                       size_t input_words);
 reduction_method reduction_make_barrett(const poly_t *modulus, size_t m);
 reduction_method reduction_make_dense(const poly_t *modulus, size_t m);
+reduction_method reduction_make_lopez_dahab(
+    const size_t *taps, size_t tap_count, size_t m);
 reduction_method reduction_make_generated(const char *shared_object,
                                            const size_t *taps,
                                            size_t tap_count, size_t m);

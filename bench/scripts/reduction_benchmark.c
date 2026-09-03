@@ -24,20 +24,26 @@ typedef enum {
     REDUCER_NAIVE,
     REDUCER_BARRETT,
     REDUCER_DENSE,
-    REDUCER_GENERATED
+    REDUCER_GENERATED,
+    REDUCER_LOPEZ_DAHAB
 } reducer_kind;
 
 static void parse_method_options(int argc, char **argv, int first,
                                  int *skip_naive, int *with_dense,
+                                 int *with_lopez_dahab,
                                  const char **generated_path) {
     *skip_naive = 0;
     *with_dense = 0;
+    *with_lopez_dahab = 0;
     *generated_path = NULL;
     for (int i = first; i < argc; ++i) {
         if (strcmp(argv[i], "no-naive") == 0 && !*skip_naive) {
             *skip_naive = 1;
         } else if (strcmp(argv[i], "with-dense") == 0 && !*with_dense) {
             *with_dense = 1;
+        } else if (strcmp(argv[i], "with-lopez-dahab") == 0
+                && !*with_lopez_dahab) {
+            *with_lopez_dahab = 1;
         } else if (strncmp(argv[i], "generated=", 10) == 0
                 && !*generated_path && argv[i][10] != '\0') {
             *generated_path = argv[i] + 10;
@@ -51,6 +57,10 @@ static void parse_method_options(int argc, char **argv, int first,
         die("generated reducer requires no-naive to retain four-method rotation");
     if (*generated_path && *with_dense)
         die("dense and generated reducers cannot be enabled together");
+    if (*with_lopez_dahab && !*skip_naive)
+        die("Lopez-Dahab requires no-naive to retain four-method rotation");
+    if (*with_lopez_dahab && (*with_dense || *generated_path))
+        die("Lopez-Dahab, dense, and generated options are mutually exclusive");
 }
 
 static uint64_t rng_next(void) {
@@ -246,6 +256,8 @@ static reduction_method make_reducer(reducer_kind kind, const size_t *taps,
     case REDUCER_GENERATED:
         return reduction_make_generated(
             generated_path, taps, tap_count, m);
+    case REDUCER_LOPEZ_DAHAB:
+        return reduction_make_lopez_dahab(taps, tap_count, m);
     }
     die("unknown reducer kind");
     return (reduction_method){0};
@@ -372,19 +384,21 @@ int main(int argc, char **argv) {
     uint64_t seed;
     int skip_naive;
     int with_dense;
+    int with_lopez_dahab;
     const char *generated_path;
     size_t *exact_taps = NULL;
 
     if (exact_mode) {
         if (argc < 7 || argc > 9)
-            die("usage: reduction_benchmark --taps LIST inputs repeats m seed [no-naive] [with-dense|generated=PATH]");
+            die("usage: reduction_benchmark --taps LIST inputs repeats m seed [no-naive] [with-dense|with-lopez-dahab|generated=PATH]");
         supports = 1;
         inputs_count = parse_positive_int(argv[3], "input count");
         repeats = parse_positive_int(argv[4], "repeat count");
         m = parse_size(argv[5], "modulus degree");
         seed = parse_seed(argv[6]);
         parse_method_options(
-            argc, argv, 7, &skip_naive, &with_dense, &generated_path);
+            argc, argv, 7, &skip_naive, &with_dense, &with_lopez_dahab,
+            &generated_path);
         if (m == 0) die("modulus degree must be positive");
         exact_taps = parse_tap_list(argv[2], m, &s);
     } else {
@@ -398,7 +412,8 @@ int main(int argc, char **argv) {
             : 0x9e3779b97f4a7c15ULL;
         if (argc > 9) die("too many random-mode arguments");
         parse_method_options(
-            argc, argv, 7, &skip_naive, &with_dense, &generated_path);
+            argc, argv, 7, &skip_naive, &with_dense, &with_lopez_dahab,
+            &generated_path);
         if (m == 0 || s > m) die("invalid m or support size");
     }
     if (supports <= 0 || inputs_count <= 0 || repeats <= 0)
@@ -406,6 +421,11 @@ int main(int argc, char **argv) {
     if (seed == 0) die("seed must be nonzero for the xorshift generator");
     if (generated_path && !exact_mode)
         die("generated reducer requires exact tap-list mode");
+    if (with_lopez_dahab && !exact_mode)
+        die("Lopez-Dahab benchmark requires exact tap-list mode");
+    if (with_lopez_dahab
+            && (m <= WORD_BITS || (s && exact_taps[s - 1] >= m - WORD_BITS)))
+        die("Lopez-Dahab requires m > W and deg(q) < m-W");
     if (with_dense) {
         size_t matrix_bytes;
         if (!dense_matrix_bytes(m, &matrix_bytes)
@@ -421,6 +441,8 @@ int main(int argc, char **argv) {
     double *dense_samples = calloc((size_t)supports, sizeof(*dense_samples));
     double *generated_samples =
         calloc((size_t)supports, sizeof(*generated_samples));
+    double *lopez_dahab_samples =
+        calloc((size_t)supports, sizeof(*lopez_dahab_samples));
     double *gs_setup_samples =
         calloc((size_t)supports, sizeof(*gs_setup_samples));
     double *serial_setup_samples =
@@ -433,11 +455,13 @@ int main(int argc, char **argv) {
         calloc((size_t)supports, sizeof(*dense_setup_samples));
     double *generated_setup_samples =
         calloc((size_t)supports, sizeof(*generated_setup_samples));
+    double *lopez_dahab_setup_samples =
+        calloc((size_t)supports, sizeof(*lopez_dahab_setup_samples));
     if (!gs_samples || !serial_samples || !naive_samples || !barrett_samples ||
-        !dense_samples || !generated_samples ||
+        !dense_samples || !generated_samples || !lopez_dahab_samples ||
         !gs_setup_samples || !serial_setup_samples || !naive_setup_samples ||
         !barrett_setup_samples || !dense_setup_samples
-        || !generated_setup_samples)
+        || !generated_setup_samples || !lopez_dahab_setup_samples)
         die("allocation failed");
     size_t *delta_values = calloc((size_t)supports, sizeof(*delta_values));
     int *has_delta = calloc((size_t)supports, sizeof(*has_delta));
@@ -463,11 +487,13 @@ int main(int argc, char **argv) {
         calloc((size_t)supports, sizeof(*dense_plan_bytes));
     size_t *generated_plan_bytes =
         calloc((size_t)supports, sizeof(*generated_plan_bytes));
+    size_t *lopez_dahab_plan_bytes =
+        calloc((size_t)supports, sizeof(*lopez_dahab_plan_bytes));
     if (!delta_values || !has_delta || !tap_values || !feedback_stage_values ||
         !active_tap_values || !active_tap_sum_values || !scheduled_work_values ||
         !source_cost_values || !gs_plan_bytes || !serial_plan_bytes ||
         !naive_plan_bytes || !barrett_plan_bytes || !dense_plan_bytes
-        || !generated_plan_bytes)
+        || !generated_plan_bytes || !lopez_dahab_plan_bytes)
         die("allocation failed");
 
     for (int trial = 0; trial < supports; ++trial) {
@@ -511,6 +537,9 @@ int main(int argc, char **argv) {
         if (with_dense) kinds[method_count++] = REDUCER_DENSE;
         size_t generated_index = method_count;
         if (generated_path) kinds[method_count++] = REDUCER_GENERATED;
+        size_t lopez_dahab_index = method_count;
+        if (with_lopez_dahab)
+            kinds[method_count++] = REDUCER_LOPEZ_DAHAB;
 
         double setup_timings[4] = {0};
         time_setups_rotating(kinds, method_count, taps, s, &modulus, m,
@@ -524,6 +553,9 @@ int main(int argc, char **argv) {
             dense_setup_samples[trial] = setup_timings[dense_index];
         if (generated_path)
             generated_setup_samples[trial] = setup_timings[generated_index];
+        if (with_lopez_dahab)
+            lopez_dahab_setup_samples[trial] =
+                setup_timings[lopez_dahab_index];
 
         reduction_method methods[4];
         for (size_t method = 0; method < method_count; ++method)
@@ -545,6 +577,10 @@ int main(int argc, char **argv) {
         if (generated_path)
             generated_plan_bytes[trial] =
                 reduction_method_plan_storage_bytes(&methods[generated_index]);
+        if (with_lopez_dahab)
+            lopez_dahab_plan_bytes[trial] =
+                reduction_method_plan_storage_bytes(
+                    &methods[lopez_dahab_index]);
         gs_plan *gs = methods[0].context;
         feedback_stage_values[trial] = gs_plan_feedback_stage_count(gs);
         active_tap_values[trial] = serialize_active_tap_counts(gs);
@@ -573,6 +609,8 @@ int main(int argc, char **argv) {
         if (with_dense) dense_samples[trial] = timings[dense_index];
         if (generated_path)
             generated_samples[trial] = timings[generated_index];
+        if (with_lopez_dahab)
+            lopez_dahab_samples[trial] = timings[lopez_dahab_index];
 
         for (int i = 0; i < inputs_count; ++i) poly_free(&inputs[i]);
         free(inputs);
@@ -592,12 +630,15 @@ int main(int argc, char **argv) {
            "plan_storage_model,GS_plan_bytes,Serial_plan_bytes,"
            "Naive_plan_bytes,BarrettGF2X_plan_bytes,Dense_plan_bytes,"
            "Dense_enabled,Dense_matrix_limit_bytes,Generated_plan_bytes,"
-           "Generated_enabled,"
+           "Generated_enabled,LopezDahabLoop_plan_bytes,"
+           "LopezDahabLoop_enabled,"
            "input_distribution,timing_scope,setup_scope,timing_order,"
            "GS_setup_ns,Serial_setup_ns,Naive_setup_ns,BarrettGF2X_setup_ns,"
-           "Dense_setup_ns,Generated_setup_ns,GS_ns,Serial_ns,Naive_ns,"
-           "BarrettGF2X_ns,Dense_ns,Generated_ns,Serial/GS,Naive/GS,"
-           "BarrettGF2X/GS,Dense/GS,Generated/GS,sample,seed\n");
+           "Dense_setup_ns,Generated_setup_ns,LopezDahabLoop_setup_ns,"
+           "GS_ns,Serial_ns,Naive_ns,"
+           "BarrettGF2X_ns,Dense_ns,Generated_ns,LopezDahabLoop_ns,"
+           "Serial/GS,Naive/GS,BarrettGF2X/GS,Dense/GS,Generated/GS,"
+           "LopezDahabLoop/GS,sample,seed\n");
     for (int trial = 0; trial < supports; ++trial) {
         double gs = gs_samples[trial];
         double serial = serial_samples[trial];
@@ -605,16 +646,17 @@ int main(int argc, char **argv) {
         double barrett = barrett_samples[trial];
         double dense = dense_samples[trial];
         double generated = generated_samples[trial];
+        double lopez_dahab = lopez_dahab_samples[trial];
         printf("%zu,%d,%zu,%zu,%s,", m, (int)(sizeof(word_t) * CHAR_BIT),
                s, s + 1, tap_values[trial]);
         if (has_delta[trial]) printf("%zu,", delta_values[trial]);
         else printf("NA,");
         const gs_source_cost *source_cost = &source_cost_values[trial];
         printf("%zu,%s,%zu,%zu,%s,%zu,%zu,%zu,%zu,%zu,%zu,%zu,"
-               "%s,%zu,%zu,%zu,%zu,%zu,%d,%zu,%zu,%d,"
-               "%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,"
-               "%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%.3f,"
-               "%.3f,%d,%llu\n",
+               "%s,%zu,%zu,%zu,%zu,%zu,%d,%zu,%zu,%d,%zu,%d,"
+               "%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,"
+               "%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,"
+               "%.3f,%.3f,%.3f,%d,%llu\n",
                feedback_stage_values[trial], active_tap_values[trial],
                active_tap_sum_values[trial], scheduled_work_values[trial],
                gs_source_cost_model,
@@ -629,15 +671,18 @@ int main(int argc, char **argv) {
                barrett_plan_bytes[trial], dense_plan_bytes[trial],
                with_dense, dense_matrix_limit_bytes,
                generated_plan_bytes[trial], generated_path != NULL,
+               lopez_dahab_plan_bytes[trial], with_lopez_dahab,
                input_distribution, timing_scope, setup_scope, timing_order,
                gs_setup_samples[trial], serial_setup_samples[trial],
                naive_setup_samples[trial], barrett_setup_samples[trial],
                dense_setup_samples[trial],
                generated_setup_samples[trial],
-               gs, serial, naive, barrett, dense, generated,
+               lopez_dahab_setup_samples[trial],
+               gs, serial, naive, barrett, dense, generated, lopez_dahab,
                serial / gs, skip_naive ? 0.0 : naive / gs, barrett / gs,
                with_dense ? dense / gs : 0.0,
                generated_path ? generated / gs : 0.0,
+               with_lopez_dahab ? lopez_dahab / gs : 0.0,
                trial, (unsigned long long)seed);
         free(tap_values[trial]);
         free(active_tap_values[trial]);
@@ -649,12 +694,14 @@ int main(int argc, char **argv) {
     free(barrett_samples);
     free(dense_samples);
     free(generated_samples);
+    free(lopez_dahab_samples);
     free(gs_setup_samples);
     free(serial_setup_samples);
     free(naive_setup_samples);
     free(barrett_setup_samples);
     free(dense_setup_samples);
     free(generated_setup_samples);
+    free(lopez_dahab_setup_samples);
     free(delta_values);
     free(has_delta);
     free(tap_values);
@@ -669,6 +716,7 @@ int main(int argc, char **argv) {
     free(barrett_plan_bytes);
     free(dense_plan_bytes);
     free(generated_plan_bytes);
+    free(lopez_dahab_plan_bytes);
     free(exact_taps);
     return 0;
 }

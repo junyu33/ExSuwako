@@ -40,13 +40,24 @@ being measured without collapsing the two algorithms into one loop structure.
 
 ### 8.3 Fixed-Modulus Code Generation
 
-The implemented `fixed-unrolled-c-v1` generator expands active tap lists,
+The implemented `fixed-unrolled-gs-c:v1` generator expands active tap lists,
 feedback stages, destination words, and final low assembly for one exact
 $(m,T)$, including $t=0$ only where the uniform formulas require it. It emits
 a temporary 64-bit-word shared-object plugin and does not hard-code an extra
 XOR for $X$. Report source generation, compilation, loaded-plan setup, source
 and shared-object bytes, and the ELF `.text` section separately from
 steady-state reduction.
+
+The separate `lopez-dahab-algorithm2-fixed-c:v1` mode unrolls Algorithm 2's
+full-word and partial-word cancellation for arbitrary modulus weight. It is
+available only when $\deg q<m-W$, exactly the assumption stated by López and
+Dahab; unsupported tap placements are rejected rather than silently routed
+through a different algorithm. Trinomials and pentanomials remain mandatory
+strong-baseline cases, but are not an algorithmic applicability boundary.
+The native `LopezDahabLoop` mode implements the same Algorithm 2 domain with
+ordinary tap and high-word loops. It is compared with the ordinary-loop GS
+kernel under the common plan/setup and steady-state timing contract, while the
+two generated modes separately measure fixed-modulus specialization.
 
 ### 8.4 SIMD
 

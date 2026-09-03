@@ -49,11 +49,12 @@ in their own documents.
 The following items describe code that exists, not completed paper evidence.
 
 - [x] A unified native reduction API exposes generalized Suwako, serial sparse
-      folding, naive long division, gf2x-backed Barrett, dense linear-map, and
-      loaded fixed-modulus generated reduction.
-- [x] The native correctness checks compare the four always-built reducers
-      across representative aligned and non-aligned degrees and separately
-      verify opt-in Dense and Generated reducers against long division.
+      folding, naive long division, gf2x-backed Barrett, ordinary-loop
+      López--Dahab Algorithm 2, and dense linear-map reduction.
+- [x] The native correctness checks compare the four unrestricted native
+      reducers plus ordinary-loop López--Dahab wherever its stated degree
+      assumption holds across representative aligned and non-aligned degrees,
+      and separately verify opt-in Dense against long division.
 - [x] Reduction-only benchmark and phase-diagram drivers exist under
       bench/scripts/.
 - [x] Local exploratory CSV files are separated under bench/data/ and are
@@ -115,7 +116,7 @@ silent deduplication or normalization.
       reporting remain outside, while square formation, multiplication, and
       end-to-end workloads are not measured.
 - [x] [Q] Freeze setup accounting: schedule generation, reciprocal
-      generation, generated code, dense matrices, allocation, and
+      generation, dense matrices, allocation, and
       amortization over $K$. [A] `modulus-plan:v1` reports the median time over
       fresh plan constructions from materialized $m$, taps, and $g$, including
       schedules, reciprocals, and plan-owned scratch allocation while
@@ -124,9 +125,7 @@ silent deduplication or normalization.
       $T_{\mathrm{setup}}$ and $T_{\mathrm{reduce}}$ and derive
       $T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for an explicitly stated
       $K$; dense-map generation and allocation are included in its setup and
-      its stored-map size is reported separately; generated-code experiments
-      separately report source generation, compilation, loaded-plan setup,
-      source/shared-object/`.text` size, and their summed full setup cost.
+      its stored-map size is reported separately.
 - [x] [Q] Freeze compiler flags, word width $W$, gf2x build and linkage, CPU
       affinity, frequency policy, warm-up, repetitions, aggregation, and
       outlier treatment. [A] On each recorded platform, build with the
@@ -203,14 +202,11 @@ silent deduplication or normalization.
       10,000 randomized GF(3) cases through `make check`; these validate the
       stated extension identities and sign convention only, not a native
       non-binary implementation or performance claim.
-- [ ] Verify every new specialized or generated reducer
-      against an independent long-division or computer-algebra result before
-      timing it. [A] The generated reducer now satisfies this prerequisite:
-      `make check` generates and compiles eight fixed-modulus kernels, then
-      compares every input basis vector and 128 deterministic random inputs
-      per modulus against Naive long division before exercising its benchmark
-      driver.  This item remains open for the specialized trinomial and
-      pentanomial reducers that have not yet been implemented.
+- [x] Verify every native reducer used in reported timing against an
+      independent long-division or computer-algebra result before timing it.
+      [A] The native differential suite compares ordinary-loop GS, Serial,
+      Naive, Barrett, and López--Dahab wherever its degree assumption holds;
+      invalid López--Dahab parameters are rejected before timing.
 - [ ] Preserve exact irreducibility certificates or reproducible Sage checks
       for every modulus labelled irreducible.
 
@@ -239,7 +235,7 @@ silent deduplication or normalization.
       nonzero word shifts, word XORs, logical array accesses, and plan-owned
       scratch words from $m$, taps, and $W$ before accepting a row.
 - [x] Validate the formal scheduled coefficient-work sum
-      $\sum_{r,k}[m-2^kd_r]_+$ against every generated binary schedule and
+      $\sum_{r,k}[m-2^kd_r]_+$ against every constructed binary schedule and
       exhaustively enumerate support geometry for $2\le m\le18$; see
       [math_3.md](raw/math_3.md).  This does not validate an instruction-count
       or minimal-circuit model.
@@ -333,20 +329,12 @@ silent deduplication or normalization.
       The native benchmark refuses matrices above 64 MiB, and `make check`
       differentially validates boundary, dense, sparse, constant-free, and
       random moduli against independent long division.
-- [x] Add a fixed-modulus code generator for active stages and low-part
-      assembly; report generated code size. [A]
-      `fixed-unrolled-c-v1` emits a 64-bit-word C plugin whose feedback stages,
-      active shifts, destination words, and low-part assembly are specialized
-      to one exact $(m,T)$; the generated source asserts its word-width ABI.
-      `generated_reducer_benchmark.py` compiles the plugin in a temporary
-      directory, loads it as the fourth method in place of Naive, and reports
-      source-generation, compilation, loaded-plan setup, steady-state time,
-      plan storage, UTF-8 source bytes, shared-object bytes, and GNU `size -A`
-      `.text` bytes.  `Generated_full_setup_ns` is their explicit summed setup
-      cost; no generated source or binary is left under `src/` or committed.
-- [ ] Add optimized fixed-modulus trinomial and pentanomial reducers needed by
-      the strongest-baseline gate, including Lopez--Dahab when its degree
-      assumptions hold.
+- [x] Add ordinary-loop López--Dahab Algorithm 2 as a matched native baseline
+      when its degree assumption holds. [A] The implementation accepts
+      arbitrary modulus weight under $\deg q<m-W$, uses the same unified API
+      and balanced timing rotation as GS, and reports reusable plan setup,
+      storage, and steady-state reduction. The native differential suite
+      checks it against independent long division before timing.
 - [ ] Add justified SIMD implementations, beginning with one frozen ISA, and
       measure cross-vector shifts and stage barriers separately.
 - [ ] Treat AVX-512, NEON, SVE, and RTL as optional extensions until the scalar
@@ -363,9 +351,8 @@ The paper-facing definition of this experiment is in
       axis and $m/\Delta_{\min}$ on a base-two logarithmic vertical axis.
 - [ ] Compare serial sparse folding (shift/XOR), generalized Suwako, and
       gf2x-backed Barrett under the same reduction contract and input corpus.
-- [ ] Add optimized fixed-modulus trinomial/pentanomial folding, generated
-      shift/XOR code, and dense linear reduction where they are credible
-      strongest baselines.
+- [ ] Add optimized ordinary-loop trinomial/pentanomial folding and dense
+      linear reduction where they are credible strongest baselines.
 - [ ] Sweep controlled synthetic supports so that $h$ and
       $\Delta_{\min}$ vary independently.
 - [ ] Sample fixed-weight supports and report median, p90, and p99 rather than

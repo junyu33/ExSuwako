@@ -208,13 +208,16 @@ static void check_exact_input(size_t m, size_t trial, const size_t *taps,
     poly_t modulus = poly_from_exponents(m + 1, taps, tap_count);
     poly_set_bit(&modulus, m);
 
-    reduction_method methods[] = {
-        reduction_make_gs(taps, tap_count, m),
-        reduction_make_serial(taps, tap_count, m),
-        reduction_make_naive(&modulus, m, input->n),
-        reduction_make_barrett(&modulus, m),
-    };
-    size_t method_count = sizeof(methods) / sizeof(methods[0]);
+    reduction_method methods[5];
+    size_t method_count = 0;
+    methods[method_count++] = reduction_make_gs(taps, tap_count, m);
+    methods[method_count++] = reduction_make_serial(taps, tap_count, m);
+    methods[method_count++] = reduction_make_naive(&modulus, m, input->n);
+    methods[method_count++] = reduction_make_barrett(&modulus, m);
+    if (m > WORD_BITS
+            && (!tap_count || taps[tap_count - 1] < m - WORD_BITS))
+        methods[method_count++] =
+            reduction_make_lopez_dahab(taps, tap_count, m);
     check_methods(methods, method_count, input, m, trial, taps, tap_count,
                   suite);
 

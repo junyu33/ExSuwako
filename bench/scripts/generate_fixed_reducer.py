@@ -49,7 +49,7 @@ def _left_shift_expression(dst: int, tap: int) -> str | None:
     return f"({expression})"
 
 
-def generate_source(m: int, taps: list[int]) -> str:
+def generate_gs_source(m: int, taps: list[int]) -> str:
     if m <= 0:
         raise ValueError("m must be positive")
     parse_taps(",".join(map(str, taps)) if taps else "-", m)
@@ -188,14 +188,138 @@ def generate_source(m: int, taps: list[int]) -> str:
     return "\n".join(lines)
 
 
+def generate_lopez_dahab_source(m: int, taps: list[int]) -> str:
+    if m <= WORD_BITS:
+        raise ValueError("Lopez-Dahab requires m greater than one word")
+    parse_taps(",".join(map(str, taps)) if taps else "-", m)
+    if taps and max(taps) >= m - WORD_BITS:
+        raise ValueError("Lopez-Dahab requires deg(q) < m-W")
+
+    state_words = (m + WORD_BITS - 1) // WORD_BITS
+    input_words = (2 * m + WORD_BITS - 1) // WORD_BITS
+    lines = [
+        "/* Generated Lopez-Dahab Algorithm 2; do not edit. */",
+        '#include "generated.h"',
+        "",
+        f'_Static_assert(WORD_BITS == {WORD_BITS}, "generated word width mismatch");',
+        f"enum {{ GENERATED_M = {m}, GENERATED_STATE_WORDS = {state_words},",
+        f"       GENERATED_INPUT_WORDS = {input_words} }};",
+        "typedef struct { word_t work[GENERATED_INPUT_WORDS]; } fixed_plan;",
+        "",
+        "static const size_t fixed_taps[] = {"
+        + (", ".join(map(str, taps)) if taps else "0")
+        + "};",
+        "",
+        "static void *fixed_plan_create(void) {",
+        "    return calloc(1, sizeof(fixed_plan));",
+        "}",
+        "",
+        "static void fixed_plan_destroy(void *opaque) { free(opaque); }",
+        "",
+        "static size_t fixed_plan_storage_bytes(const void *opaque) {",
+        "    return opaque ? sizeof(fixed_plan) : 0;",
+        "}",
+        "",
+        "static void fixed_reduce_into(const poly_t *input, void *opaque,",
+        "                              poly_t *output) {",
+        "    fixed_plan *plan = opaque;",
+        "    word_t *work = plan->work;",
+        "    if (output->n < GENERATED_STATE_WORDS)",
+        '        die("generated output buffer is too small");',
+    ]
+    for word in range(input_words):
+        lines.append(
+            f"    work[{word}] = input->n > {word} ? input->v[{word}] : 0;"
+        )
+
+    for source_word in range(input_words - 1, state_words - 1, -1):
+        lines.extend(
+            [
+                f"    /* Cancel full high word {source_word}. */",
+                "    {",
+                f"        word_t top = work[{source_word}];",
+                f"        work[{source_word}] = 0;",
+            ]
+        )
+        displacement = source_word * WORD_BITS - m
+        for tap in taps:
+            shift = displacement + tap
+            target, bits = divmod(shift, WORD_BITS)
+            lines.append(f"        work[{target}] ^= top << {bits};")
+            if bits:
+                lines.append(
+                    f"        work[{target + 1}] ^= top >> {WORD_BITS - bits};"
+                )
+        lines.append("    }")
+
+    top_bits = m % WORD_BITS
+    if top_bits:
+        mask = (1 << top_bits) - 1
+        lines.extend(
+            [
+                "    /* Cancel the final partial-word overflow. */",
+                "    {",
+                f"        word_t top = work[{state_words - 1}] >> {top_bits};",
+                f"        work[{state_words - 1}] &= (word_t)0x{mask:x}UL;",
+            ]
+        )
+        for tap in taps:
+            target, bits = divmod(tap, WORD_BITS)
+            lines.append(f"        work[{target}] ^= top << {bits};")
+            if bits:
+                lines.append(
+                    f"        work[{target + 1}] ^= top >> {WORD_BITS - bits};"
+                )
+        lines.append("    }")
+
+    for word in range(state_words):
+        lines.append(f"    output->v[{word}] = work[{word}];")
+    lines.extend(
+        [
+            "    for (size_t i = GENERATED_STATE_WORDS; i < output->n; ++i)",
+            "        output->v[i] = 0;",
+            "}",
+            "",
+            "static const generated_plugin_v1 plugin = {",
+            "    .abi_version = EXSUWAKO_GENERATED_ABI_V1,",
+            "    .m = GENERATED_M,",
+            f"    .tap_count = {len(taps)},",
+            "    .taps = fixed_taps,",
+            "    .plan_create = fixed_plan_create,",
+            "    .plan_destroy = fixed_plan_destroy,",
+            "    .plan_storage_bytes = fixed_plan_storage_bytes,",
+            "    .reduce_into = fixed_reduce_into,",
+            "};",
+            "",
+            "EXSUWAKO_GENERATED_EXPORT",
+            "const generated_plugin_v1 *exsuwako_generated_plugin_v1(void) {",
+            "    return &plugin;",
+            "}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def generate_source(m: int, taps: list[int], algorithm: str = "gs") -> str:
+    if algorithm == "gs":
+        return generate_gs_source(m, taps)
+    if algorithm == "lopez-dahab":
+        return generate_lopez_dahab_source(m, taps)
+    raise ValueError(f"unknown generated algorithm: {algorithm}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--m", type=int, required=True)
     parser.add_argument("--taps", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--algorithm", choices=["gs", "lopez-dahab"], default="gs"
+    )
     args = parser.parse_args()
     taps = parse_taps(args.taps, args.m)
-    source = generate_source(args.m, taps)
+    source = generate_source(args.m, taps, args.algorithm)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(source, encoding="utf-8")
     print(json.dumps({"m": args.m, "taps": taps, "source_bytes": len(source.encode())}))

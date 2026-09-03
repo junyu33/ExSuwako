@@ -11,7 +11,8 @@ The native reducer implementations live in `src/`; public headers are under
 `bench/scripts/reduction_benchmark.c` drives the reduction-only microbenchmark
 through the common `reduction_method` API in `include/reduction.h`. GS, serial sparse
 folding, naive long division, Barrett, the opt-in dense linear map, and an
-opt-in compiled fixed-modulus reducer all expose the same timed
+opt-in ordinary-loop López--Dahab reducer or compiled fixed-modulus reducer
+all expose the same timed
 `reduce_into(input, context, output)` contract to the benchmark. Method setup,
 input generation, output allocation, correctness checks, and checksum
 consumption are outside the timed region.
@@ -24,7 +25,8 @@ sparse performance competitor.
 
 ## Portable scalar boundary validation
 
-`make check` differentially compares GS, Serial, Naive, and Barrett around
+`make check` differentially compares GS, Serial, Naive, Barrett, and
+ordinary-loop López--Dahab wherever its degree assumption holds, around
 $W$, $2W$, and $3W$ word boundaries as well as on deterministic random degrees
 through 512.  Reducer outputs are deliberately allocated two words larger
 than their minimum capacity and prefilled with ones, so the suite verifies
@@ -150,13 +152,15 @@ The included method-specific work is:
 | Serial | tap descriptors, sorting, and plan-owned state allocation |
 | Naive | its current lightweight context allocation |
 | Barrett | reciprocal $\mu$, Barrett plan construction, and plan-owned scratch allocation |
+| LopezDahabLoop | tap descriptors and plan-owned $2m$-bit work buffer |
 | Dense | construction of the packed fixed-modulus map and plan-owned high-part scratch allocation |
 | Generated | shared-object loading, ABI/modulus validation, and generated plan scratch allocation |
 
 Argument parsing, shared modulus materialization, input/output benchmark
 buffers, correctness checks, reporting, and teardown are excluded uniformly.
 The CSV preserves `GS_setup_ns`, `Serial_setup_ns`, `Naive_setup_ns`,
-`BarrettGF2X_setup_ns`, and `Dense_setup_ns` separately from the steady-state
+`BarrettGF2X_setup_ns`, `LopezDahabLoop_setup_ns`, and `Dense_setup_ns`
+separately from the steady-state
 reduction fields. `Generated_setup_ns` is the loaded-plan component; its
 source generation and compilation are reported separately by the generated
 driver. For
@@ -180,7 +184,8 @@ reducer's context structure and the byte capacities of every heap buffer owned
 for the plan's lifetime. GS includes its round and shift descriptors plus the
 state and sentinel; Serial includes tap descriptors and both state buffers;
 Naive includes its lightweight context; Barrett includes its adapter context,
-reciprocal, plan, and both reusable product buffers; Dense includes its packed
+reciprocal, plan, and both reusable product buffers; LopezDahabLoop includes
+its tap descriptors and reusable $2m$-bit work buffer; Dense includes its packed
 $m\times m$ row-major matrix and reusable high-part buffer; Generated includes
 the loader wrapper and generated state buffer, while mapped code is reported
 through separate code-size fields. Shared modulus storage,
@@ -189,7 +194,8 @@ setup-only allocations, generated code, and external-library transient
 workspace are excluded.
 
 The benchmark reads `GS_plan_bytes`, `Serial_plan_bytes`, `Naive_plan_bytes`,
-`BarrettGF2X_plan_bytes`, `Dense_plan_bytes`, and `Generated_plan_bytes` from
+`BarrettGF2X_plan_bytes`, `LopezDahabLoop_plan_bytes`, `Dense_plan_bytes`, and
+`Generated_plan_bytes` from
 the separately constructed plans only after
 all setup samples have stopped. Thus storage inspection cannot enter
 `T_setup`, and the inspected plans are the same plans subsequently used for
@@ -272,14 +278,37 @@ runs emit zero for all Dense timing and storage fields and allocate no matrix.
 The phase-diagram driver exposes the same policy as `--with-dense
 --no-naive`.
 
+For the ordinary-loop Algorithm 2 comparison, use exact taps satisfying
+$m>W$ and $\deg q<m-W$:
+
+```text
+build/reduction_benchmark --taps 0,5,7,12 64 24 283 0x1 \
+  no-naive with-lopez-dahab
+```
+
+This enables GS, Serial, Barrett, and `LopezDahabLoop` in the same balanced
+four-method rotation. The CSV reports its plan storage, setup time,
+steady-state time, and ratio to GS; it generates or compiles no
+modulus-specific source.
+
 ## Fixed-Modulus Generated Reducer
 
-`generate_fixed_reducer.py` emits `fixed-unrolled-c-v1`: a C plugin specialized
-to one exact degree and tap list. It expands every active feedback stage and
-the final low-part assembly into literal word operations. Generated code is
-currently frozen to 64-bit `word_t`; the translation unit contains a compile-
-time assertion and must not be compared across word widths without
-regeneration.
+`generate_fixed_reducer.py` emits one of two C plugins specialized to an exact
+degree and tap list. `fixed-unrolled-gs-c:v1` expands every active feedback
+stage and the final low-part assembly into literal word operations.
+`lopez-dahab-algorithm2-fixed-c:v1` unrolls the top-word and final partial-word
+cancellation of López--Dahab Algorithm 2. Both are currently frozen to 64-bit
+`word_t`; each translation unit contains a compile-time assertion and must not
+be compared across word widths without regeneration.
+
+The López--Dahab mode accepts arbitrary modulus weight and enforces the
+original assumption for $f=x^m+q$:
+
+\[
+\deg q < m-W.
+\]
+
+Parameters outside that domain are rejected before a source file is written.
 
 Use the orchestration driver rather than retaining generated files manually:
 
@@ -287,7 +316,8 @@ Use the orchestration driver rather than retaining generated files manually:
 python3 bench/scripts/generated_reducer_benchmark.py \
   --binary build/reduction_benchmark \
   --output bench/data/generated-m283.csv \
-  --m 283 --taps 0,5,7,12 --inputs 8 --repeats 12 --seed 0x1
+  --algorithm lopez-dahab --m 283 --taps 0,5,7,12 \
+  --inputs 8 --repeats 12 --seed 0x1
 ```
 
 The driver generates and compiles inside a temporary directory, then invokes
@@ -304,9 +334,16 @@ and Generated retain the balanced four-method rotation. It records:
 - `Generated_plan_bytes`, `Generated_ns`, and `Generated/GS`: loaded-plan
   storage, steady-state reduction, and its GS ratio.
 
+`Generated_algorithm`, `Generated_code_model`, and
+`Generated_applicability` distinguish general GS specialization from the
+degree-restricted López--Dahab baseline. A generated implementation is retained even
+when it loses; specialization status is not a performance conclusion.
+
 The shared-object file size is contextual; `elf-text-section:v1` is the frozen
-machine-code size metric. `make check` independently verifies generated
-kernels against Naive long division before the benchmark contract is tested.
+machine-code size metric. `make check` independently verifies nineteen
+generated kernels, including the López--Dahab paper example and weights up to
+65, against Naive
+long division before the benchmark contract is tested.
 
 For a versionable suite of exact supports, use a JSON Lines manifest:
 

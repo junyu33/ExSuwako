@@ -318,6 +318,7 @@ def validate_benchmark_geometry(
     for field in [
         "GS_setup_ns", "Serial_setup_ns", "Naive_setup_ns",
         "BarrettGF2X_setup_ns", "Dense_setup_ns",
+        "LopezDahabLoop_setup_ns",
     ]:
         try:
             value = float(str(row.get(field)))
@@ -396,6 +397,18 @@ def validate_benchmark_geometry(
         )
     ):
         raise RuntimeError("disabled generated reducer emitted nonzero fields")
+    try:
+        ld_enabled = int(str(row.get("LopezDahabLoop_enabled")))
+        ld_bytes = int(str(row.get("LopezDahabLoop_plan_bytes")))
+        ld_setup = float(str(row.get("LopezDahabLoop_setup_ns")))
+        ld_ns = float(str(row.get("LopezDahabLoop_ns")))
+        ld_ratio = float(str(row.get("LopezDahabLoop/GS")))
+    except (TypeError, ValueError) as error:
+        raise RuntimeError("benchmark emitted invalid loop Lopez-Dahab fields") from error
+    if ld_enabled != 0:
+        raise RuntimeError("phase driver does not enable loop Lopez-Dahab")
+    if any(value != 0 for value in (ld_bytes, ld_setup, ld_ns, ld_ratio)):
+        raise RuntimeError("disabled loop Lopez-Dahab emitted nonzero fields")
 
 
 def add_derived_fields(
@@ -474,6 +487,8 @@ def main() -> None:
         "Dense_matrix_limit_bytes",
         "Generated_plan_bytes",
         "Generated_enabled",
+        "LopezDahabLoop_plan_bytes",
+        "LopezDahabLoop_enabled",
         "input_distribution",
         "timing_scope",
         "setup_scope",
@@ -490,17 +505,20 @@ def main() -> None:
         "BarrettGF2X_setup_ns",
         "Dense_setup_ns",
         "Generated_setup_ns",
+        "LopezDahabLoop_setup_ns",
         "GS_ns",
         "Serial_ns",
         "Naive_ns",
         "BarrettGF2X_ns",
         "Dense_ns",
         "Generated_ns",
+        "LopezDahabLoop_ns",
         "Serial/GS",
         "Naive/GS",
         "BarrettGF2X/GS",
         "Dense/GS",
         "Generated/GS",
+        "LopezDahabLoop/GS",
         "sample",
         "seed",
     ]
