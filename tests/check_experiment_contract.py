@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -29,6 +30,10 @@ def parse_one_row(output: str) -> dict[str, str]:
     if len(rows) != 1:
         raise AssertionError(f"expected one CSV row, got {len(rows)}")
     return rows[0]
+
+
+def parse_rows(output: str) -> list[dict[str, str]]:
+    return list(csv.DictReader(output.splitlines()))
 
 
 def check_exact_cli(binary: Path) -> None:
@@ -196,6 +201,26 @@ def check_exact_cli(binary: Path) -> None:
     for invalid in ["3,2", "2,2", "16", "0,", "x", ""]:
         run(base + [invalid, "1", "1", "16", "0x3", "no-naive"], succeeds=False)
     run(base + ["0,3,7", "1", "1", "16", "0", "no-naive"], succeeds=False)
+    batched = parse_rows(
+        run(
+            base
+            + ["0,3,7", "2", "1", "16", "0x1", "no-naive", "trials=3"]
+        ).stdout
+    )
+    if len(batched) != 3 or [row["sample"] for row in batched] != ["0", "1", "2"]:
+        raise AssertionError("exact trial batching did not emit three indexed rows")
+    if any(
+        (row["taps"], row["seed"]) != ("0;3;7", "1") for row in batched
+    ):
+        raise AssertionError("exact trial batching changed taps or seed")
+    run(
+        base + ["0,3,7", "1", "1", "16", "0x1", "trials=0"],
+        succeeds=False,
+    )
+    run(
+        [str(binary), "1", "1", "1", "16", "3", "0x1", "trials=1"],
+        succeeds=False,
+    )
 
 
 def check_manifest(binary: Path, driver: Path) -> None:
@@ -367,6 +392,46 @@ def check_manifest(binary: Path, driver: Path) -> None:
             for row in rows
         ):
             raise AssertionError("enabled Dense measurements must be positive")
+
+        batched_output = root / "batched.csv"
+        batched_command = list(command)
+        batched_command[batched_command.index(str(output))] = str(batched_output)
+        batched_command.extend(["--warmup-runs", "1", "--measurement-trials", "3"])
+        run(batched_command)
+        with batched_output.open(newline="", encoding="utf-8") as stream:
+            batched_rows = list(csv.DictReader(stream))
+        if len(batched_rows) != 15:
+            raise AssertionError("manifest trial batching did not preserve all rows")
+        grouped_trials: dict[str, list[str]] = {}
+        for batched_row in batched_rows:
+            grouped_trials.setdefault(batched_row["sample_id"], []).append(
+                batched_row["measurement_trial"]
+            )
+            if "trials=4" not in shlex.split(batched_row["benchmark_command"]):
+                raise AssertionError("same-process warm-up was not recorded")
+        if any(
+            trials != ["0", "1", "2"] for trials in grouped_trials.values()
+        ):
+            raise AssertionError("batched manifest trial indices are incomplete")
+
+        with batched_output.open(newline="", encoding="utf-8") as stream:
+            resume_reader = csv.DictReader(stream)
+            resume_fields = resume_reader.fieldnames
+            partial_rows = list(resume_reader)[:-1]
+        if resume_fields is None:
+            raise AssertionError("batched output omitted its header")
+        with batched_output.open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=resume_fields)
+            writer.writeheader()
+            writer.writerows(partial_rows)
+        run(batched_command + ["--resume"])
+        with batched_output.open(newline="", encoding="utf-8") as stream:
+            resumed_rows = list(csv.DictReader(stream))
+        resumed_keys = [
+            (row["sample_id"], row["measurement_trial"]) for row in resumed_rows
+        ]
+        if len(resumed_keys) != 15 or len(set(resumed_keys)) != 15:
+            raise AssertionError("resume did not replace one partial sample exactly")
 
         controlled_manifest = root / "controlled.jsonl"
         controlled_output = root / "controlled.csv"

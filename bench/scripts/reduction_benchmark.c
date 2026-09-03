@@ -28,14 +28,20 @@ typedef enum {
     REDUCER_LOPEZ_DAHAB
 } reducer_kind;
 
+static int parse_positive_int(const char *text, const char *name);
+
 static void parse_method_options(int argc, char **argv, int first,
                                  int *skip_naive, int *with_dense,
                                  int *with_lopez_dahab,
-                                 const char **generated_path) {
+                                 const char **generated_path,
+                                 int *exact_trials,
+                                 int *has_exact_trials) {
     *skip_naive = 0;
     *with_dense = 0;
     *with_lopez_dahab = 0;
     *generated_path = NULL;
+    *exact_trials = 1;
+    *has_exact_trials = 0;
     for (int i = first; i < argc; ++i) {
         if (strcmp(argv[i], "no-naive") == 0 && !*skip_naive) {
             *skip_naive = 1;
@@ -47,6 +53,11 @@ static void parse_method_options(int argc, char **argv, int first,
         } else if (strncmp(argv[i], "generated=", 10) == 0
                 && !*generated_path && argv[i][10] != '\0') {
             *generated_path = argv[i] + 10;
+        } else if (strncmp(argv[i], "trials=", 7) == 0
+                && !*has_exact_trials && argv[i][7] != '\0') {
+            *exact_trials = parse_positive_int(
+                argv[i] + 7, "exact trial count");
+            *has_exact_trials = 1;
         } else {
             die("unknown or duplicate benchmark option");
         }
@@ -386,19 +397,21 @@ int main(int argc, char **argv) {
     int with_dense;
     int with_lopez_dahab;
     const char *generated_path;
+    int exact_trials;
+    int has_exact_trials;
     size_t *exact_taps = NULL;
 
     if (exact_mode) {
-        if (argc < 7 || argc > 9)
-            die("usage: reduction_benchmark --taps LIST inputs repeats m seed [no-naive] [with-dense|with-lopez-dahab|generated=PATH]");
-        supports = 1;
+        if (argc < 7 || argc > 10)
+            die("usage: reduction_benchmark --taps LIST inputs repeats m seed [no-naive] [with-dense|with-lopez-dahab|generated=PATH] [trials=N]");
         inputs_count = parse_positive_int(argv[3], "input count");
         repeats = parse_positive_int(argv[4], "repeat count");
         m = parse_size(argv[5], "modulus degree");
         seed = parse_seed(argv[6]);
         parse_method_options(
             argc, argv, 7, &skip_naive, &with_dense, &with_lopez_dahab,
-            &generated_path);
+            &generated_path, &exact_trials, &has_exact_trials);
+        supports = exact_trials;
         if (m == 0) die("modulus degree must be positive");
         exact_taps = parse_tap_list(argv[2], m, &s);
     } else {
@@ -413,7 +426,9 @@ int main(int argc, char **argv) {
         if (argc > 9) die("too many random-mode arguments");
         parse_method_options(
             argc, argv, 7, &skip_naive, &with_dense, &with_lopez_dahab,
-            &generated_path);
+            &generated_path, &exact_trials, &has_exact_trials);
+        if (has_exact_trials)
+            die("trials=N is available only in exact tap-list mode");
         if (m == 0 || s > m) die("invalid m or support size");
     }
     if (supports <= 0 || inputs_count <= 0 || repeats <= 0)
@@ -497,6 +512,8 @@ int main(int argc, char **argv) {
         die("allocation failed");
 
     for (int trial = 0; trial < supports; ++trial) {
+        if (exact_mode)
+            rng_state = seed;
         size_t *pool = NULL;
         size_t *taps = s ? malloc(s * sizeof(*taps)) : NULL;
         if (s && !taps) die("allocation failed");

@@ -537,6 +537,10 @@ def main() -> None:
     parser.add_argument("--with-lopez-dahab", action="store_true")
     parser.add_argument("--metadata", type=Path)
     parser.add_argument("--paper-grade", action="store_true")
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="retain complete manifest samples from an existing output",
+    )
     args = parser.parse_args()
 
     if args.inputs <= 0 or args.repeats <= 0:
@@ -553,6 +557,8 @@ def main() -> None:
         raise ValueError("--with-lopez-dahab and --with-dense are mutually exclusive")
     if args.with_lopez_dahab and args.manifest is None:
         raise ValueError("--with-lopez-dahab requires an exact-support manifest")
+    if args.resume and args.manifest is None:
+        raise ValueError("--resume requires an exact-support manifest")
 
     run_metadata = load_run_metadata(
         args.metadata, args.paper_grade, args.binary.resolve()
@@ -563,6 +569,9 @@ def main() -> None:
         except (AttributeError, OSError) as error:
             raise RuntimeError("could not enforce the recorded CPU affinity") from error
 
+    manifest_entries = (
+        load_manifest(args.manifest) if args.manifest is not None else None
+    )
     rng = random.Random(args.seed)
     rows: list[dict[str, object]] = []
     fields = [
@@ -638,6 +647,9 @@ def main() -> None:
         "seed",
     ]
 
+    driver_argv = [value for value in sys.argv if value != "--resume"]
+    driver_command = shlex.join(driver_argv)
+
     def save_rows() -> None:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w", newline="", encoding="utf-8") as stream:
@@ -671,11 +683,36 @@ def main() -> None:
                 result.append((trial, row))
         return result
 
+    def exact_measured_runs(
+        command: list[str],
+    ) -> tuple[list[tuple[int, dict[str, str]]], list[str]]:
+        total_trials = args.warmup_runs + args.measurement_trials
+        measured_command = [*command, f"trials={total_trials}"]
+        parsed = run(measured_command)
+        if len(parsed) != total_trials:
+            raise RuntimeError(
+                f"expected {total_trials} batched exact-trial rows"
+            )
+        result: list[tuple[int, dict[str, str]]] = []
+        for row in parsed[args.warmup_runs:]:
+            try:
+                native_trial = int(row["sample"])
+            except (KeyError, ValueError) as error:
+                raise RuntimeError("exact benchmark emitted an invalid trial index") from error
+            trial = native_trial - args.warmup_runs
+            row["sample"] = str(trial)
+            result.append((trial, row))
+        if sorted(trial for trial, _ in result) != list(
+            range(args.measurement_trials)
+        ):
+            raise RuntimeError("exact benchmark emitted incomplete trial indices")
+        return result, measured_command
+
     def add_measurement_fields(
         row: dict[str, object], trial: int, command: list[str]
     ) -> None:
         row.update(run_metadata)
-        row["driver_command"] = shlex.join(sys.argv)
+        row["driver_command"] = driver_command
         row["benchmark_command"] = shlex.join(expanded_command(command))
         row["aggregation"] = CURRENT_AGGREGATION
         row["inputs"] = args.inputs
@@ -684,9 +721,76 @@ def main() -> None:
         row["measurement_trials"] = args.measurement_trials
         row["measurement_trial"] = trial
 
-    if args.manifest is not None:
-        for entry in load_manifest(args.manifest):
+    completed_samples: set[str] = set()
+    if args.resume and args.output.exists():
+        assert manifest_entries is not None
+        with args.output.open(newline="", encoding="utf-8") as stream:
+            reader = csv.DictReader(stream)
+            if reader.fieldnames != fields:
+                raise ValueError("existing output has an incompatible CSV schema")
+            existing_rows = list(reader)
+        entries_by_id = {entry["sample_id"]: entry for entry in manifest_entries}
+        grouped: dict[str, list[dict[str, object]]] = {}
+        expected_contract = {
+            "metadata_status": run_metadata["metadata_status"],
+            "metadata_schema": run_metadata["metadata_schema"],
+            **run_metadata,
+            "driver_command": driver_command,
+            "input_distribution": CURRENT_INPUT_DISTRIBUTION,
+            "timing_scope": CURRENT_TIMING_SCOPE,
+            "setup_scope": CURRENT_SETUP_SCOPE,
+            "timing_order": CURRENT_TIMING_ORDER,
+            "aggregation": CURRENT_AGGREGATION,
+            "inputs": args.inputs,
+            "batch_repeats": args.repeats,
+            "warmup_runs": args.warmup_runs,
+            "measurement_trials": args.measurement_trials,
+            "Dense_enabled": int(args.with_dense),
+            "LopezDahabLoop_enabled": int(args.with_lopez_dahab),
+        }
+        for existing in existing_rows:
+            sample_id = existing["sample_id"]
+            if sample_id not in entries_by_id:
+                raise ValueError(
+                    f"existing output contains unknown sample {sample_id!r}"
+                )
+            entry = entries_by_id[sample_id]
+            expected_entry = {
+                "provenance": entry["provenance"],
+                "m": entry["m"],
+                "taps": serialized_taps(entry["taps"]),
+            }
+            for field, expected in {**expected_contract, **expected_entry}.items():
+                if existing[field] != str(expected):
+                    raise ValueError(
+                        f"existing output has incompatible {field} for "
+                        f"sample {sample_id!r}"
+                    )
+            grouped.setdefault(sample_id, []).append(existing)
+        rows = []
+        for sample_id, sample_rows in grouped.items():
+            try:
+                indices = [int(str(row["measurement_trial"])) for row in sample_rows]
+            except ValueError as error:
+                raise ValueError("existing output has an invalid trial index") from error
+            if len(indices) == args.measurement_trials and sorted(indices) == list(
+                range(args.measurement_trials)
+            ):
+                rows.extend(sample_rows)
+                completed_samples.add(sample_id)
+            elif len(set(indices)) != len(indices) or any(
+                index < 0 or index >= args.measurement_trials for index in indices
+            ):
+                raise ValueError(
+                    f"existing output has invalid trials for sample {sample_id!r}"
+                )
+        save_rows()
+
+    if manifest_entries is not None:
+        for entry in manifest_entries:
             c_seed = rng.getrandbits(64) or 1
+            if entry["sample_id"] in completed_samples:
+                continue
             taps = entry["taps"]
             command = [
                 str(args.binary),
@@ -697,12 +801,7 @@ def main() -> None:
                 str(entry["m"]),
                 hex(c_seed),
             ]
-            measured = measured_runs(command)
-            if len(measured) != args.measurement_trials:
-                raise RuntimeError(
-                    f"expected {args.measurement_trials} rows for sample "
-                    f"{entry['sample_id']!r}"
-                )
+            measured, measured_command = exact_measured_runs(command)
             for trial, parsed_row in measured:
                 row: dict[str, object] = dict(parsed_row)
                 row["seed"] = c_seed
@@ -711,7 +810,7 @@ def main() -> None:
                     entry["m"], taps, with_dense=args.with_dense,
                     with_lopez_dahab=args.with_lopez_dahab,
                 )
-                add_measurement_fields(row, trial, command)
+                add_measurement_fields(row, trial, measured_command)
                 rows.append(row)
                 print(
                     f"sample={entry['sample_id']} trial={trial} m={row['m']} "

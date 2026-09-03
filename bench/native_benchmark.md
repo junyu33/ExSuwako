@@ -257,9 +257,12 @@ build/reduction_benchmark --taps 0,7,12 8 5 283 0x1 no-naive
 ```
 
 The exact-mode arguments are `--taps LIST`, `inputs`, `repeats`, `m`, `seed`,
-and optional `no-naive`, `with-dense`, `with-lopez-dahab`, or
-`generated=PATH` flags. `LIST` is
-comma-separated, strictly
+and optional `no-naive`, `with-dense`, `with-lopez-dahab`,
+`generated=PATH`, or `trials=N`.  The last option emits $N$ independently
+timed rows for the same exact support in one process; every row regenerates the
+same deterministic inputs from `seed`.  It is an experiment-driver primitive,
+not a change to the reduction timing scope.
+`LIST` is comma-separated, strictly
 increasing, duplicate-free, and contains only exponents in `[0,m)`; use `-`
 for the empty support. The CSV serializes taps with semicolons so the complete
 support occupies one field.
@@ -300,6 +303,15 @@ python3 bench/scripts/phase_diagram_benchmark.py \
   --manifest ld-supports.jsonl --output bench/data/ld-phase.csv \
   --inputs 8 --repeats 12 --seed 1 --no-naive --with-lopez-dahab
 ```
+
+For manifest runs, `--measurement-trials N` is sent to the native process as
+one exact-support batch.  `--warmup-runs K` prepends $K$ same-process rows and
+discards them before assigning measurement-trial indices.  This removes
+per-trial process startup from the sweep without placing it inside any
+reducer's measured interval.  If a long run is interrupted, rerun the identical
+command with `--resume`: the driver retains only complete samples, discards a
+partial final sample, and rejects changes in the manifest, metadata, method
+set, timing contract, or trial count.
 
 Every manifest entry must satisfy $m>W$ and $\deg q<m-W$ or the native
 benchmark rejects it before timing. `--with-lopez-dahab` requires
