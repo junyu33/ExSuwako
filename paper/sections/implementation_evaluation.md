@@ -65,9 +65,11 @@ Implement or integrate:
 2. optimized trinomial/pentanomial folding, including the Lopez--Dahab
    word-level reduction algorithm when its $\deg g<m-W$ assumption holds;
 3. Barrett;
-4. Montgomery;
+4. Montgomery only in a separately frozen Montgomery-domain multiplication
+   workload, not in the current direct $A\mapsto A\bmod g$ microbenchmark;
 5. dense linear reduction;
-6. generic polynomial remainder.
+6. the existing `Naive` ordinary polynomial long division as the generic
+   correctness/portability reference, not a tuned performance competitor.
 
 ### 8.6 Optional RTL Prototype
 
@@ -140,7 +142,10 @@ half-width above 1% as uncertain; these points are retained and counted rather
 than removed from the correlation or residual diagnostics.
 
 **RQ3: Crossover.** For which triples $(m,s,\Delta_{\min})$ does generalized
-Suwako outperform serial folding and Barrett/Montgomery?
+Suwako outperform serial folding and Barrett under the matched direct-
+reduction contract? Montgomery is excluded here because REDC returns
+$AR^{-1}\bmod g$; it belongs to a distinct Montgomery-domain multiplication
+question whose representation conversions and setup must be accounted for.
 
 **RQ4: Modulus agility.** How does
 $T_{\mathrm{setup}}+K T_{\mathrm{reduce}}$ behave as the number $K$ of

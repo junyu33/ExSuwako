@@ -14,6 +14,11 @@ evidence through the following levels:
 3. matched reduction microbenchmarks;
 4. reproducible artifact validation.
 
+Checkbox notation is `[x]` for completed work, `[ ]` for open work, and `[-]`
+for an item that was reviewed and found not applicable to the frozen
+experiment contract.  A `[-]` item must retain the reason rather than silently
+disappearing from the checklist.
+
 ## Source Coverage and Provenance
 
 This checklist consolidates executable experimental work; it does not replace
@@ -289,11 +294,25 @@ silent deduplication or normalization.
       structures remain intentionally distinct, and the common primitive is
       exercised at every bit offset by `check_sparse_shift.c` under ordinary,
       ASan, and UBSan builds.
-- [ ] Complete a matched Montgomery baseline where its representation and
-      setup assumptions are meaningful.
-- [ ] Include a generic polynomial-remainder implementation as a correctness
+- [-] Complete a matched Montgomery baseline where its representation and
+      setup assumptions are meaningful. [A] Not applicable to the frozen
+      direct-reduction contract: GS, Serial, Naive, and Barrett all compute
+      $A\mapsto A\bmod g$ for a materialized $A$ with $\deg A<2m$, whereas
+      Montgomery REDC computes $A\mapsto AR^{-1}\bmod g$ between Montgomery
+      representations.  Omitting conversion would compare different
+      operations; including conversion multiplication and extra REDC calls
+      would no longer measure the same reduction-only primitive.  Montgomery
+      remains meaningful only in a separately frozen Montgomery-domain
+      multiplication workload and is therefore not a Gate 3 curve.
+- [x] Include a generic polynomial-remainder implementation as a correctness
       and portability baseline, without presenting it as a tuned sparse
-      competitor.
+      competitor. [A] The existing `Naive` reducer performs ordinary
+      polynomial long division for any monic degree-$m$ binary modulus and
+      shares neither the sparse feedback schedule nor the GS factorization.
+      It remains in the unified API and differential tests as the independent
+      correctness/portability reference; `Naive_ns` may be retained as
+      contextual data but is not described as a tuned or strongest
+      performance baseline.
 - [ ] Add a dense linear-map baseline with setup time and storage reported.
 - [ ] Add a fixed-modulus code generator for active stages and low-part
       assembly; report generated code size.

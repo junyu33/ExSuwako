@@ -15,6 +15,12 @@ folding, naive long division, and Barrett all expose the same timed
 input generation, output allocation, correctness checks, and checksum
 consumption are outside the timed region.
 
+Naive long division is the generic polynomial-remainder correctness and
+portability reference.  It is independent of sparse schedules and accepts any
+monic degree-$m$ binary modulus.  Its `Naive_ns` field is contextual rather
+than a claim that this straightforward implementation is a tuned generic or
+sparse performance competitor.
+
 ## Portable scalar boundary validation
 
 `make check` differentially compares GS, Serial, Naive, and Barrett around
