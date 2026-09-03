@@ -311,7 +311,9 @@ per-trial process startup from the sweep without placing it inside any
 reducer's measured interval.  If a long run is interrupted, rerun the identical
 command with `--resume`: the driver retains only complete samples, discards a
 partial final sample, and rejects changes in the manifest, metadata, method
-set, timing contract, or trial count.
+set, timing contract, or trial count. CSV output is appended once per complete
+support, avoiding quadratic whole-file rewrites while retaining that recovery
+boundary.
 
 Every manifest entry must satisfy $m>W$ and $\deg q<m-W$ or the native
 benchmark rejects it before timing. `--with-lopez-dahab` requires

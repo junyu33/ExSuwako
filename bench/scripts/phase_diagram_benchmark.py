@@ -657,6 +657,11 @@ def main() -> None:
             writer.writeheader()
             writer.writerows(rows)
 
+    def append_rows(new_rows: list[dict[str, object]]) -> None:
+        with args.output.open("a", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=fields)
+            writer.writerows(new_rows)
+
     def expanded_command(command: list[str]) -> list[str]:
         command = list(command)
         if args.no_naive:
@@ -785,6 +790,9 @@ def main() -> None:
                     f"existing output has invalid trials for sample {sample_id!r}"
                 )
         save_rows()
+        rows = []
+    else:
+        save_rows()
 
     if manifest_entries is not None:
         for entry in manifest_entries:
@@ -802,6 +810,7 @@ def main() -> None:
                 hex(c_seed),
             ]
             measured, measured_command = exact_measured_runs(command)
+            support_rows: list[dict[str, object]] = []
             for trial, parsed_row in measured:
                 row: dict[str, object] = dict(parsed_row)
                 row["seed"] = c_seed
@@ -811,14 +820,14 @@ def main() -> None:
                     with_lopez_dahab=args.with_lopez_dahab,
                 )
                 add_measurement_fields(row, trial, measured_command)
-                rows.append(row)
+                support_rows.append(row)
                 print(
                     f"sample={entry['sample_id']} trial={trial} m={row['m']} "
                     f"taps={row['taps']} serial/GS={row['Serial/GS']} "
                     f"barrett/GS={row['BarrettGF2X/GS']}",
                     flush=True,
                 )
-                save_rows()
+            append_rows(support_rows)
     else:
         for s in args.s:
             if not 0 <= s <= args.m:
@@ -839,6 +848,7 @@ def main() -> None:
                     f"expected {args.samples * args.measurement_trials} "
                     f"rows for s={s}"
                 )
+            support_rows = []
             for trial, parsed_row in measured:
                 row = dict(parsed_row)
                 row["seed"] = c_seed
@@ -853,7 +863,7 @@ def main() -> None:
                     with_lopez_dahab=args.with_lopez_dahab,
                 )
                 add_measurement_fields(row, trial, command)
-                rows.append(row)
+                support_rows.append(row)
                 print(
                     f"sample={sample_id} trial={trial} "
                     f"delta={row['Delta_min']} "
@@ -861,7 +871,7 @@ def main() -> None:
                     f"barrett/GS={row['BarrettGF2X/GS']}",
                     flush=True,
                 )
-            save_rows()
+            append_rows(support_rows)
 
 
 if __name__ == "__main__":
