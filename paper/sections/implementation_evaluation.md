@@ -348,6 +348,15 @@ irreducible-modulus panel and makes no field-level performance claim;
 synthetic rows are identified by provenance but are not called reducible
 unless reducibility has actually been established.
 
+Paper-grade rows use `exsuwako-native-platform:v1`. A reviewable JSON snapshot
+records the clean commit, benchmark binary SHA-256, compiler and flags,
+resolved gf2x library, platform, hostname, selected logical CPU,
+governor/EPP/turbo observations, portable implementation registry, and
+multiplication backend. The driver enforces the recorded CPU affinity and
+adds its own command plus the exact native command to every row. Paper-grade
+mode rejects absent metadata, dirty or mismatched commits, and a binary digest
+mismatch; exploratory rows cannot pass the paper-grade winner analyzer.
+
 ### 9.4 Planned Figures
 
 The implemented geometry-only SVG path validates $h$ and

@@ -46,6 +46,12 @@ INVARIANT_FIELDS = (
     "Generated_enabled",
     "LopezDahabLoop_enabled",
 )
+PAPER_METADATA_FIELDS = (
+    "metadata_schema", "git_commit", "git_dirty", "compiler_path",
+    "compiler_version", "compiler_flags", "gf2x_library", "binary_sha256",
+    "platform", "machine", "hostname", "cpu_affinity", "frequency_policy",
+    "implementation", "multiplication_backend",
+)
 
 
 def quantile_nearest_rank(values: list[float], probability: float) -> float:
@@ -133,12 +139,21 @@ def load_rows(paths: list[Path]) -> list[dict[str, str]]:
 
 def analyze_supports(
     raw_rows: list[dict[str, str]], min_trials: int,
-    min_batch_repeats: int, min_warmup_runs: int,
+    min_batch_repeats: int, min_warmup_runs: int, paper_grade: bool,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in raw_rows:
         if row["timing_scope"] != TIMING_SCOPE:
             raise ValueError(f"unexpected timing scope {row['timing_scope']!r}")
+        if paper_grade:
+            missing = [field for field in PAPER_METADATA_FIELDS if not row.get(field)]
+            if missing or row.get("metadata_status") != "paper-grade":
+                raise ValueError(
+                    "paper-grade winner input lacks frozen metadata: "
+                    + ", ".join(missing)
+                )
+            if row["git_dirty"] != "0":
+                raise ValueError("paper-grade winner input records a dirty tree")
         grouped[row["sample_id"]].append(row)
 
     points: list[dict[str, object]] = []
@@ -285,6 +300,8 @@ def analyze_supports(
             "winner_reason": reason,
             "winner_contract": WINNER_CONTRACT,
         }
+        for field in PAPER_METADATA_FIELDS:
+            point[field] = first.get(field, "")
         for method in METHOD_FIELDS:
             if method in methods:
                 low, high = method_intervals[method]
@@ -298,6 +315,11 @@ def analyze_supports(
                 point[f"{method}_ci95_high"] = ""
                 point[f"{method}_relative_half_width"] = ""
         points.append(point)
+    if paper_grade:
+        for field in PAPER_METADATA_FIELDS:
+            values = {str(point[field]) for point in points}
+            if len(values) != 1:
+                raise ValueError(f"paper-grade inputs mix metadata field {field}")
     points.sort(key=lambda row: (int(row["m"]), int(row["h"]), int(row["Delta_min"])))
     return points, comparisons
 
@@ -375,6 +397,7 @@ def main() -> None:
     parser.add_argument("--min-trials", type=int, default=31)
     parser.add_argument("--min-batch-repeats", type=int, default=12)
     parser.add_argument("--min-warmup-runs", type=int, default=1)
+    parser.add_argument("--paper-grade", action="store_true")
     args = parser.parse_args()
     if (
         args.min_trials <= 0 or args.min_batch_repeats <= 0
@@ -383,7 +406,7 @@ def main() -> None:
         raise ValueError("trial minima must be positive and warm-up nonnegative")
     points, comparisons = analyze_supports(
         load_rows(args.input), args.min_trials, args.min_batch_repeats,
-        args.min_warmup_runs,
+        args.min_warmup_runs, args.paper_grade,
     )
     write_csv(args.points, points)
     write_csv(args.comparisons, comparisons)

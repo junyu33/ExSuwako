@@ -415,6 +415,13 @@ The paper-facing definition of this experiment is in
       paper panels can be regenerated from retained formal rows.
 - [ ] Record $W$, full tap placement, input distribution, implementation,
       platform, setup policy, and multiplication backend for every panel.
+      `capture_benchmark_metadata.py` and the phase driver's explicit
+      metadata mode now record and validate these fields, the clean commit,
+      binary digest, compiler, flags, resolved gf2x library, CPU affinity,
+      frequency policy, and exact commands. `--paper-grade` enforces the
+      recorded affinity and rejects missing metadata, a dirty tree, a commit
+      mismatch, or a binary mismatch. This item remains open until every
+      retained formal panel carries that contract.
 - [ ] Report friendly sparse regions, high-weight losses, small-degree
       overhead, and Barrett crossovers.
 - [ ] Plot feedback-stage count versus $\Delta_{\min}$ and gap-one scaling

@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
+import os
 import random
+import shlex
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +23,81 @@ CURRENT_TIMING_ORDER = "cyclic-method-rotation:v1"
 CURRENT_AGGREGATION = "median-of-trial-medians:no-outlier-removal:v1"
 CURRENT_GS_SOURCE_COST_MODEL = "scalar-source-v1"
 CURRENT_PLAN_STORAGE_MODEL = "requested-owned-bytes:v1"
+CURRENT_METADATA_SCHEMA = "exsuwako-native-platform:v1"
+METADATA_FIELDS = (
+    "git_commit", "git_dirty", "compiler_path", "compiler_version",
+    "compiler_flags", "gf2x_library", "binary_sha256", "platform",
+    "machine", "hostname", "cpu_affinity", "frequency_policy",
+    "implementation", "multiplication_backend",
+)
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_run_metadata(
+    path: Path | None, paper_grade: bool, binary: Path
+) -> dict[str, object]:
+    if path is None:
+        if paper_grade:
+            raise ValueError("--paper-grade requires --metadata")
+        return {
+            "metadata_status": "exploratory",
+            "metadata_schema": "",
+            **{field: "" for field in METADATA_FIELDS},
+        }
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("metadata must be a JSON object")
+    if value.get("metadata_schema") != CURRENT_METADATA_SCHEMA:
+        raise ValueError("unexpected benchmark metadata schema")
+    missing = [field for field in METADATA_FIELDS if field not in value]
+    if missing:
+        raise ValueError(f"metadata is missing fields: {', '.join(missing)}")
+    if not isinstance(value["cpu_affinity"], int) or value["cpu_affinity"] < 0:
+        raise ValueError("metadata cpu_affinity must be a nonnegative integer")
+    for field in METADATA_FIELDS:
+        if field not in ("git_dirty", "cpu_affinity", "frequency_policy"):
+            if not isinstance(value[field], str) or not value[field]:
+                raise ValueError(f"metadata field {field} must be nonempty")
+    if not isinstance(value["git_dirty"], bool):
+        raise ValueError("metadata git_dirty must be boolean")
+    if not isinstance(value["frequency_policy"], dict) or not value["frequency_policy"]:
+        raise ValueError("metadata frequency_policy must be a nonempty object")
+    if paper_grade and value["git_dirty"]:
+        raise ValueError("paper-grade benchmark requires a clean commit")
+    if paper_grade:
+        repository = Path(__file__).resolve().parents[2]
+        current_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=repository, check=True,
+            capture_output=True, text=True,
+        ).stdout.strip()
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain"], cwd=repository, check=True,
+            capture_output=True, text=True,
+        ).stdout.strip()
+        if dirty or value["git_commit"] != current_commit:
+            raise ValueError(
+                "paper-grade metadata does not describe the clean current commit"
+            )
+        if value["binary_sha256"] != file_sha256(binary):
+            raise ValueError("paper-grade metadata does not match the benchmark binary")
+    result: dict[str, object] = {
+        "metadata_status": "paper-grade" if paper_grade else "recorded-exploratory",
+        "metadata_schema": CURRENT_METADATA_SCHEMA,
+    }
+    for field in METADATA_FIELDS:
+        item = value[field]
+        result[field] = (
+            json.dumps(item, sort_keys=True, separators=(",", ":"))
+            if isinstance(item, dict) else int(item) if isinstance(item, bool) else item
+        )
+    return result
 
 
 def validate_manifest_entry(value: Any, line_number: int) -> dict[str, Any]:
@@ -456,6 +535,8 @@ def main() -> None:
     parser.add_argument("--no-naive", action="store_true")
     parser.add_argument("--with-dense", action="store_true")
     parser.add_argument("--with-lopez-dahab", action="store_true")
+    parser.add_argument("--metadata", type=Path)
+    parser.add_argument("--paper-grade", action="store_true")
     args = parser.parse_args()
 
     if args.inputs <= 0 or args.repeats <= 0:
@@ -473,11 +554,25 @@ def main() -> None:
     if args.with_lopez_dahab and args.manifest is None:
         raise ValueError("--with-lopez-dahab requires an exact-support manifest")
 
+    run_metadata = load_run_metadata(
+        args.metadata, args.paper_grade, args.binary.resolve()
+    )
+    if args.metadata is not None:
+        try:
+            os.sched_setaffinity(0, {int(run_metadata["cpu_affinity"])})
+        except (AttributeError, OSError) as error:
+            raise RuntimeError("could not enforce the recorded CPU affinity") from error
+
     rng = random.Random(args.seed)
     rows: list[dict[str, object]] = []
     fields = [
         "sample_id",
         "provenance",
+        "metadata_status",
+        "metadata_schema",
+        *METADATA_FIELDS,
+        "driver_command",
+        "benchmark_command",
         "m",
         "word_bits",
         "s",
@@ -550,13 +645,18 @@ def main() -> None:
             writer.writeheader()
             writer.writerows(rows)
 
-    def run(command: list[str]) -> list[dict[str, str]]:
+    def expanded_command(command: list[str]) -> list[str]:
+        command = list(command)
         if args.no_naive:
             command.append("no-naive")
         if args.with_dense:
             command.append("with-dense")
         if args.with_lopez_dahab:
             command.append("with-lopez-dahab")
+        return command
+
+    def run(command: list[str]) -> list[dict[str, str]]:
+        command = expanded_command(command)
         completed = subprocess.run(
             command, check=True, capture_output=True, text=True
         )
@@ -571,7 +671,12 @@ def main() -> None:
                 result.append((trial, row))
         return result
 
-    def add_measurement_fields(row: dict[str, object], trial: int) -> None:
+    def add_measurement_fields(
+        row: dict[str, object], trial: int, command: list[str]
+    ) -> None:
+        row.update(run_metadata)
+        row["driver_command"] = shlex.join(sys.argv)
+        row["benchmark_command"] = shlex.join(expanded_command(command))
         row["aggregation"] = CURRENT_AGGREGATION
         row["inputs"] = args.inputs
         row["batch_repeats"] = args.repeats
@@ -606,7 +711,7 @@ def main() -> None:
                     entry["m"], taps, with_dense=args.with_dense,
                     with_lopez_dahab=args.with_lopez_dahab,
                 )
-                add_measurement_fields(row, trial)
+                add_measurement_fields(row, trial, command)
                 rows.append(row)
                 print(
                     f"sample={entry['sample_id']} trial={trial} m={row['m']} "
@@ -648,7 +753,7 @@ def main() -> None:
                     args.m, taps, with_dense=args.with_dense,
                     with_lopez_dahab=args.with_lopez_dahab,
                 )
-                add_measurement_fields(row, trial)
+                add_measurement_fields(row, trial, command)
                 rows.append(row)
                 print(
                     f"sample={sample_id} trial={trial} "

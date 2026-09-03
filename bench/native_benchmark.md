@@ -386,6 +386,36 @@ does not infer boundaries between them. The summary recommends 63 and then
 rows additionally report whether any stable point lies within 1.10 times the
 fastest primary method and therefore requires a new five-method contract.
 
+### Paper-grade run metadata
+
+After building from a clean experiment commit, capture a metadata snapshot
+outside the worktree and pass it to every formal phase invocation:
+
+```text
+python3 bench/scripts/capture_benchmark_metadata.py \
+  --binary build/reduction_benchmark \
+  --output /tmp/exsuwako-run-metadata.json --cc cc \
+  --cflags '-O3 -std=c11 -Wall -Wextra' --cpu 3
+python3 bench/scripts/phase_diagram_benchmark.py \
+  --binary build/reduction_benchmark \
+  --manifest bench/manifests/paper/controlled-m512.jsonl \
+  --output bench/data/controlled-m512.csv \
+  --inputs 8 --repeats 12 --warmup-runs 1 --measurement-trials 31 \
+  --seed 0x9e3779b97f4a7c15 --no-naive \
+  --metadata /tmp/exsuwako-run-metadata.json --paper-grade
+```
+
+`exsuwako-native-platform:v1` records the commit and dirty state, binary
+SHA-256, compiler path/version/flags, resolved gf2x shared library, platform,
+machine, hostname, one logical CPU, governor/EPP/turbo observations,
+implementation registry, and multiplication backend. The phase driver pins
+itself and all child processes to the recorded logical CPU and emits both its
+complete command and each native benchmark command. `--paper-grade` rejects
+a dirty or mismatched checkout, a changed binary, missing metadata, or failure
+to enforce affinity. Analyze retained formal rows with
+`analyze_winner_panels.py --paper-grade`; exploratory rows cannot pass that
+mode.
+
 ## Fixed-Modulus Generated Reducer
 
 `generate_fixed_reducer.py` emits one of two C plugins specialized to an exact
