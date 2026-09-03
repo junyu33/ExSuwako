@@ -308,6 +308,12 @@ claims depend on it, not for general reduction correctness or timing.
 
 ### 9.4 Planned Figures
 
+The implemented geometry-only SVG path validates $h$ and
+$m/\Delta_{\min}$ and emits one panel per fixed $m$ before any method winner
+is assigned. Repeated timing trials collapse to one support point only after
+their coordinates agree; the $T=\varnothing$ boundary is reported separately
+because $\Delta_{\min}$ is undefined.
+
 1. **Schematic classical algorithm-selection phase diagram.** For a fixed
    $m$, show modulus Hamming weight $h$ horizontally and
    $m/\Delta_{\min}$ vertically on a logarithmic scale. Label the three

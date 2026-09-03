@@ -381,6 +381,22 @@ with semicolons, `feedback_active_tap_sum` is \(\sum_k h_k\), and `W_fb` is
 Irreducibility is not part of this general reduction contract; field-level
 experiments must record it separately when their claims require it.
 
+To render the geometry independently of any winner assignment, run:
+
+```text
+python3 bench/scripts/plot_phase_geometry.py \
+  --input bench/data/phase_raw.csv \
+  --output bench/data/phase_geometry.svg
+```
+
+The SVG contains one panel per fixed $m$, places modulus Hamming weight $h$ on
+the horizontal axis, and places $m/\Delta_{\min}$ on a base-two logarithmic
+vertical axis. Repeated measurement trials for one `sample_id` collapse to one
+geometry point after their coordinates agree. The $T=\varnothing$ boundary
+has no $\Delta_{\min}$ and is therefore counted and annotated separately
+rather than assigned a fabricated location on the logarithmic axis. This plot
+validates only the phase coordinates; it does not select or color a winner.
+
 The `scalar-source-v1` model covers the complete portable-scalar
 `gs_reduce_into()` data path for a canonical degree-below-$2m$ input and an
 $m$-bit output. It counts only data-word operations: descriptor accesses,

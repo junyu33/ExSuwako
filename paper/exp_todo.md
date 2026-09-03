@@ -350,8 +350,14 @@ silent deduplication or normalization.
 The paper-facing definition of this experiment is in
 [Implementation and Evaluation, Section 9.4](sections/implementation_evaluation.md#94-planned-figures).
 
-- [ ] For each fixed $m$, place modulus Hamming weight $h$ on the horizontal
-      axis and $m/\Delta_{\min}$ on a base-two logarithmic vertical axis.
+- [x] For each fixed $m$, place modulus Hamming weight $h$ on the horizontal
+      axis and $m/\Delta_{\min}$ on a base-two logarithmic vertical axis. [A]
+      `plot_phase_geometry.py` validates the emitted coordinate against
+      $m$ and $\Delta_{\min}$, collapses repeated trials to one support point,
+      and emits one dependency-free SVG panel per fixed $m$.  The undefined
+      $T=\varnothing$ coordinate is counted and annotated separately rather
+      than placed on the logarithmic axis; winner assignment remains a later
+      Gate 3 item.
 - [ ] Compare serial sparse folding (shift/XOR), generalized Suwako, and
       gf2x-backed Barrett under the same reduction contract and input corpus.
 - [ ] Add optimized ordinary-loop trinomial/pentanomial folding and dense

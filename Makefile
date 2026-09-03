@@ -115,6 +115,7 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 		--include include --gf2x-include $(GF2X_PREFIX)/include
 	$(PYTHON) tests/check_experiment_contract.py --binary $(TARGET)
 	$(PYTHON) tests/check_cost_model_analysis.py
+	$(PYTHON) tests/check_phase_geometry_plot.py
 	$(MAKE) check-theory
 
 check-theory:
