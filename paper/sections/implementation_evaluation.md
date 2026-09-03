@@ -237,6 +237,16 @@ and p99 rather than only the mean. Do not label this model "random
 polynomials" without specifying the fixed weight: unconstrained random
 polynomials are typically dense.
 
+The implemented fixed-weight summarizer requires at least 100 distinct exact
+supports per $(m,h)$ cell by default. It first takes the median of retained
+trial measurements for each support and only then computes the cross-support
+median and nearest-rank p90/p99. Thus machine-level timing repetition is not
+treated as additional draws from the support distribution. Duplicate tap
+sets, incomplete trial sequences, mixed experiment contracts, and provenance
+other than `synthetic-fixed-weight-uniform:v1` are rejected. Both the
+support-level medians and the cell summaries are retained, so losing and tail
+cases remain auditable rather than being replaced by favorable examples.
+
 The reduction-only input contract is:
 
 | Registry name | Definition | Current status |

@@ -388,8 +388,16 @@ The paper-facing definition of this experiment is in
       silently dropping it. The resulting exact JSONL manifest is consumed
       unchanged by the phase driver, and its contract test checks axis
       coverage, canonical taps, provenance, uniqueness, and determinism.
-- [ ] Sample fixed-weight supports and report median, p90, and p99 rather than
-      only favorable examples.
+- [x] Sample fixed-weight supports and report median, p90, and p99 rather than
+      only favorable examples. [A] Random mode samples complete fixed-size
+      subsets of $\{0,\ldots,m-1\}$ under a recorded seed and preserves every
+      exact support. `summarize_fixed_weight.py` first takes the median across
+      retained timing trials for each support, then reports the median and
+      nearest-rank p90/p99 across at least 100 distinct supports in each
+      fixed $(m,h)$ cell. It emits both the support-level table and the cell
+      summary, rejects duplicate supports, incomplete trial sets, mixed
+      contracts, and non-random provenance, and never selects supports by
+      observed performance.
 - [ ] Include real irreducible moduli and label reducible ring-level stress
       tests separately.
 - [ ] Produce fixed-$m$ winner panels and mark statistically or operationally

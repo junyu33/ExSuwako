@@ -331,6 +331,31 @@ and constant policy simultaneously, generation fails instead of silently
 producing an incomplete grid. This deterministic grid controls geometry; it
 does not replace the separate fixed-weight random-support distribution.
 
+For the fixed-weight distribution, collect raw rows with the random mode and
+then summarize timing trials separately from support-to-support variation:
+
+```text
+python3 bench/scripts/phase_diagram_benchmark.py \
+  --binary build/reduction_benchmark \
+  --output bench/data/random-fixed-weight-raw.csv --m 512 \
+  --s 1 2 4 8 16 32 --samples 100 --inputs 8 --repeats 12 \
+  --warmup-runs 1 --measurement-trials 31 --seed 1 --no-naive
+python3 bench/scripts/summarize_fixed_weight.py \
+  --input bench/data/random-fixed-weight-raw.csv \
+  --supports bench/data/random-fixed-weight-supports.csv \
+  --summary bench/data/random-fixed-weight-summary.csv
+```
+
+The summarizer first computes one median per exact support across retained
+measurement trials. Within each fixed $(m,h)$ cell it then reports the median
+and nearest-rank p90 and p99 across distinct supports for GS, Serial, Barrett,
+their primary ratios, and the support-geometry metrics. Enabled optional
+methods are included consistently. The default contract requires 100 unique
+supports, 31 complete trials per support, 12 batch repeats, and one warm-up
+invocation. Duplicate supports, mixed timing contracts, incomplete trial
+indices, and non-fixed-weight provenance are rejected rather than silently
+pooled or removed.
+
 ## Fixed-Modulus Generated Reducer
 
 `generate_fixed_reducer.py` emits one of two C plugins specialized to an exact

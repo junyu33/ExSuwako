@@ -599,6 +599,36 @@ def check_manifest(binary: Path, driver: Path) -> None:
         if any(trials != ["0", "1", "2"] for trials in trials_by_sample.values()):
             raise AssertionError("measurement-trial indices are incomplete")
 
+        support_output = root / "random-supports.csv"
+        summary_output = root / "random-summary.csv"
+        run([
+            sys.executable,
+            str(driver.with_name("summarize_fixed_weight.py")),
+            "--input",
+            str(trial_output),
+            "--supports",
+            str(support_output),
+            "--summary",
+            str(summary_output),
+            "--min-supports",
+            "2",
+            "--min-trials",
+            "3",
+            "--min-batch-repeats",
+            "1",
+        ])
+        with summary_output.open(newline="", encoding="utf-8") as stream:
+            summary_rows = list(csv.DictReader(stream))
+        if not summary_rows or any(
+            row["unique_supports"] != "2"
+            or row["provenance"] != "synthetic-fixed-weight-uniform:v1"
+            or row["h"] != "4"
+            for row in summary_rows
+        ):
+            raise AssertionError(
+                "fixed-weight summary did not preserve random phase cells"
+            )
+
         repeated_output = root / "random-repeated.csv"
         repeated_command = list(random_command)
         repeated_command[repeated_command.index(str(random_output))] = str(
