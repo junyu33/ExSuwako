@@ -76,14 +76,74 @@ has no mathematical meaning; sorting is the canonical serialized form. Native
 experiment inputs must already satisfy this convention rather than relying on
 silent deduplication or normalization.
 
-- [x] [Q] What is the canonical binary tap convention? [A] `taps=sort(T)` is the complete ascending nonleading support, includes exponent 0 exactly when present, excludes $m$, permits the empty set, and defines $s=|T|$ and $h=s+1$.
-- [x] [Q] How is the exact tested modulus recovered? [A] Use the exact tap-list CLI or a JSONL manifest; a seed alone is not the modulus identity.
-- [x] [Q] Which modulus identity and geometry fields are preserved? [A] Preserve `sample_id`, `provenance`, $m$, and complete taps, then deterministically derive and emit $s$, $h$, $\Delta_{\min}$, feedback stages, active-tap profile, and scheduled work; record irreducibility separately only for field-level claims that require it.
-- [x] [Q] What is the reduction input domain and primary distribution? [A] `uniform-full-range:v1` samples every degree-below-$2m$ input as $A=L+x^mH$ for independent uniform $m$-bit $L,H$.
-- [x] [Q] What does the benchmark time? [A] `reduction-steady-state:v1` times only batched reduction of materialized inputs $A$ with $\deg A<2m$ modulo the selected monic polynomial $g$ through `reduce_into()`; reusable setup, allocation, validation, and reporting remain outside.
-- [x] [Q] How are setup costs accounted for? [A] `modulus-plan:v1` reports the median time over fresh plan constructions from materialized $m$, taps, and $g$, including schedules, reciprocals, and plan-owned scratch allocation while excluding parsing, shared modulus materialization, benchmark buffers, validation, reporting, and teardown; preserve raw $T_{\mathrm{setup}}$ and $T_{\mathrm{reduce}}$ and derive $T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for an explicitly stated $K$, while future generated-code and dense-map baselines must additionally report generation, compilation, code/storage size, and allocation separately.
-- [x] [Q] How is timing noise controlled and the platform frozen? [A] On each recorded platform, build with the archived compiler and `-O3 -std=c11 -Wall -Wextra`, emit $W$, record the resolved gf2x library, pin the complete driver to one documented logical CPU, record its governor/EPP/turbo policy, cyclically rotate method order, discard one whole-invocation warm-up, retain at least 31 independent trial rows each containing the median of 12 timed batches over the same deterministic inputs (balancing every timing position in both three- and four-method runs), report the across-trial median and a deterministic bootstrap 95% interval, delete no outliers, add retained trials or mark the point uncertain when the interval's relative half-width exceeds 1%, and never pool rows across different toolchain, linkage, affinity, or frequency policies.
-- [x] [Q] How are randomized runs reproduced and exceptional cases retained? [A] Every random path uses a deterministic recorded seed, identical phase-driver seeds are regression-tested to reproduce support identities and geometry, native correctness failures print seed, suite, degree, trial, complete taps, and exact input words, minimized failures are added as word-width-independent bit-exponent cases in `tests/reduction_regressions.h`, and benchmark-only anomalous supports are retained with `sample_id`, provenance, degree, and complete taps in `bench/manifests/regression_supports.jsonl` rather than as committed exploratory CSV.
+- [x] [Q] Freeze the tap convention, including whether the constant tap is
+      listed explicitly and whether $h$ includes the leading term. [A]
+      `taps=sort(T)` is the complete ascending nonleading support, includes
+      exponent 0 exactly when present, excludes $m$, permits the empty set,
+      and defines $s=|T|$ and $h=s+1$.
+- [x] [Q] Add an exact tap-list or manifest input mode; do not rely only on a
+      seed to recover the tested modulus. [A] Use the exact tap-list CLI or a
+      JSONL manifest; a seed alone is not the modulus identity.
+- [x] [Q] Emit the complete tap set, irreducibility status, provenance, $m$,
+      $h$, $\Delta_{\min}$, active-tap profile, and sample identifier. [A]
+      General reduction rows preserve `sample_id`, `provenance`, $m$, and
+      complete taps, then deterministically derive and emit $s$, $h$,
+      $\Delta_{\min}$, feedback stages, active-tap profile, and scheduled
+      work; irreducibility is recorded separately only for field-level claims
+      that require it, because general reduction does not assume it.
+- [x] [Q] Define and name each input distribution: high monomial, random high
+      half, multiplication product, polynomial square, and
+      application-generated state. [A] The experiment scope was narrowed to
+      reduction of arbitrary inputs with degree below $2m$; the sole primary
+      distribution is `uniform-full-range:v1`, which samples $A=L+x^mH$ for
+      independent uniform $m$-bit $L,H$. Products and squares are subsets of
+      this reduction domain and are not separate reduction distributions;
+      application workloads are outside the current reduction-only contract.
+- [x] [Q] Freeze the timed boundary for reduction-only, square formation,
+      modular squaring, multiplication, and end-to-end workloads. [A] The
+      experiment scope was narrowed to reduction-only:
+      `reduction-steady-state:v1` times batched reduction of materialized
+      inputs $A$ with $\deg A<2m$ modulo the selected monic polynomial $g$
+      through `reduce_into()`; reusable setup, allocation, validation, and
+      reporting remain outside, while square formation, multiplication, and
+      end-to-end workloads are not measured.
+- [x] [Q] Freeze setup accounting: schedule generation, reciprocal
+      generation, generated code, dense matrices, allocation, and
+      amortization over $K$. [A] `modulus-plan:v1` reports the median time over
+      fresh plan constructions from materialized $m$, taps, and $g$, including
+      schedules, reciprocals, and plan-owned scratch allocation while
+      excluding parsing, shared modulus materialization, benchmark buffers,
+      validation, reporting, and teardown; preserve raw
+      $T_{\mathrm{setup}}$ and $T_{\mathrm{reduce}}$ and derive
+      $T_{\mathrm{setup}}+KT_{\mathrm{reduce}}$ only for an explicitly stated
+      $K$, while future generated-code and dense-map baselines must
+      additionally report generation, compilation, code/storage size, and
+      allocation separately.
+- [x] [Q] Freeze compiler flags, word width $W$, gf2x build and linkage, CPU
+      affinity, frequency policy, warm-up, repetitions, aggregation, and
+      outlier treatment. [A] On each recorded platform, build with the
+      archived compiler and `-O3 -std=c11 -Wall -Wextra`, emit $W$, record the
+      resolved gf2x library, pin the complete driver to one documented logical
+      CPU, record its governor/EPP/turbo policy, cyclically rotate method
+      order, discard one whole-invocation warm-up, and retain at least 31
+      independent trial rows, each containing the median of 12 timed batches
+      over the same deterministic inputs and balancing every timing position
+      in both three- and four-method runs; report the across-trial median and
+      a deterministic bootstrap 95% interval, delete no outliers, add retained
+      trials or mark the point uncertain when the interval's relative
+      half-width exceeds 1%, and never pool rows across different toolchain,
+      linkage, affinity, or frequency policies.
+- [x] [Q] Use deterministic seeds and preserve failing or anomalous cases as
+      permanent regression inputs. [A] Every random path uses a deterministic
+      recorded seed, identical phase-driver seeds are regression-tested to
+      reproduce support identities and geometry, and native correctness
+      failures print seed, suite, degree, trial, complete taps, and exact input
+      words; minimized failures are added as word-width-independent
+      bit-exponent cases in
+      `tests/reduction_regressions.h`, while benchmark-only anomalous supports
+      are retained with `sample_id`, provenance, degree, and complete taps in
+      `bench/manifests/regression_supports.jsonl` rather than as committed
+      exploratory CSV.
 
 ## Gate 1: Correctness
 
@@ -92,26 +152,34 @@ silent deduplication or normalization.
       Gate 4. Ordinary development commits do not independently reset this
       item; rerun it after changes that affect algorithms, tests, toolchains,
       or experimental semantics.
-- [x] Exhaust all tap sets and all inputs for small $m$ where feasible. For
-      $m\le6$, the GF(2) suite checks every monic binary modulus and every
-      input of degree below $2m$ against independent long division: 299,592
-      modulus/input pairs in total.
-- [x] Run the deterministic theorem-falsification suites through `make check`:
-      20,000 GF(2) random trials with $m\le128$, 299,592 exhaustive binary
-      modulus/input pairs for $m\le6$, 266,304 exhaustive dual-number cases
-      for $m\le3$, and the recorded randomized \(\mathbb F_4\) and
-      \(\mathbb F_3\) differential checks.  Sources:
-      [round 1](../tests/check_theory_round1_gf2.py),
-      [round 2](../tests/check_theory_round2_algebras.py), and
-      [validation record](raw/math_3.md).  This is computational
-      falsification, not a proof.
-- [x] Cover $\Delta_{\min}=1$, taps at both ends, mixed aligned and unaligned
-      shifts, dense supports, constant-free moduli, reducible moduli, and
-      non-word-aligned degrees. The deterministic native suite runs 10,000
-      stratified random full-input cases for $1\le m\le512$ in addition to
-      700 fixed-degree cases; failures print a directly reproducible case.
-- [ ] Verify that every generalized-Suwako stage reads one immutable old
-      state across all active taps.
+- [x] [Q] Exhaust all tap sets and all inputs for small $m$ where feasible.
+      [A] [Round 1](../tests/check_theory_round1_gf2.py) checks every monic
+      binary modulus and every input of degree below $2m$ for $m\le6$ against
+      independent long division, totaling 299,592 exhaustive modulus/input
+      pairs, and adds 20,000 random GF(2) cases with $m\le128$, all with no
+      mismatch.
+- [x] [Q] Run deterministic theorem-falsification suites for the
+      coefficient-algebra and positive-characteristic extensions through
+      `make check`. [A]
+      [Round 2](../tests/check_theory_round2_algebras.py) checks 20,000 random
+      and 266,304 exhaustive cases over
+      $\mathbb F_2[\varepsilon]/(\varepsilon^2)$, 20,000 random cases over
+      $\mathbb F_4$, and 10,000 random radix-$p$ identity and reduction-sign
+      cases over $\mathbb F_3$; it also exposed the nilpotent-coefficient
+      qualification now recorded in the [validation record](raw/math_3.md).
+- [x] [Q] Cover $\Delta_{\min}=1$, taps at both ends, mixed aligned and
+      unaligned shifts, dense supports, constant-free moduli, reducible
+      moduli, and non-word-aligned degrees. [A] The deterministic native suite
+      runs 10,000 stratified random full-input cases for $1\le m\le512$ plus
+      700 fixed-degree cases and prints a directly reproducible case on
+      failure.
+- [x] [Q] Verify that every generalized-Suwako stage reads one immutable old
+      state across all active taps. [A] `tests/check_gs_stage.c` invokes the
+      actual private scalar stage kernel without changing the production
+      source or API and compares each in-place stage against an independent
+      out-of-place, bit-level immutable-old reference for all-aligned,
+      all-unaligned, mixed-shift, word-boundary, non-word-aligned-degree, and
+      20,000 deterministic random cases.
 - [ ] Test feedback closure and final low-part assembly independently.
 - [ ] If the coefficient-algebra or positive-characteristic extensions are
       promoted beyond theorem statements, add small exact differential tests

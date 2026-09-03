@@ -43,14 +43,6 @@ $$
 
 This is credible only if all arrows are measured. The benchmark must include the polynomial-search or factorization driver, not merely a reduction-only microbenchmark.
 
-### Required Validation
-
-The authoritative execution checklist is
-[Gate 4A of the experimental TODO](../exp_todo.md#gate-4a-repeated-modular-squaring).
-It separates reduction-only, complete modular-square, and end-to-end
-factorization or irreducibility evidence, and requires the strongest
-specialized squaring baseline.
-
 ## Coupled Direction: Platform-Specific Modulus Selection
 
 The choice of irreducible polynomial is an implementation decision, not only an algebraic one. A modulus favorable for serial folding need not be best for another reduction algorithm or a different target platform. The candidate research question is:
@@ -75,14 +67,6 @@ $$
 $$
 
 An affirmative result would expand the practically viable modulus space rather than merely improve a fixed reducer. A negative result would still quantify how much the traditional friendly-modulus heuristic survives under the new method.
-
-### Required Validation
-
-The authoritative execution checklist is
-[Gate 4B of the experimental TODO](../exp_todo.md#gate-4b-platform-specific-modulus-selection).
-It covers candidate provenance, fixed objectives, architecture-specific
-ranking, representation constraints, and coupling to repeated modular
-squaring.
 
 ## Deliberately Secondary Direction: CRC and Rabin Fingerprints
 
