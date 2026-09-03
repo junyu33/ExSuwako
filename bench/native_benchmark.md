@@ -309,6 +309,28 @@ comparison with GS, Serial, and Barrett. Dense remains a diagnostic baseline
 subject to its matrix-size limit. Whether either opt-in belongs in a final
 winner panel is decided from the formal sweep, not assumed from its presence.
 
+Generate an exact controlled grid before running the phase driver:
+
+```text
+python3 bench/scripts/generate_controlled_supports.py \
+  --output bench/data/controlled-m512.jsonl --m 512 \
+  --h 2 3 5 9 17 33 --delta-min 1 2 4 8 16 64 128 256
+python3 bench/scripts/phase_diagram_benchmark.py \
+  --binary build/reduction_benchmark \
+  --manifest bench/data/controlled-m512.jsonl \
+  --output bench/data/controlled-m512.csv \
+  --inputs 8 --repeats 12 --seed 1 --no-naive
+```
+
+The generator emits the full feasible Cartesian product of the requested
+$h$ and $\Delta_{\min}$ axes, fixing the highest tap and deterministically
+spreading all remaining taps. Its default `absent` policy is constant-free;
+`--constant-policy present` creates a separately labelled constant-present
+grid. If even one requested cell cannot realize the requested weight, gap,
+and constant policy simultaneously, generation fails instead of silently
+producing an incomplete grid. This deterministic grid controls geometry; it
+does not replace the separate fixed-weight random-support distribution.
+
 ## Fixed-Modulus Generated Reducer
 
 `generate_fixed_reducer.py` emits one of two C plugins specialized to an exact

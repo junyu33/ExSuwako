@@ -175,6 +175,13 @@ question whose representation conversions and setup must be accounted for.
 The implemented primary path materializes one input batch per support, checks
 GS, Serial, and gf2x-backed Barrett on that batch, and then times all three on
 the same immutable inputs under cyclic method-order rotation.
+Controlled phase samples are generated as a complete feasible Cartesian grid
+of explicitly selected $(m,h,\Delta_{\min})$ values. The highest tap is fixed
+to $m-\Delta_{\min}$ and the remaining taps are deterministically spread, so
+weight and feedback gap can be swept independently. Constant-free and
+constant-present grids have distinct provenance labels, and infeasible cells
+are rejected rather than omitted. These controlled points isolate the two
+axes; fixed-weight random-support quantiles remain a separate experiment.
 
 **RQ4: Modulus agility.** How does
 $T_{\mathrm{setup}}+K T_{\mathrm{reduce}}$ behave as the number $K$ of

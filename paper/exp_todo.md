@@ -378,8 +378,16 @@ The paper-facing definition of this experiment is in
       measurements.  Dense is retained as a diagnostic baseline; promotion
       of either method into final winner panels remains conditional on the
       formal sweep rather than an exploratory timing.
-- [ ] Sweep controlled synthetic supports so that $h$ and
-      $\Delta_{\min}$ vary independently.
+- [x] Sweep controlled synthetic supports so that $h$ and
+      $\Delta_{\min}$ vary independently. [A]
+      `generate_controlled_supports.py` emits the complete feasible Cartesian
+      product of explicitly requested $m$, $h$, and $\Delta_{\min}$ values.
+      It fixes the highest tap to $m-\Delta_{\min}$ and deterministically
+      spreads the remaining taps, with separately labelled constant-free and
+      constant-present policies; it rejects any infeasible cell rather than
+      silently dropping it. The resulting exact JSONL manifest is consumed
+      unchanged by the phase driver, and its contract test checks axis
+      coverage, canonical taps, provenance, uniqueness, and determinism.
 - [ ] Sample fixed-weight supports and report median, p90, and p99 rather than
       only favorable examples.
 - [ ] Include real irreducible moduli and label reducible ring-level stress

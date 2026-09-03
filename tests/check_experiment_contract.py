@@ -368,6 +368,58 @@ def check_manifest(binary: Path, driver: Path) -> None:
         ):
             raise AssertionError("enabled Dense measurements must be positive")
 
+        controlled_manifest = root / "controlled.jsonl"
+        controlled_output = root / "controlled.csv"
+        run([
+            sys.executable,
+            str(driver.with_name("generate_controlled_supports.py")),
+            "--output",
+            str(controlled_manifest),
+            "--m",
+            "17",
+            "--h",
+            "2",
+            "3",
+            "--delta-min",
+            "1",
+            "4",
+        ])
+        run([
+            sys.executable,
+            str(driver),
+            "--binary",
+            str(binary),
+            "--manifest",
+            str(controlled_manifest),
+            "--output",
+            str(controlled_output),
+            "--inputs",
+            "2",
+            "--repeats",
+            "3",
+            "--seed",
+            "23",
+            "--no-naive",
+        ])
+        with controlled_output.open(newline="", encoding="utf-8") as stream:
+            controlled_rows = list(csv.DictReader(stream))
+        controlled_cells = {
+            (int(row["h"]), int(row["Delta_min"]))
+            for row in controlled_rows
+        }
+        if controlled_cells != {(2, 1), (2, 4), (3, 1), (3, 4)}:
+            raise AssertionError(
+                "phase driver did not preserve the controlled Cartesian grid"
+            )
+        if any(
+            row["provenance"]
+            != "synthetic-controlled-cartesian-spread-constant-free:v1"
+            for row in controlled_rows
+        ):
+            raise AssertionError(
+                "phase driver did not preserve controlled-grid provenance"
+            )
+
         ld_manifest = root / "lopez-dahab.jsonl"
         ld_output = root / "lopez-dahab.csv"
         ld_manifest.write_text(
