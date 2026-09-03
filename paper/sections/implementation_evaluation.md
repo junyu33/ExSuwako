@@ -202,22 +202,27 @@ dependence on modulus degree, word size, and implementation platform?
 
 ### 9.2 Parameter Grid
 
-Suggested:
+The six main fixed-degree panels use a $2\times3$ layout and
 
 $$
 m\in
-\{128,256,512,1024,2048,4096,8192\},
+\{128,512,2048,8192,32768,131072\}.
 $$
 
+Intermediate controlled panels use
+$m\in\{256,1024,4096,16384,65536\}$.  The large-degree scaling slice extends
+through $m=2^{20}$ without repeating the complete random-support sweep above
+$m=131072$.
+
 $$
-s\in
-\{0,1,2,4,8,16,32,64,128,\ldots\},
+h\in
+\{2,3,5,9,17,33,65\},
 $$
 
 $$
 \Delta_{\min}
 \in
-\{1,2,4,8,16,64,m/4,m/2\}.
+\{1,2,4,\ldots,m/2\}.
 $$
 
 Include:
@@ -238,8 +243,13 @@ and p99 rather than only the mean. Do not label this model "random
 polynomials" without specifying the fixed weight: unconstrained random
 polynomials are typically dense.
 
-The implemented fixed-weight summarizer requires at least 100 distinct exact
-supports per $(m,h)$ cell by default. It first takes the median of retained
+The formal grid requests 256 distinct exact supports per $(m,h)$ cell.  When
+the population is smaller, it uses the complete population; in particular,
+$(m,h)=(128,2)$ contains only 128 supports.  The deterministic manifest
+generator records the sampler, master seed, population, requested count, and
+realized count before timing.  The implemented fixed-weight summarizer
+requires at least 100 distinct exact supports per cell by default and first
+takes the median of retained
 trial measurements for each support and only then computes the cross-support
 median and nearest-rank p90/p99. Thus machine-level timing repetition is not
 treated as additional draws from the support distribution. Duplicate tap
@@ -345,6 +355,14 @@ $m/\Delta_{\min}$ and emits one panel per fixed $m$ before any method winner
 is assigned. Repeated timing trials collapse to one support point only after
 their coordinates agree; the $T=\varnothing$ boundary is reported separately
 because $\Delta_{\min}$ is undefined.
+The implemented winner analyzer uses a deterministic 10,000-resample
+bootstrap for each method median and for trial-paired runtime ratios. A point
+receives a unique winner only when every method's relative interval half-width
+is at most 1%, the median advantage over every competitor is at least 1%, and
+every paired-ratio interval lies strictly below one. Otherwise the point is
+retained as a timing, operational, or statistical uncertainty. The SVG path
+colors only measured points, marks uncertainty in gray, outlines points where
+López--Dahab participated, and never interpolates an unmeasured boundary.
 
 1. **Schematic classical algorithm-selection phase diagram.** For a fixed
    $m$, show modulus Hamming weight $h$ horizontally and

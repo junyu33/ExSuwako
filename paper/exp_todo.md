@@ -389,15 +389,16 @@ The paper-facing definition of this experiment is in
       unchanged by the phase driver, and its contract test checks axis
       coverage, canonical taps, provenance, uniqueness, and determinism.
 - [x] Sample fixed-weight supports and report median, p90, and p99 rather than
-      only favorable examples. [A] Random mode samples complete fixed-size
-      subsets of $\{0,\ldots,m-1\}$ under a recorded seed and preserves every
-      exact support. `summarize_fixed_weight.py` first takes the median across
-      retained timing trials for each support, then reports the median and
-      nearest-rank p90/p99 across at least 100 distinct supports in each
-      fixed $(m,h)$ cell. It emits both the support-level table and the cell
-      summary, rejects duplicate supports, incomplete trial sets, mixed
-      contracts, and non-random provenance, and never selects supports by
-      observed performance.
+      only favorable examples. [A] `generate_fixed_weight_supports.py`
+      materializes deterministic exact-support manifests before timing, using
+      256 distinct supports per requested $(m,h)$ cell or the complete
+      $\binom{m}{h-1}$ population when it is smaller. The sampler, seed,
+      population, and realized count remain in the manifest.
+      `summarize_fixed_weight.py` first takes the median across retained
+      timing trials for each support, then reports the median and nearest-rank
+      p90/p99 across distinct supports. It emits both support-level and cell
+      tables and rejects duplicates, incomplete trials, mixed contracts, and
+      non-random provenance rather than selecting favorable examples.
 - [-] Include real irreducible moduli and label reducible ring-level stress
       tests separately. [A] Not planned for the frozen reduction-only phase
       diagram: correctness and timing apply to arbitrary monic binary moduli,
@@ -408,6 +409,10 @@ The paper-facing definition of this experiment is in
       a separate manifest with reproducible irreducibility evidence.
 - [ ] Produce fixed-$m$ winner panels and mark statistically or operationally
       uncertain cells instead of forcing a clean boundary.
+      The paired-bootstrap analyzer and non-interpolating SVG renderer are
+      implemented and exercised by an exploratory $m=512$ pilot. This item
+      remains open until the metadata contract is implemented and all six
+      paper panels can be regenerated from retained formal rows.
 - [ ] Record $W$, full tap placement, input distribution, implementation,
       platform, setup policy, and multiplication backend for every panel.
 - [ ] Report friendly sparse regions, high-weight losses, small-degree

@@ -331,14 +331,18 @@ and constant policy simultaneously, generation fails instead of silently
 producing an incomplete grid. This deterministic grid controls geometry; it
 does not replace the separate fixed-weight random-support distribution.
 
-For the fixed-weight distribution, collect raw rows with the random mode and
-then summarize timing trials separately from support-to-support variation:
+For a formal fixed-weight distribution, materialize the exact supports before
+timing and then summarize trials separately from support-to-support variation:
 
 ```text
+python3 bench/scripts/generate_fixed_weight_supports.py \
+  --output bench/data/random-fixed-weight-m512.jsonl \
+  --m 512 --h 2 3 5 9 17 33 65 --samples 256 \
+  --seed 0x4558535557414b4f
 python3 bench/scripts/phase_diagram_benchmark.py \
   --binary build/reduction_benchmark \
-  --output bench/data/random-fixed-weight-raw.csv --m 512 \
-  --s 1 2 4 8 16 32 --samples 100 --inputs 8 --repeats 12 \
+  --manifest bench/data/random-fixed-weight-m512.jsonl \
+  --output bench/data/random-fixed-weight-raw.csv --inputs 8 --repeats 12 \
   --warmup-runs 1 --measurement-trials 31 --seed 1 --no-naive
 python3 bench/scripts/summarize_fixed_weight.py \
   --input bench/data/random-fixed-weight-raw.csv \
@@ -354,7 +358,33 @@ methods are included consistently. The default contract requires 100 unique
 supports, 31 complete trials per support, 12 batch repeats, and one warm-up
 invocation. Duplicate supports, mixed timing contracts, incomplete trial
 indices, and non-fixed-weight provenance are rejected rather than silently
-pooled or removed.
+pooled or removed. The formal design requests 256 unique supports per cell;
+if $\binom{m}{h-1}<256$, the manifest generator exhausts that complete
+population and reports the cap explicitly.
+
+Classify controlled winner points and render the measured panels with:
+
+```text
+python3 bench/scripts/analyze_winner_panels.py \
+  --input bench/data/controlled-core.csv bench/data/controlled-ld.csv \
+  --points bench/data/winner-points.csv \
+  --comparisons bench/data/winner-comparisons.csv \
+  --summary bench/data/winner-summary.csv
+python3 bench/scripts/plot_winner_panels.py \
+  --input bench/data/winner-points.csv \
+  --output bench/data/winner-panels.svg --columns 3
+```
+
+`paired-bootstrap-one-percent:v1` uses 10,000 deterministic bootstrap
+resamples. A unique winner must be stable to the 1% relative-half-width rule,
+at least 1% faster in median time than every competitor, and have every
+trial-paired ratio interval strictly below one. All other measured points are
+retained with an explicit uncertainty reason. The renderer plots only those
+points, uses three columns (six main degrees form a $2\times3$ figure), and
+does not infer boundaries between them. The summary recommends 63 and then
+127 trials when more than 5% of a panel remains timing-unstable. Dense screen
+rows additionally report whether any stable point lies within 1.10 times the
+fastest primary method and therefore requires a new five-method contract.
 
 ## Fixed-Modulus Generated Reducer
 
