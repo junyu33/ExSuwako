@@ -443,8 +443,8 @@ int main(int argc, char **argv) {
     if (with_lopez_dahab && !exact_mode)
         die("Lopez-Dahab benchmark requires exact tap-list mode");
     if (with_lopez_dahab
-            && (m <= WORD_BITS || (s && exact_taps[s - 1] >= m - WORD_BITS)))
-        die("Lopez-Dahab requires m > W and deg(q) < m-W");
+            && (m <= WORD_BITS || (s && exact_taps[s - 1] > m - WORD_BITS)))
+        die("Lopez-Dahab extension requires m > W and deg(q) <= m-W");
     if (with_dense) {
         size_t matrix_bytes;
         if (!dense_matrix_bytes(m, &matrix_bytes)

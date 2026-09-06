@@ -110,12 +110,12 @@ def main() -> None:
             sys.executable, str(freeze_script), "--output-dir", str(frozen)
         ])
         frozen_files = sorted(frozen.glob("*.jsonl"))
-        if len(frozen_files) != 46:
+        if len(frozen_files) != 59:
             raise AssertionError(
-                f"winner suite emitted {len(frozen_files)} files instead of 46"
+                f"winner suite emitted {len(frozen_files)} files instead of 59"
             )
         frozen_entries = [entry for path in frozen_files for entry in load(path)]
-        if len(frozen_entries) != 11706:
+        if len(frozen_entries) != 12338:
             raise AssertionError(
                 f"winner suite emitted {len(frozen_entries)} points"
             )

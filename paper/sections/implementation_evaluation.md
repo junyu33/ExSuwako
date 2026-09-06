@@ -54,8 +54,10 @@ available only when $\deg q<m-W$, exactly the assumption stated by López and
 Dahab; unsupported tap placements are rejected rather than silently routed
 through a different algorithm. Trinomials and pentanomials remain mandatory
 strong-baseline cases, but are not an algorithmic applicability boundary.
-The native `LopezDahabLoop` mode implements the same Algorithm 2 domain with
-ordinary tap and high-word loops. It is compared with the ordinary-loop GS
+The native `LopezDahabLoop` mode uses ordinary tap and high-word loops. In
+addition to the paper's strict domain, it supports the word-aligned boundary
+$\deg q=m-W$: dedicated differential tests cover 1,536 such cases because no
+feedback returns to the source word at equality. It is compared with the ordinary-loop GS
 kernel under the common plan/setup and steady-state timing contract, while the
 two generated modes separately measure fixed-modulus specialization.
 
@@ -80,7 +82,8 @@ Implement or integrate:
 
 1. serial sparse folding;
 2. optimized trinomial/pentanomial folding, including the Lopez--Dahab
-   word-level reduction algorithm when its $\deg g<m-W$ assumption holds;
+   word-level reduction algorithm when its $\deg q<m-W$ assumption holds,
+   together with the tested ordinary-loop boundary $\deg q=m-W$;
 3. Barrett;
 4. Montgomery only in a separately frozen Montgomery-domain multiplication
    workload, not in the current direct $A\mapsto A\bmod g$ microbenchmark;
@@ -91,8 +94,8 @@ Implement or integrate:
 
 The implemented exact-manifest phase path admits either Dense or ordinary-loop
 López--Dahab as the fourth method beside GS, Serial, and Barrett. Dense retains
-its explicit matrix-size ceiling; López--Dahab retains $m>W$ and
-$\deg q<m-W$. The two modes are mutually exclusive and neither is promoted to
+its explicit matrix-size ceiling; ordinary-loop López--Dahab retains $m>W$ and
+$\deg q\le m-W$. The two modes are mutually exclusive and neither is promoted to
 a final winner panel unless the formal sweep shows that it is a credible
 strong baseline in the corresponding region.
 
@@ -214,11 +217,12 @@ $m\in\{256,1024,4096,16384,65536\}$.  The large-degree scaling slice extends
 through $m=2^{20}$ without repeating the complete random-support sweep above
 $m=131072$.
 
-The controlled high-weight extension refines the GS--Barrett crossover beyond
-$h=65$.  It explicitly disables Serial plan construction and timing after the
+The controlled high-weight extension samples every feasible power-of-two
+$\Delta_{\min}$ on one common logarithmic weight grid, retaining the earlier
+crossover-refinement weights. It explicitly disables Serial plan construction and timing after the
 primary panels have established that Serial is far outside the competitive
 region.  GS and Barrett remain present at every extension point; ordinary-loop
-López--Dahab is retained where its degree assumption holds.  This is a
+ordinary-loop López--Dahab is retained for $\Delta_{\min}\ge W$. This is a
 separately labelled method set, not missing Serial data silently interpreted as
 a loss.
 

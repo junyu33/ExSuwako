@@ -218,13 +218,13 @@ def analyze_supports(
 
         methods = enabled_methods(first)
         word_bits = int(first["word_bits"])
-        if "LopezDahabLoop" in methods and delta_min <= word_bits:
+        if "LopezDahabLoop" in methods and delta_min < word_bits:
             raise ValueError(
                 f"sample {sample_id!r} enables López-Dahab outside its domain"
             )
         if (
             first["provenance"].startswith("synthetic-controlled-")
-            and delta_min > word_bits
+            and delta_min >= word_bits
             and "Dense" not in methods
             and "LopezDahabLoop" not in methods
         ):
@@ -294,7 +294,7 @@ def analyze_supports(
         if "Dense" not in methods:
             unavailable.append("Dense:not-enabled")
         if "LopezDahabLoop" not in methods:
-            ld_reason = "degree-assumption" if delta_min <= int(first["word_bits"]) else "not-measured"
+            ld_reason = "degree-assumption" if delta_min < int(first["word_bits"]) else "not-measured"
             unavailable.append(f"LopezDahabLoop:{ld_reason}")
         point: dict[str, object] = {
             "sample_id": sample_id,

@@ -327,7 +327,8 @@ silent deduplication or normalization.
       random moduli against independent long division.
 - [x] Add ordinary-loop López--Dahab Algorithm 2 as a matched native baseline
       when its degree assumption holds. [A] The implementation accepts
-      arbitrary modulus weight under $\deg q<m-W$, uses the same unified API
+      arbitrary modulus weight under $\deg q\le m-W$; equality is a tested
+      ordinary-loop extension of the paper's strict assumption. It uses the same unified API
       and balanced timing rotation as GS, and reports reusable plan setup,
       storage, and steady-state reduction. The native differential suite
       checks it against independent long division before timing.
@@ -370,7 +371,7 @@ The paper-facing definition of this experiment is in
 - [x] Add optimized ordinary-loop trinomial/pentanomial folding and dense
       linear reduction where they are credible strongest baselines. [A]
       The exact-manifest phase path can opt into ordinary-loop López--Dahab
-      Algorithm 2 for every support satisfying $m>W$ and $\deg q<m-W$, or
+      Algorithm 2 for every support satisfying $m>W$ and $\deg q\le m-W$, or
       into the row-parity Dense map below its 64 MiB matrix limit.  Each mode
       replaces Naive to retain a balanced GS/Serial/Barrett/fourth-method
       rotation, and the driver rejects random-mode López--Dahab runs,
@@ -427,10 +428,12 @@ The paper-facing definition of this experiment is in
       overhead, and Barrett crossovers. [A] A preliminary no-Serial sweep
       located the crossover between approximately $h=65$ and $81$ at
       $m=128$, and between $h=513$ and $1025$ at $m=131072$.  The frozen
-      `highweight-m*-core/ld.jsonl` suites refine these transitions.  They
+      `highweight-m*-core/ld.jsonl` suites now cover every feasible
+      power-of-two $\Delta_{\min}$ on a common logarithmic weight grid while
+      retaining earlier crossover-refinement weights. They
       disable Serial setup and timing explicitly because the primary panels
       already place it far outside the competitive region; every point keeps
-      GS and Barrett, while eligible $Delta_{\min}>64$ points also keep
+      GS and Barrett, while eligible $\Delta_{\min}\ge64$ points also keep
       ordinary-loop López--Dahab.
 - [ ] Plot feedback-stage count versus $\Delta_{\min}$ and gap-one scaling
       versus $m$ to test the predicted depth law.

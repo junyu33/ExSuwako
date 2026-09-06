@@ -215,7 +215,8 @@ requirements.
   through `poly_mul_gf2x`.
 - `src/lopez_dahab.c`: ordinary-loop López--Dahab Algorithm 2 with a reusable
   tap-descriptor and scratch plan, available when $m>W$ and
-  $\deg q<m-W$.
+  $\deg q\le m-W$; equality is the tested word-aligned extension of the
+  paper's strict assumption.
 - `src/dense.c`: fixed-modulus row-major binary linear map, with setup and
   lifetime storage exposed separately from steady-state row-parity reduction.
 - `src/generated.c`: ABI-checked loader for temporary fixed-modulus plugins

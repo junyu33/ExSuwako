@@ -291,7 +291,8 @@ The phase-diagram driver exposes the same policy as `--with-dense
 --no-naive`.
 
 For the ordinary-loop Algorithm 2 comparison, use exact taps satisfying
-$m>W$ and $\deg q<m-W$:
+$m>W$ and $\deg q\le m-W$. Equality is a tested word-aligned extension of
+the paper's strict assumption:
 
 ```text
 build/reduction_benchmark --taps 0,5,7,12 64 24 283 0x1 \
@@ -323,7 +324,7 @@ set, timing contract, or trial count. CSV output is appended once per complete
 support, avoiding quadratic whole-file rewrites while retaining that recovery
 boundary.
 
-Every manifest entry must satisfy $m>W$ and $\deg q<m-W$ or the native
+Every manifest entry must satisfy $m>W$ and $\deg q\le m-W$ or the native
 benchmark rejects it before timing. `--with-lopez-dahab` requires
 `--no-naive`, requires manifest mode, and is mutually exclusive with
 `--with-dense`; either opt-in therefore retains a balanced four-method
@@ -419,8 +420,10 @@ extensions, six constant-free random panels, five
 intermediate controlled panels, three constant-present sensitivity suites,
 the large-degree slices, and the Dense diagnostic screen. Controlled points
 are split into `*-core.jsonl` and `*-ld.jsonl`: the latter contains exactly
-the points with $\Delta_{\min}>64$ at which the López--Dahab loop joins GS,
-Serial, and BarrettGF2X.
+the points with $\Delta_{\min}\ge64$ at which the tested ordinary-loop
+López--Dahab implementation joins GS and BarrettGF2X. Formal high-weight
+invocations use `--no-serial`; retained primary-panel rows provide the
+separate Serial screening evidence.
 
 After building from a clean experiment commit, capture a metadata snapshot
 outside the worktree and pass it to every formal phase invocation:

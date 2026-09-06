@@ -215,7 +215,7 @@ static void check_exact_input(size_t m, size_t trial, const size_t *taps,
     methods[method_count++] = reduction_make_naive(&modulus, m, input->n);
     methods[method_count++] = reduction_make_barrett(&modulus, m);
     if (m > WORD_BITS
-            && (!tap_count || taps[tap_count - 1] < m - WORD_BITS))
+            && (!tap_count || taps[tap_count - 1] <= m - WORD_BITS))
         methods[method_count++] =
             reduction_make_lopez_dahab(taps, tap_count, m);
     check_methods(methods, method_count, input, m, trial, taps, tap_count,
@@ -251,6 +251,41 @@ static void check_regression_cases(void) {
     }
 }
 
+static size_t check_lopez_dahab_word_boundary(void) {
+    const size_t degrees[] = {
+        WORD_BITS + 1, WORD_BITS + 2,
+        2 * WORD_BITS - 1, 2 * WORD_BITS, 2 * WORD_BITS + 1,
+        3 * WORD_BITS - 1, 3 * WORD_BITS, 3 * WORD_BITS + 1,
+        4 * WORD_BITS + 1, 8 * WORD_BITS - 1,
+        8 * WORD_BITS, 8 * WORD_BITS + 1,
+    };
+    size_t cases = 0;
+    for (size_t mi = 0; mi < sizeof(degrees) / sizeof(degrees[0]); ++mi) {
+        size_t m = degrees[mi];
+        size_t limit = m - WORD_BITS;
+        for (size_t profile = 0; profile < 4; ++profile) {
+            size_t *taps = malloc((limit + 1) * sizeof(*taps));
+            if (!taps) die("allocation failed");
+            size_t tap_count = 0;
+            for (size_t exponent = 0; exponent <= limit; ++exponent) {
+                int include = profile == 3 || exponent == limit;
+                if (profile >= 1 && exponent == 0) include = 1;
+                if (profile >= 2
+                        && (exponent == 1 || exponent == limit / 2))
+                    include = 1;
+                if (include) taps[tap_count++] = exponent;
+            }
+            for (size_t trial = 0; trial < 32; ++trial) {
+                check_random_case(m, cases, taps, tap_count,
+                                  "lopez-dahab-delta-equals-word");
+                ++cases;
+            }
+            free(taps);
+        }
+    }
+    return cases;
+}
+
 int main(void) {
     const size_t degrees[] = {
         1, 2, 8, 31, WORD_BITS - 1, WORD_BITS, WORD_BITS + 1,
@@ -259,6 +294,7 @@ int main(void) {
     };
 
     check_regression_cases();
+    size_t lopez_dahab_boundary_cases = check_lopez_dahab_word_boundary();
 
     for (size_t mi = 0; mi < sizeof(degrees) / sizeof(degrees[0]); ++mi) {
         size_t m = degrees[mi];
@@ -282,9 +318,11 @@ int main(void) {
         free(taps);
     }
 
-    printf("reduction correctness: ok (%zu regression, %zu fixed-degree and "
+    printf("reduction correctness: ok (%zu regression, %zu Lopez-Dahab "
+           "Delta_min=W boundary, %zu fixed-degree and "
            "%d random full-input cases, seed=0x%016llx)\n",
            sizeof(reduction_regressions) / sizeof(reduction_regressions[0]),
+           lopez_dahab_boundary_cases,
            sizeof(degrees) / sizeof(degrees[0]) * FIXED_DEGREE_TRIALS,
            RANDOM_STRESS_TRIALS, (unsigned long long)check_seed);
     return EXIT_SUCCESS;

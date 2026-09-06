@@ -52,6 +52,8 @@ def measurements(kind: str, trial: int) -> tuple[float, float, float, float, flo
         return 20, 30, 40, 10, 0
     if kind == "ld":
         return 20, 30, 40, 0, 10
+    if kind == "ld-boundary":
+        return 20, 0, 40, 0, 10
     if kind == "no-serial":
         return 10, 0, 20, 0, 0
     raise AssertionError(f"unknown fixture kind {kind}")
@@ -67,6 +69,7 @@ def write_fixture(path: Path) -> None:
         ("barrett", 131072, 1),
         ("dense", 128, 2),
         ("ld", 512, 128),
+        ("ld-boundary", 512, 64),
         ("no-serial", 128, 4),
     ]
     rows: list[dict[str, object]] = []
@@ -95,10 +98,10 @@ def write_fixture(path: Path) -> None:
                 "measurement_trials": 31,
                 "measurement_trial": trial,
                 "seed": 17,
-                "Serial_enabled": int(kind != "no-serial"),
+                "Serial_enabled": int(kind not in ("no-serial", "ld-boundary")),
                 "Dense_enabled": int(kind == "dense"),
                 "Generated_enabled": 0,
-                "LopezDahabLoop_enabled": int(kind == "ld"),
+                "LopezDahabLoop_enabled": int(kind in ("ld", "ld-boundary")),
                 "GS_ns": gs,
                 "Serial_ns": serial,
                 "BarrettGF2X_ns": barrett,
@@ -137,6 +140,7 @@ def main() -> None:
             "barrett-m131072": ("BarrettGF2X", "unique-winner"),
             "dense-m128": ("Dense", "unique-winner"),
             "ld-m512": ("LopezDahabLoop", "unique-winner"),
+            "ld-boundary-m512": ("LopezDahabLoop", "unique-winner"),
             "no-serial-m128": ("GS", "unique-winner"),
             "operational-m512": ("uncertain", "operational-tie"),
             "statistical-m2048": ("uncertain", "statistical-tie"),

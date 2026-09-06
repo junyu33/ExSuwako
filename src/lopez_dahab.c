@@ -26,8 +26,8 @@ lopez_dahab_plan *lopez_dahab_plan_create(
 
     size_t limit = m - WORD_BITS;
     for (size_t i = 0; i < tap_count; ++i) {
-        if (taps[i] >= limit)
-            die("Lopez-Dahab requires deg(q) < m-W");
+        if (taps[i] > limit)
+            die("Lopez-Dahab extension requires deg(q) <= m-W");
     }
 
     lopez_dahab_plan *plan = calloc(1, sizeof(*plan));
