@@ -65,6 +65,7 @@ def check_exact_cli(binary: Path) -> None:
         "timing_scope": "reduction-steady-state:v1",
         "setup_scope": "modulus-plan:v1",
         "timing_order": "cyclic-method-rotation:v1",
+        "Serial_enabled": "1",
         "Dense_enabled": "0",
         "Dense_matrix_limit_bytes": "67108864",
         "Generated_enabled": "0",
@@ -106,6 +107,26 @@ def check_exact_cli(binary: Path) -> None:
     ]:
         if float(row[field]) != 0:
             raise AssertionError(f"disabled generated field {field} must be zero")
+
+    no_serial = parse_one_row(
+        run(
+            base
+            + ["1,7,15", "2", "2", "64", "0x1", "no-serial", "no-naive"]
+        ).stdout
+    )
+    if no_serial["Serial_enabled"] != "0":
+        raise AssertionError("Serial was not disabled")
+    for field in [
+        "Serial_plan_bytes", "Serial_setup_ns", "Serial_ns", "Serial/GS"
+    ]:
+        if float(no_serial[field]) != 0:
+            raise AssertionError(f"disabled Serial field {field} must be zero")
+    for field in [
+        "GS_plan_bytes", "BarrettGF2X_plan_bytes", "GS_ns",
+        "BarrettGF2X_ns", "BarrettGF2X/GS",
+    ]:
+        if float(no_serial[field]) <= 0:
+            raise AssertionError(f"no-Serial comparison field {field} must be positive")
 
     lopez_dahab = parse_one_row(
         run(

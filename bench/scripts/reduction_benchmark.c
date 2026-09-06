@@ -31,11 +31,12 @@ typedef enum {
 static int parse_positive_int(const char *text, const char *name);
 
 static void parse_method_options(int argc, char **argv, int first,
-                                 int *skip_naive, int *with_dense,
+                                 int *skip_serial, int *skip_naive, int *with_dense,
                                  int *with_lopez_dahab,
                                  const char **generated_path,
                                  int *exact_trials,
                                  int *has_exact_trials) {
+    *skip_serial = 0;
     *skip_naive = 0;
     *with_dense = 0;
     *with_lopez_dahab = 0;
@@ -43,7 +44,9 @@ static void parse_method_options(int argc, char **argv, int first,
     *exact_trials = 1;
     *has_exact_trials = 0;
     for (int i = first; i < argc; ++i) {
-        if (strcmp(argv[i], "no-naive") == 0 && !*skip_naive) {
+        if (strcmp(argv[i], "no-serial") == 0 && !*skip_serial) {
+            *skip_serial = 1;
+        } else if (strcmp(argv[i], "no-naive") == 0 && !*skip_naive) {
             *skip_naive = 1;
         } else if (strcmp(argv[i], "with-dense") == 0 && !*with_dense) {
             *with_dense = 1;
@@ -394,6 +397,7 @@ int main(int argc, char **argv) {
     size_t s;
     uint64_t seed;
     int skip_naive;
+    int skip_serial;
     int with_dense;
     int with_lopez_dahab;
     const char *generated_path;
@@ -402,14 +406,14 @@ int main(int argc, char **argv) {
     size_t *exact_taps = NULL;
 
     if (exact_mode) {
-        if (argc < 7 || argc > 10)
-            die("usage: reduction_benchmark --taps LIST inputs repeats m seed [no-naive] [with-dense|with-lopez-dahab|generated=PATH] [trials=N]");
+        if (argc < 7 || argc > 11)
+            die("usage: reduction_benchmark --taps LIST inputs repeats m seed [no-serial] [no-naive] [with-dense|with-lopez-dahab|generated=PATH] [trials=N]");
         inputs_count = parse_positive_int(argv[3], "input count");
         repeats = parse_positive_int(argv[4], "repeat count");
         m = parse_size(argv[5], "modulus degree");
         seed = parse_seed(argv[6]);
         parse_method_options(
-            argc, argv, 7, &skip_naive, &with_dense, &with_lopez_dahab,
+            argc, argv, 7, &skip_serial, &skip_naive, &with_dense, &with_lopez_dahab,
             &generated_path, &exact_trials, &has_exact_trials);
         supports = exact_trials;
         if (m == 0) die("modulus degree must be positive");
@@ -423,9 +427,9 @@ int main(int argc, char **argv) {
         seed = argc > 6
             ? (uint64_t)strtoull(argv[6], NULL, 0)
             : 0x9e3779b97f4a7c15ULL;
-        if (argc > 9) die("too many random-mode arguments");
+        if (argc > 10) die("too many random-mode arguments");
         parse_method_options(
-            argc, argv, 7, &skip_naive, &with_dense, &with_lopez_dahab,
+            argc, argv, 7, &skip_serial, &skip_naive, &with_dense, &with_lopez_dahab,
             &generated_path, &exact_trials, &has_exact_trials);
         if (has_exact_trials)
             die("trials=N is available only in exact tap-list mode");
@@ -546,7 +550,8 @@ int main(int argc, char **argv) {
         reducer_kind kinds[4];
         size_t method_count = 0;
         kinds[method_count++] = REDUCER_GS;
-        kinds[method_count++] = REDUCER_SERIAL;
+        size_t serial_index = method_count;
+        if (!skip_serial) kinds[method_count++] = REDUCER_SERIAL;
         if (!skip_naive) kinds[method_count++] = REDUCER_NAIVE;
         size_t barrett_index = method_count;
         kinds[method_count++] = REDUCER_BARRETT;
@@ -563,8 +568,11 @@ int main(int argc, char **argv) {
                              input_words, repeats, generated_path,
                              setup_timings);
         gs_setup_samples[trial] = setup_timings[0];
-        serial_setup_samples[trial] = setup_timings[1];
-        if (!skip_naive) naive_setup_samples[trial] = setup_timings[2];
+        if (!skip_serial)
+            serial_setup_samples[trial] = setup_timings[serial_index];
+        size_t naive_index = serial_index + !skip_serial;
+        if (!skip_naive)
+            naive_setup_samples[trial] = setup_timings[naive_index];
         barrett_setup_samples[trial] = setup_timings[barrett_index];
         if (with_dense)
             dense_setup_samples[trial] = setup_timings[dense_index];
@@ -581,11 +589,12 @@ int main(int argc, char **argv) {
                 generated_path);
         gs_plan_bytes[trial] =
             reduction_method_plan_storage_bytes(&methods[0]);
-        serial_plan_bytes[trial] =
-            reduction_method_plan_storage_bytes(&methods[1]);
+        if (!skip_serial)
+            serial_plan_bytes[trial] =
+                reduction_method_plan_storage_bytes(&methods[serial_index]);
         if (!skip_naive)
             naive_plan_bytes[trial] =
-                reduction_method_plan_storage_bytes(&methods[2]);
+                reduction_method_plan_storage_bytes(&methods[naive_index]);
         barrett_plan_bytes[trial] =
             reduction_method_plan_storage_bytes(&methods[barrett_index]);
         if (with_dense)
@@ -620,8 +629,8 @@ int main(int argc, char **argv) {
         time_reducers_rotating(methods, method_count, inputs,
                                (size_t)inputs_count, repeats, timings);
         gs_samples[trial] = timings[0];
-        serial_samples[trial] = timings[1];
-        if (!skip_naive) naive_samples[trial] = timings[2];
+        if (!skip_serial) serial_samples[trial] = timings[serial_index];
+        if (!skip_naive) naive_samples[trial] = timings[naive_index];
         barrett_samples[trial] = timings[barrett_index];
         if (with_dense) dense_samples[trial] = timings[dense_index];
         if (generated_path)
@@ -644,7 +653,7 @@ int main(int argc, char **argv) {
            "GS_source_cross_word_contributions,GS_source_word_shifts,"
            "GS_source_word_xors,GS_source_logical_word_reads,"
            "GS_source_logical_word_writes,GS_source_scratch_words,"
-           "plan_storage_model,GS_plan_bytes,Serial_plan_bytes,"
+           "plan_storage_model,GS_plan_bytes,Serial_plan_bytes,Serial_enabled,"
            "Naive_plan_bytes,BarrettGF2X_plan_bytes,Dense_plan_bytes,"
            "Dense_enabled,Dense_matrix_limit_bytes,Generated_plan_bytes,"
            "Generated_enabled,LopezDahabLoop_plan_bytes,"
@@ -670,7 +679,7 @@ int main(int argc, char **argv) {
         else printf("NA,");
         const gs_source_cost *source_cost = &source_cost_values[trial];
         printf("%zu,%s,%zu,%zu,%s,%zu,%zu,%zu,%zu,%zu,%zu,%zu,"
-               "%s,%zu,%zu,%zu,%zu,%zu,%d,%zu,%zu,%d,%zu,%d,"
+               "%s,%zu,%zu,%d,%zu,%zu,%zu,%d,%zu,%zu,%d,%zu,%d,"
                "%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,"
                "%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,"
                "%.3f,%.3f,%.3f,%d,%llu\n",
@@ -684,7 +693,7 @@ int main(int argc, char **argv) {
                source_cost->logical_word_writes,
                source_cost->scratch_words,
                plan_storage_model, gs_plan_bytes[trial],
-               serial_plan_bytes[trial], naive_plan_bytes[trial],
+               serial_plan_bytes[trial], !skip_serial, naive_plan_bytes[trial],
                barrett_plan_bytes[trial], dense_plan_bytes[trial],
                with_dense, dense_matrix_limit_bytes,
                generated_plan_bytes[trial], generated_path != NULL,
@@ -696,7 +705,8 @@ int main(int argc, char **argv) {
                generated_setup_samples[trial],
                lopez_dahab_setup_samples[trial],
                gs, serial, naive, barrett, dense, generated, lopez_dahab,
-               serial / gs, skip_naive ? 0.0 : naive / gs, barrett / gs,
+               skip_serial ? 0.0 : serial / gs,
+               skip_naive ? 0.0 : naive / gs, barrett / gs,
                with_dense ? dense / gs : 0.0,
                generated_path ? generated / gs : 0.0,
                with_lopez_dahab ? lopez_dahab / gs : 0.0,

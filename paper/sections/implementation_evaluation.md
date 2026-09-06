@@ -214,6 +214,14 @@ $m\in\{256,1024,4096,16384,65536\}$.  The large-degree scaling slice extends
 through $m=2^{20}$ without repeating the complete random-support sweep above
 $m=131072$.
 
+The controlled high-weight extension refines the GS--Barrett crossover beyond
+$h=65$.  It explicitly disables Serial plan construction and timing after the
+primary panels have established that Serial is far outside the competitive
+region.  GS and Barrett remain present at every extension point; ordinary-loop
+López--Dahab is retained where its degree assumption holds.  This is a
+separately labelled method set, not missing Serial data silently interpreted as
+a loss.
+
 $$
 h\in
 \{2,3,5,9,17,33,65\},

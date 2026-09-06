@@ -424,7 +424,14 @@ The paper-facing definition of this experiment is in
       mismatch, or a binary mismatch. This item remains open until every
       retained formal panel carries that contract.
 - [ ] Report friendly sparse regions, high-weight losses, small-degree
-      overhead, and Barrett crossovers.
+      overhead, and Barrett crossovers. [A] A preliminary no-Serial sweep
+      located the crossover between approximately $h=65$ and $81$ at
+      $m=128$, and between $h=513$ and $1025$ at $m=131072$.  The frozen
+      `highweight-m*-core/ld.jsonl` suites refine these transitions.  They
+      disable Serial setup and timing explicitly because the primary panels
+      already place it far outside the competitive region; every point keeps
+      GS and Barrett, while eligible $Delta_{\min}>64$ points also keep
+      ordinary-loop López--Dahab.
 - [ ] Plot feedback-stage count versus $\Delta_{\min}$ and gap-one scaling
       versus $m$ to test the predicted depth law.
 - [ ] Plot fixed-gap weight sweeps and fixed-weight gap sweeps so that tap

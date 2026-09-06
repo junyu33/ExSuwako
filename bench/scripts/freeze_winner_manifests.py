@@ -20,6 +20,14 @@ SCALING_DEGREES = (1 << 16, 1 << 17, 1 << 18, 1 << 19, 1 << 20)
 PANEL_WEIGHTS = (2, 3, 5, 9, 17, 33, 65)
 SCALING_WEIGHTS = (3, 9, 33, 129)
 RANDOM_SEED = 0x4558535557414B4F
+HIGH_WEIGHT_GRIDS = {
+    128: ((65, 81, 97, 113, 121), [1, 2, 4, 8]),
+    512: ((65, 97, 129, 193, 257, 385), [1, 4, 16, 64]),
+    2048: ((65, 97, 129, 193, 257, 385, 513), [1, 16, 64, 256]),
+    8192: ((65, 97, 129, 193, 257), [1, 16, 64, 256]),
+    32768: ((129, 161, 193, 225, 257, 321, 385), [1, 16, 64, 256]),
+    131072: ((257, 385, 513, 641, 769, 897, 1025), [1, 16, 64, 256]),
+}
 
 
 def powers_to_half(m: int) -> list[int]:
@@ -105,6 +113,11 @@ def main() -> None:
         entries = random_entries(m)
         write(root / f"random-m{m}.jsonl", entries)
         points += len(entries)
+
+        high_weights, high_deltas = HIGH_WEIGHT_GRIDS[m]
+        points += write_controlled_pair(
+            root, f"highweight-m{m}", m, high_weights, high_deltas
+        )
 
     for m in SUPPLEMENT_DEGREES:
         points += write_controlled_pair(

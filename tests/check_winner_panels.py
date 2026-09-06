@@ -17,7 +17,7 @@ FIELDS = [
     "Delta_min", "log2_m_over_delta", "input_distribution", "timing_scope",
     "setup_scope", "timing_order", "aggregation", "inputs", "batch_repeats",
     "warmup_runs", "measurement_trials", "measurement_trial", "seed",
-    "Dense_enabled", "Generated_enabled", "LopezDahabLoop_enabled",
+    "Serial_enabled", "Dense_enabled", "Generated_enabled", "LopezDahabLoop_enabled",
     "GS_ns", "Serial_ns", "BarrettGF2X_ns", "Dense_ns",
     "LopezDahabLoop_ns",
 ]
@@ -52,6 +52,8 @@ def measurements(kind: str, trial: int) -> tuple[float, float, float, float, flo
         return 20, 30, 40, 10, 0
     if kind == "ld":
         return 20, 30, 40, 0, 10
+    if kind == "no-serial":
+        return 10, 0, 20, 0, 0
     raise AssertionError(f"unknown fixture kind {kind}")
 
 
@@ -65,6 +67,7 @@ def write_fixture(path: Path) -> None:
         ("barrett", 131072, 1),
         ("dense", 128, 2),
         ("ld", 512, 128),
+        ("no-serial", 128, 4),
     ]
     rows: list[dict[str, object]] = []
     for kind, m, delta in specifications:
@@ -92,6 +95,7 @@ def write_fixture(path: Path) -> None:
                 "measurement_trials": 31,
                 "measurement_trial": trial,
                 "seed": 17,
+                "Serial_enabled": int(kind != "no-serial"),
                 "Dense_enabled": int(kind == "dense"),
                 "Generated_enabled": 0,
                 "LopezDahabLoop_enabled": int(kind == "ld"),
@@ -133,6 +137,7 @@ def main() -> None:
             "barrett-m131072": ("BarrettGF2X", "unique-winner"),
             "dense-m128": ("Dense", "unique-winner"),
             "ld-m512": ("LopezDahabLoop", "unique-winner"),
+            "no-serial-m128": ("GS", "unique-winner"),
             "operational-m512": ("uncertain", "operational-tie"),
             "statistical-m2048": ("uncertain", "statistical-tie"),
             "unstable-m8192": ("uncertain", "timing-unstable"),
@@ -144,6 +149,11 @@ def main() -> None:
             raise AssertionError("winner classifications changed")
         if "LopezDahabLoop" not in rows["ld-m512"]["method_set"]:
             raise AssertionError("López-Dahab method set was not preserved")
+        if (
+            "Serial" in rows["no-serial-m128"]["method_set"].split(";")
+            or "Serial:not-enabled" not in rows["no-serial-m128"]["unavailable_methods"]
+        ):
+            raise AssertionError("disabled Serial was not excluded and labelled")
         if "LopezDahabLoop:degree-assumption" not in rows["gs-m128"][
             "unavailable_methods"
         ]:

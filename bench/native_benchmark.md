@@ -257,7 +257,7 @@ build/reduction_benchmark --taps 0,7,12 8 5 283 0x1 no-naive
 ```
 
 The exact-mode arguments are `--taps LIST`, `inputs`, `repeats`, `m`, `seed`,
-and optional `no-naive`, `with-dense`, `with-lopez-dahab`,
+and optional `no-serial`, `no-naive`, `with-dense`, `with-lopez-dahab`,
 `generated=PATH`, or `trials=N`.  The last option emits $N$ independently
 timed rows for the same exact support in one process; every row regenerates the
 same deterministic inputs from `seed`.  It is an experiment-driver primitive,
@@ -266,6 +266,14 @@ not a change to the reduction timing scope.
 increasing, duplicate-free, and contains only exponents in `[0,m)`; use `-`
 for the empty support. The CSV serializes taps with semicolons so the complete
 support occupies one field.
+
+`no-serial` disables Serial plan construction, correctness comparison, and
+timing rather than merely hiding its result.  Such rows emit
+`Serial_enabled=0` and zero for all Serial setup, storage, timing, and ratio
+fields.  The high-weight crossover extension uses this mode after the primary
+panels have already established that Serial is noncompetitive there; GS and
+Barrett remain enabled on every point, and eligible `*-ld.jsonl` points also
+enable ordinary-loop López--Dahab.
 
 The dense baseline is a fixed-modulus matrix implementation rather than a
 sparse competitor. Enable it only as the fourth method replacing Naive:
@@ -406,7 +414,8 @@ fastest primary method and therefore requires a new five-method contract.
 ### Paper-grade run metadata
 
 The tracked winner suite is regenerated with `make freeze-winner-manifests`.
-It freezes the six main controlled and constant-free random panels, five
+It freezes the six main controlled panels, six high-weight crossover
+extensions, six constant-free random panels, five
 intermediate controlled panels, three constant-present sensitivity suites,
 the large-degree slices, and the Dense diagnostic screen. Controlled points
 are split into `*-core.jsonl` and `*-ld.jsonl`: the latter contains exactly

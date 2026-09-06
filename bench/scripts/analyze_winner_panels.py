@@ -110,7 +110,16 @@ def enabled_methods(row: dict[str, str]) -> list[str]:
         raise ValueError("optional-method states must be binary")
     if generated:
         raise ValueError("generated reducers are outside the winner contract")
-    methods = ["GS", "Serial", "BarrettGF2X"]
+    try:
+        serial = int(row.get("Serial_enabled", "1"))
+    except ValueError as error:
+        raise ValueError("invalid Serial state") from error
+    if serial not in (0, 1):
+        raise ValueError("Serial state must be binary")
+    methods = ["GS"]
+    if serial:
+        methods.append("Serial")
+    methods.append("BarrettGF2X")
     if dense:
         methods.append("Dense")
     if lopez_dahab:
@@ -181,6 +190,9 @@ def analyze_supports(
                     raise ValueError(
                         f"sample {sample_id!r} changes invariant field {field}"
                     )
+        serial_states = {row.get("Serial_enabled", "1") for row in rows}
+        if len(serial_states) != 1:
+            raise ValueError(f"sample {sample_id!r} changes Serial state")
 
         m = int(first["m"])
         s = int(first["s"])
@@ -277,6 +289,8 @@ def analyze_supports(
             reason = "unique-winner"
 
         unavailable: list[str] = []
+        if "Serial" not in methods:
+            unavailable.append("Serial:not-enabled")
         if "Dense" not in methods:
             unavailable.append("Dense:not-enabled")
         if "LopezDahabLoop" not in methods:

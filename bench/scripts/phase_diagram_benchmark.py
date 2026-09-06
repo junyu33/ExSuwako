@@ -340,7 +340,7 @@ def derive_gs_source_cost(
 
 def validate_benchmark_geometry(
     row: dict[str, object], m: int, taps: list[int],
-    *, expect_dense: bool, expect_lopez_dahab: bool,
+    *, expect_serial: bool, expect_dense: bool, expect_lopez_dahab: bool,
 ) -> None:
     geometry = derive_geometry(m, taps)
     try:
@@ -411,9 +411,7 @@ def validate_benchmark_geometry(
             raise RuntimeError(
                 f"benchmark emitted negative setup timing for {field}: {value}"
             )
-    for field in [
-        "GS_plan_bytes", "Serial_plan_bytes", "BarrettGF2X_plan_bytes"
-    ]:
+    for field in ["GS_plan_bytes", "BarrettGF2X_plan_bytes"]:
         try:
             value = int(str(row.get(field)))
         except (TypeError, ValueError) as error:
@@ -425,6 +423,21 @@ def validate_benchmark_geometry(
             raise RuntimeError(
                 f"benchmark emitted nonpositive plan storage for {field}: {value}"
             )
+    try:
+        serial_enabled = int(str(row.get("Serial_enabled")))
+        serial_bytes = int(str(row.get("Serial_plan_bytes")))
+        serial_setup = float(str(row.get("Serial_setup_ns")))
+        serial_ns = float(str(row.get("Serial_ns")))
+        serial_ratio = float(str(row.get("Serial/GS")))
+    except (TypeError, ValueError) as error:
+        raise RuntimeError("benchmark emitted invalid Serial fields") from error
+    if serial_enabled != int(expect_serial):
+        raise RuntimeError("benchmark emitted an unexpected Serial state")
+    if serial_enabled:
+        if serial_bytes <= 0 or serial_setup < 0 or serial_ns <= 0 or serial_ratio <= 0:
+            raise RuntimeError("enabled Serial emitted invalid measurements")
+    elif any(value != 0 for value in (serial_bytes, serial_setup, serial_ns, serial_ratio)):
+        raise RuntimeError("disabled Serial emitted nonzero measurements")
     try:
         naive_bytes = int(str(row.get("Naive_plan_bytes")))
     except (TypeError, ValueError) as error:
@@ -502,10 +515,11 @@ def validate_benchmark_geometry(
 
 def add_derived_fields(
     row: dict[str, object], sample_id: str, provenance: str,
-    m: int, taps: list[int], *, with_dense: bool, with_lopez_dahab: bool,
+    m: int, taps: list[int], *, with_serial: bool, with_dense: bool,
+    with_lopez_dahab: bool,
 ) -> None:
     validate_benchmark_geometry(
-        row, m, taps, expect_dense=with_dense,
+        row, m, taps, expect_serial=with_serial, expect_dense=with_dense,
         expect_lopez_dahab=with_lopez_dahab,
     )
     row["sample_id"] = sample_id
@@ -533,6 +547,7 @@ def main() -> None:
     parser.add_argument("--measurement-trials", type=int, default=1)
     parser.add_argument("--seed", type=lambda value: int(value, 0), default=0)
     parser.add_argument("--no-naive", action="store_true")
+    parser.add_argument("--no-serial", action="store_true")
     parser.add_argument("--with-dense", action="store_true")
     parser.add_argument("--with-lopez-dahab", action="store_true")
     parser.add_argument("--metadata", type=Path)
@@ -604,6 +619,7 @@ def main() -> None:
         "plan_storage_model",
         "GS_plan_bytes",
         "Serial_plan_bytes",
+        "Serial_enabled",
         "Naive_plan_bytes",
         "BarrettGF2X_plan_bytes",
         "Dense_plan_bytes",
@@ -666,6 +682,8 @@ def main() -> None:
         command = list(command)
         if args.no_naive:
             command.append("no-naive")
+        if args.no_serial:
+            command.append("no-serial")
         if args.with_dense:
             command.append("with-dense")
         if args.with_lopez_dahab:
@@ -750,6 +768,7 @@ def main() -> None:
             "batch_repeats": args.repeats,
             "warmup_runs": args.warmup_runs,
             "measurement_trials": args.measurement_trials,
+            "Serial_enabled": int(not args.no_serial),
             "Dense_enabled": int(args.with_dense),
             "LopezDahabLoop_enabled": int(args.with_lopez_dahab),
         }
@@ -816,7 +835,8 @@ def main() -> None:
                 row["seed"] = c_seed
                 add_derived_fields(
                     row, entry["sample_id"], entry["provenance"],
-                    entry["m"], taps, with_dense=args.with_dense,
+                    entry["m"], taps, with_serial=not args.no_serial,
+                    with_dense=args.with_dense,
                     with_lopez_dahab=args.with_lopez_dahab,
                 )
                 add_measurement_fields(row, trial, measured_command)
@@ -859,7 +879,8 @@ def main() -> None:
                 )
                 add_derived_fields(
                     row, sample_id, "synthetic-fixed-weight-uniform:v1",
-                    args.m, taps, with_dense=args.with_dense,
+                    args.m, taps, with_serial=not args.no_serial,
+                    with_dense=args.with_dense,
                     with_lopez_dahab=args.with_lopez_dahab,
                 )
                 add_measurement_fields(row, trial, command)
