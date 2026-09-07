@@ -176,7 +176,7 @@ circuit size/work, and whether sparse divisor descriptions remain sparse.
 | Barrett/Montgomery | not generally | multiplication-dependent | moderate | yes | reciprocal-dependent |
 | Generic parallel division | not necessarily | yes | not sparse-specific | yes | divisor-dependent |
 | Reciprocal/Newton division | not generally | yes | reciprocal-dependent | yes | reciprocal-dependent |
-| Generalized Suwako | yes when $q$ is sparse | yes | yes | yes | yes |
+| Frobenius-factorized reduction (FFR) | yes when $q$ is sparse | yes | yes | yes | yes |
 
 TODO: attach primary citations and precise assumptions to every row.
 
@@ -352,7 +352,7 @@ State:
 - characteristic two cancels cross terms;
 - the same sparse factorization does not hold directly in odd characteristic.
 
-## 5. Generalized Suwako Reduction
+## 5. Frobenius-Factorized Reduction
 
 ### 5.1 Algorithm
 
@@ -706,7 +706,7 @@ $$
 T_{\mathrm{BM}}(n)=\Theta(M_W(n)).
 $$
 
-Generalized Suwako has lower asymptotic reduction work when
+FFR has lower asymptotic reduction work when
 
 $$
 hn\left(1+\log(m/\Delta_{\min})\right)
@@ -759,5 +759,5 @@ T_{\mathrm{field}}
 M_W(n)+T_{\mathrm{red}}.
 $$
 
-Generalized Suwako lowers the additional reduction term. It does not
+FFR lowers the additional reduction term. It does not
 automatically change the asymptotic exponent of complete field multiplication.

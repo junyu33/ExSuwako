@@ -1,6 +1,6 @@
 # Application Hypotheses: Sparse Polynomial Search and Modulus Selection
 
-This note records candidate application directions for generalized Suwako reduction. It is not evidence that the method accelerates an end-to-end task. Each direction becomes a paper-facing claim only after a matched implementation, a reproducible workload, and comparison against the strongest specialized baseline.
+This note records candidate application directions for Frobenius-factorized reduction (FFR). It is not evidence that the method accelerates an end-to-end task. Each direction becomes a paper-facing claim only after a matched implementation, a reproducible workload, and comparison against the strongest specialized baseline.
 
 The target regime is a sparse non-leading part with a high internal tap:
 
@@ -10,7 +10,7 @@ $$
 \Delta_{\min}=m-\deg q\text{ small}.
 $$
 
-Here conventional top-down folding may have a long feedback dependency chain, whereas generalized Suwako uses
+Here conventional top-down folding may have a long feedback dependency chain, whereas FFR uses
 
 $$
 D_{\mathrm{fb}}=
@@ -29,12 +29,12 @@ $$
 
 They therefore perform a long sequence of modular squarings. In the large-degree sparse-polynomial setting, modular squaring can be much cheaper than general multiplication, yet still consume a material fraction of an end-to-end factorization or search. The historical large-trinomial work of Brent and Zimmermann is the motivating workload: it uses blocking to exploit fast squaring modulo sparse polynomials, while retaining modular square and multiplication as visible costs.
 
-Trinomials alone are not necessarily a favorable demonstration for generalized Suwako. By using a reciprocal modulus, a trinomial's single internal tap can often be placed in the lower half, where ordinary folding already has shallow feedback. The more discriminating question is whether a uniform reducer for pentanomials or other low-weight polynomials can improve repeated modular squaring when hand-derived, family-specific reduction formulae are unavailable or unattractive.
+Trinomials alone are not necessarily a favorable demonstration for FFR. By using a reciprocal modulus, a trinomial's single internal tap can often be placed in the lower half, where ordinary folding already has shallow feedback. The more discriminating question is whether a uniform reducer for pentanomials or other low-weight polynomials can improve repeated modular squaring when hand-derived, family-specific reduction formulae are unavailable or unattractive.
 
 The end-to-end hypothesis is:
 
 $$
-\text{generalized Suwako modular squaring}
+\text{FFR modular squaring}
 \longrightarrow
 \text{faster sparse-polynomial factorization or irreducibility testing}
 \longrightarrow
@@ -47,7 +47,7 @@ This is credible only if all arrows are measured. The benchmark must include the
 
 The choice of irreducible polynomial is an implementation decision, not only an algebraic one. A modulus favorable for serial folding need not be best for another reduction algorithm or a different target platform. The candidate research question is:
 
-> Given a degree \(m\), an implementation target, and generalized Suwako as the reducer, which irreducible sparse polynomial minimizes the relevant arithmetic cost?
+> Given a degree \(m\), an implementation target, and FFR as the reducer, which irreducible sparse polynomial minimizes the relevant arithmetic cost?
 
 For example,
 
@@ -55,13 +55,13 @@ $$
 f(x)=x^m+x^{m-1}+x^a+x+1
 $$
 
-has \(\Delta_{\min}=1\). It is traditionally hostile to serial folding, but generalized Suwako needs only \(\lceil\log_2m\rceil\) feedback stages. This does not establish that such a modulus wins in software or hardware: complete cost also depends on active-tap work, shifts across machine words, multiplication, squaring representation, code generation, and the platform.
+has \(\Delta_{\min}=1\). It is traditionally hostile to serial folding, but FFR needs only \(\lceil\log_2m\rceil\) feedback stages. This does not establish that such a modulus wins in software or hardware: complete cost also depends on active-tap work, shifts across machine words, multiplication, squaring representation, code generation, and the platform.
 
 The stronger hypothesis is:
 
 $$
 \text{modulus search}
-+\text{ generalized-Suwako cost model}
++\text{ FFR cost model}
 +\text{ target-platform measurements}
 \quad\text{may change the platform-optimal modulus.}
 $$
@@ -89,8 +89,8 @@ The first two directions should be pursued together: a cost model and a search o
 |---|---|
 | Repeated modular squaring occurs in factorization and irreducibility workflows | Established background; verify exact workload formulations and citations. |
 | Sparse high-tap moduli can be hostile to serial feedback | Proved at the feedback-depth level. |
-| Generalized Suwako improves modular squaring for pentanomials | Open experimental hypothesis. |
-| The platform-optimal irreducible modulus changes under generalized Suwako | Open experimental hypothesis. |
+| FFR improves modular squaring for pentanomials | Open experimental hypothesis. |
+| The platform-optimal irreducible modulus changes under FFR | Open experimental hypothesis. |
 | CRC/Rabin is a compelling primary application | Currently unsupported. |
 
 ## Source Ledger to Verify

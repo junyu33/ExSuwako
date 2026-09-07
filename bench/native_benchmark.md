@@ -5,6 +5,10 @@ input distributions, application benchmarks, formal evidence gates, and
 artifact requirements are tracked in
 [the experimental TODO](../paper/exp_todo.md).
 
+The paper-facing method name is Frobenius-factorized reduction (FFR).  This
+implementation document retains `GS` only where it denotes the historical C
+API, executable method key, CSV field prefix, or frozen artifact schema.
+
 The native reducer implementations live in `src/`; public headers are under
 `include/`; benchmark scripts and entrypoints live under `bench/scripts/`.
 
@@ -429,6 +433,28 @@ timing-unstable. Dense screen rows additionally report whether any stable
 point lies within 1.10 times the fastest primary method and therefore requires
 a new five-method contract.
 
+The paper boundary table is generated, rather than drawn, by
+`fit_winner_cost_boundaries.py`.  Within each fixed degree, points sorted by
+$(h,-\log_2(m/\Delta_{\min}))$ are assigned alternately to deterministic
+calibration and holdout sets.  GS is fit by ordinary least squares to the
+portable scalar block-work count
+
+\[
+C_{\rm GS}=\sum_{t\in T}\left\lceil\frac{m-t}{W}\right\rceil+
+\sum_{t\in T}\sum_{k:\,2^k(m-t)<m}
+\left\lceil\frac{m-2^k(m-t)}{W}\right\rceil,
+\]
+
+López--Dahab is fit to
+$C_{\rm LD}=\lceil m/W\rceil |T|$, and Barrett uses its fixed-$m$
+calibration median because its leading multiplication-based work does not
+depend on tap placement.  The predicted method with the smallest fitted time
+labels each measured coordinate.  The renderer draws only interfaces between
+adjacent predicted labels; it does not replace measured winner colors or fill
+unmeasured coordinates.  The prediction CSV retains the measured winner and
+the calibration/holdout label, while a separate diagnostics CSV records every
+fit and holdout error.
+
 The region summarizer keeps one row per exact $(m,\Delta_{\min})$ slice and
 compresses its measured winner runs in increasing $h$. Its reported
 `persistent_Barrett_h` is the earliest stable Barrett point after which every
@@ -826,7 +852,7 @@ unpopulated until their own gates are completed.
 The complete reduction artifact contract is
 [`artifact/paper-v1.json`](artifact/paper-v1.json). It identifies the external
 67,576-row canonical dataset by SHA-256, permits only the three recorded
-one-to-one experiment-commit/binary cohorts, and freezes hashes for 24 derived
+one-to-one experiment-commit/binary cohorts, and freezes hashes for 26 derived
 tables and SVGs. Run `make artifact-verify-data`, `make artifact-paper`,
 `make artifact-cost-model`, and `make artifact-microbenchmark ARTIFACT_CPU=N`
 as documented in [`artifact/README.md`](artifact/README.md). No CSV payload or

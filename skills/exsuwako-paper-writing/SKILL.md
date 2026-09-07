@@ -98,11 +98,12 @@ Use this order:
 
 1. Establish the role of finite-field arithmetic in cryptographic computation.
 2. Isolate the reduction bottleneck for sparse characteristic-two moduli.
-3. Explain that tap Hamming weight alone does not capture the sequential
-   feedback-chain cost.
+3. Introduce the three principal reduction coordinates---degree $m$, Hamming
+   weight $h$, and nearest-tap distance $\Delta_{\min}$---and explain that
+   weight alone does not capture the sequential feedback-chain cost.
 4. State the gap: conventional serial reduction preserves the chain, while
    dense reciprocal or matrix methods incur setup or representation costs.
-5. Present ExSuwako as a sparse, matrix-free application of the reciprocal
+5. Present Frobenius-factorized reduction (FFR) as a sparse, matrix-free application of the reciprocal
    operator using Frobenius factors.
 6. State the proved algebraic result and exact round parameter.
 7. State implementation or benchmark results only when they exist.
@@ -121,7 +122,7 @@ Use this dependency order:
 2. Existing reduction paradigms and the fixed cost model.
 3. Sparse feedback-operator formulation.
 4. Structural lemmas, including nilpotence and Frobenius identities.
-5. Generalized Suwako algorithm.
+5. Frobenius-factorized reduction algorithm.
 6. Correctness theorem and proof.
 7. Work, depth, space, setup, and schedule-complexity analysis.
 8. Concrete parameter regimes and limitations of the bounds.
@@ -158,6 +159,10 @@ change it only when the abstraction level changes.
 - Call the contribution `method` or `algorithm` unless the paper has a
   precisely defined scheme; use `framework` only for a broader analytical
   framework.
+- Use `Frobenius-factorized reduction (FFR)` as the paper-facing method name.
+  Preserve `GS`, `gs_*`, and existing GS-named paths only as historical native
+  API, CSV-schema, artifact, and source identifiers; do not present `GS` as a
+  second method or silently rename frozen data fields.
 - Use `sparse modulus`, `sparse tap set`, and `feedback operator` consistently.
 - Define `Delta_t = m - t` and `Delta_min` before using them.
 - Define the exact round count

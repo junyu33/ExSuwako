@@ -10,7 +10,7 @@ status, and artifact requirements are maintained only in
 ### 8.1 Reference Implementation
 
 - naive long division;
-- Python/Sage generalized Suwako;
+- Python/Sage Frobenius-factorized reduction (FFR);
 - exhaustive small-$m$ validation;
 - randomized differential tests;
 - deterministic theorem-falsification suites covering GF(2), GF(4), dual
@@ -32,9 +32,9 @@ Requirements:
 - no undefined shifts;
 - constant-time field-element handling.
 
-The implemented scalar GS and Serial reducers share the word/bit shift
+The implemented scalar FFR and Serial reducers share the word/bit shift
 descriptors, high-part extraction, and low/carry right-shift components in
-`sparse_shift.h`.  GS retains its destination-oriented gather traversal and
+`sparse_shift.h`.  FFR retains its destination-oriented gather traversal and
 doubling schedule, while Serial retains its source-oriented scatter traversal
 and sequential feedback chain.  Thus the comparison shares the primitive
 being measured without collapsing the two algorithms into one loop structure.
@@ -58,7 +58,7 @@ strong-baseline cases, but are not an algorithmic applicability boundary.
 The native `LopezDahabLoop` mode uses ordinary tap and high-word loops. In
 addition to the paper's strict domain, it supports the word-aligned boundary
 $\deg q=m-W$: dedicated differential tests cover 1,536 such cases because no
-feedback returns to the source word at equality. It is compared with the ordinary-loop GS
+feedback returns to the source word at equality. It is compared with the ordinary-loop FFR
 kernel under the common plan/setup and steady-state timing contract, while the
 two generated modes separately measure fixed-modulus specialization.
 
@@ -94,7 +94,7 @@ Implement or integrate:
    correctness/portability reference, not a tuned performance competitor.
 
 The implemented exact-manifest phase path admits either Dense or ordinary-loop
-López--Dahab as the fourth method beside GS, Serial, and Barrett. Dense retains
+López--Dahab as the fourth method beside FFR, Serial, and Barrett. Dense retains
 its explicit matrix-size ceiling; ordinary-loop López--Dahab retains $m>W$ and
 $\deg q\le m-W$. The two modes are mutually exclusive and neither is promoted to
 a final winner panel unless the formal sweep shows that it is a credible
@@ -103,7 +103,7 @@ strong baseline in the corresponding region.
 ### 8.6 Optional RTL Prototype
 
 No RTL prototype is planned for the current software-reduction study. A future
-hardware study would compare serial sparse folding, generalized Suwako, and a
+hardware study would compare serial sparse folding, FFR, and a
 fixed dense XOR network, and would report latency, frequency, area/LUTs,
 registers, throughput, and pipeline depth under one frozen synthesis flow.
 
@@ -111,7 +111,7 @@ registers, throughput, and pipeline depth under one frozen synthesis flow.
 
 ### 9.1 Research Questions
 
-**RQ1: Correctness.** Does generalized Suwako agree with independent reducers
+**RQ1: Correctness.** Does FFR agree with independent reducers
 for arbitrary tap sets?
 
 The current validation record establishes agreement for the binary core by
@@ -119,7 +119,7 @@ randomized and exhaustive tests, and separately tests the coefficient-algebra
 identity over GF(4) and \(\mathbb F_2[\varepsilon]/(\varepsilon^2)\).  These
 tests can falsify an implementation or a stated identity; they do not replace
 the correctness proof. The portable-C differential suite additionally checks
-GS, serial folding, naive long division, and gf2x-backed Barrett on 1,400
+FFR, serial folding, naive long division, and gf2x-backed Barrett on 1,400
 fixed-degree and 10,000 deterministic stratified-random cases with complete
 bitwise-random degree-below-$2m$ inputs. Its support profiles include the
 empty, sparse, dense, constant-free, endpoint, mixed-alignment, and
@@ -145,7 +145,7 @@ $1+\log(m/\Delta_{\min})$ rather than $m/\Delta_{\min}$?
 
 The native benchmark exports the feedback-stage count, per-stage active-tap
 profile, total active-tap count, and scheduled coefficient work read from the
-constructed GS plan.  The phase-diagram driver derives these quantities
+constructed FFR plan.  The phase-diagram driver derives these quantities
 independently from the complete tap set and rejects any row whose schedule
 metadata disagrees with the predicted geometry.  This checks the structural
 predictor before it is correlated with timing data; it does not by itself
@@ -158,7 +158,7 @@ $D_{\rm fb}=\lceil\log_2(m/\Delta_{\min})\rceil$, and the six power-of-two
 gap-one points lie on $D_{\rm fb}=\log_2m$. This is an implementation-level
 check of schedule depth, not evidence that wall-clock latency equals the
 stage count or that one software stage is one circuit layer.
-The separate `scalar-source-v1` profile models the complete portable GS data
+The separate `scalar-source-v1` profile models the complete portable FFR data
 path and distinguishes aligned from cross-word contributions, together with
 nonzero word shifts, word XORs, logical array reads and writes, and plan-owned
 scratch words. The native profile is checked against an independent Python
@@ -185,7 +185,7 @@ reduction contract? Montgomery is excluded here because REDC returns
 $AR^{-1}\bmod g$; it belongs to a distinct Montgomery-domain multiplication
 question whose representation conversions and setup must be accounted for.
 The implemented primary path materializes one input batch per support, checks
-GS, Serial, and gf2x-backed Barrett on that batch, and then times all three on
+FFR, Serial, and gf2x-backed Barrett on that batch, and then times all three on
 the same immutable inputs under cyclic method-order rotation.
 Controlled phase samples are generated as a complete feasible Cartesian grid
 of explicitly selected $(m,h,\Delta_{\min})$ values. The highest tap is fixed
@@ -208,7 +208,7 @@ uniformly random support, do the measured active-tap work and feedback depth
 follow the predicted $O(s)$ and $O(\log(s+1))$ expectations?
 
 **RQ7: Algorithm-selection phase diagram.** Can the observed choices among
-serial folding, generalized Suwako, and multiplication-based reduction be
+serial folding, FFR, and multiplication-based reduction be
 organized by support size and feedback difficulty, while preserving the
 dependence on modulus degree, word size, and implementation platform?
 
@@ -230,7 +230,7 @@ The controlled high-weight extension samples every feasible power-of-two
 $\Delta_{\min}$ on one common logarithmic weight grid, retaining the earlier
 crossover-refinement weights. It explicitly disables Serial plan construction and timing after the
 primary panels have established that Serial is far outside the competitive
-region.  GS and Barrett remain present at every extension point; ordinary-loop
+region.  FFR and Barrett remain present at every extension point; ordinary-loop
 ordinary-loop López--Dahab is retained for $\Delta_{\min}\ge W$. This is a
 separately labelled method set, not missing Serial data silently interpreted as
 a loss.
@@ -317,7 +317,7 @@ generation, compilation, loaded-plan allocation, their summed setup cost, and
 three explicit code-size quantities without hiding them inside steady-state
 reduction timing.
 The implemented `requested-owned-bytes:v1` model separately reports the
-context structures and lifetime-owned buffers of GS, Serial, Naive, Barrett,
+context structures and lifetime-owned buffers of FFR, Serial, Naive, Barrett,
 and the opt-in Dense baseline. Storage is inspected on the plans used for correctness and
 steady-state timing only after the independent setup samples have stopped, so
 the inspection itself is outside both timed regions. Allocator overhead,
@@ -406,8 +406,12 @@ and never interpolates an unmeasured cell. The retained paper-grade rows
 produce 1,096 cells across the six fixed-$m$ panels: 983 unique winners, 103
 timing-unstable cells, 10 operational ties, and no statistical ties. The
 renderer can overlay pair-labelled winner boundaries from a separate
-prediction table; the current fitted boundary is exploratory until its fitting
-procedure is preserved as a reproducible analysis script.
+prediction table.  The reproducible fitting script alternates sorted points
+between calibration and holdout sets at each fixed $m$, fits affine runtime
+models to the portable scalar FFR and López--Dahab word-work formulas, and uses
+the fixed-$m$ calibration median for Barrett.  Its interfaces are descriptive
+model predictions: they do not recolor measured cells, interpolate missing
+coordinates, or constitute a crossover theorem.
 
 The measured persistent Barrett crossover is defined slice by slice as the
 first stable Barrett winner after which all later stable sampled weights also
@@ -423,21 +427,21 @@ onset ranges are:
 | 32768 | $225$--$257$ | $513$--$769$ |
 | 131072 | $641$ | not observed through $1025$ |
 
-The first column shows GS losing to multiplication-based reduction as weight
+The first column shows FFR losing to multiplication-based reduction as weight
 increases in the difficult-feedback regime. In the second, ordinary-loop
-López--Dahab increasingly replaces GS and delays the Barrett crossover. The
+López--Dahab increasingly replaces FFR and delays the Barrett crossover. The
 smallest degree is visibly overhead-sensitive: at $m=128$ Barrett takes over
 by $h=33$--$65$, while López--Dahab wins only two friendly cells. The measured
-low-feedback GS/LD pockets are not monotone, so the exact per-slice runs and
+low-feedback FFR/LD pockets are not monotone, so the exact per-slice runs and
 uncertain cells are retained alongside this aggregate table.
 
 Two complementary six-panel slice figures prevent the phase coordinates from
 being read as a single undifferentiated notion of sparsity. At fixed
 $\Delta_{\min}\in\{1,64\}$, the horizontal coordinate is $\log_2(h-1)$; at
 fixed $h\in\{9,65\}$, it is $\log_2(m/\Delta_{\min})$. Both figures report
-$\log_2(T_{\rm method}/T_{\rm GS})$, so the zero line is the empirical
-crossover, positive values favor GS, and negative values favor the competing
-method. The fixed-gap slices expose the weight-driven GS--Barrett crossover,
+$\log_2(T_{\rm method}/T_{\rm FFR})$, so the zero line is the empirical
+crossover, positive values favor FFR, and negative values favor the competing
+method. The fixed-gap slices expose the weight-driven FFR--Barrett crossover,
 whereas the fixed-weight slices show how feedback geometry changes the
 comparison without changing tap count. L\'opez--Dahab is drawn only on its
 measured applicability domain, and non-unique winner classifications remain
@@ -453,23 +457,23 @@ T_{\rm total}(K)=T_{\rm setup}+K T_{\rm reduce},\qquad
 \bar T(K)=T_{\rm reduce}+T_{\rm setup}/K.
 $$
 
-Six amortization panels plot the median competitor/GS ratio and the p10--p90
+Six amortization panels plot the median competitor/FFR ratio and the p10--p90
 range across measured controlled cells. They show that setup can change the
-descriptive grid-median ordering at small $K$: the Barrett/GS curve changes
+descriptive grid-median ordering at small $K$: the Barrett/FFR curve changes
 sign with reuse at $m=128$ and $m=2048$, while L\'opez--Dahab's lightweight
 plan is already favorable over most of its measured applicability domain.
 The breadth of the bands also rules out a single support-independent
 break-even count. A companion six-panel map plots every support at
-$(\log_2(W_{\rm fb}+1),D_{\rm fb})$ and encodes measured GS setup by color.
+$(\log_2(W_{\rm fb}+1),D_{\rm fb})$ and encodes measured FFR setup by color.
 It is a source-geometry and scalar-setup visualization, not a minimal-work,
 instruction-count, or circuit-depth claim. Because the quantiles summarize a
 designed Cartesian grid, they are not estimates over a random modulus
 population.
 
 The formal scheduled coefficient work is also compared directly with native
-GS time without identifying the two quantities. Within each fixed-$m$ panel,
+FFR time without identifying the two quantities. Within each fixed-$m$ panel,
 the scatter of $\log_2W_{\rm fb}$ against the median
-$\log_2(\mathrm{GS\ ns})$ has Spearman coefficient between $0.987$ and
+$\log_2(\mathrm{FFR\ ns})$ has Spearman coefficient between $0.987$ and
 $0.993$ across the six degrees. This is strong monotone predictive evidence
 on the controlled grid, while the visible residual structure and the separate
 source-word analysis prevent it from being presented as an instruction-count
@@ -506,11 +510,11 @@ evidence.
    $m$, show modulus Hamming weight $h$ horizontally and
    $m/\Delta_{\min}$ vertically on a logarithmic scale. Label the three
    conceptual regions: serial sparse folding (shift/XOR) for friendly sparse
-   supports, generalized Suwako for sparse supports with difficult feedback,
+   supports, FFR for sparse supports with difficult feedback,
    and Barrett/multiplication-based reduction at higher support sizes.
 2. **Empirical phase-diagram panels.** For several fixed values of $m$, plot
    sampled supports and color each point by the measured winner among serial,
-   generalized Suwako, and Barrett. Use the same coordinates as the schematic
+   FFR, and Barrett. Use the same coordinates as the schematic
    where possible, and retain an auxiliary view using $\Delta_{\min}/W$ when
    word-granularity effects are material.
 3. Tradeoff map: work, feedback depth, and setup.
@@ -526,7 +530,7 @@ The schematic is a conceptual introduction figure, not a theorem giving a
 universal boundary. The empirical panels must be separated by fixed $m$ (and
 should state $W$, implementation, and platform), because Barrett cost depends
 on multiplication-kernel thresholds and memory behavior, while generalized
-Suwako depends on the full active-tap profile
+FFR depends on the full active-tap profile
 $r+\sum_k h_k+s$, not only on $s$ and $\Delta_{\min}$. The caption should
 state that exact region boundaries are implementation- and
 platform-dependent. Cells with close timings or inconsistent winners should
@@ -541,7 +545,7 @@ cross-platform experiment.
 
 | Method | Direct-reduction applicability | Role in retained evidence | Reusable setup object | Boundary |
 |---|---|---|---|---|
-| Generalized Suwako (GS) | Any monic binary modulus | Primary portable-C method | doubled-shift schedule and one state plus a sentinel | full tap geometry controls work and traffic |
+| Frobenius-factorized reduction (FFR; internal key `GS`) | Any monic binary modulus | Primary portable-C method | doubled-shift schedule and one state plus a sentinel | full tap geometry controls work and traffic |
 | Serial folding | Any monic binary modulus | Matched sparse baseline on the original grid; omitted from the high-weight extension after screening | sorted tap descriptors and state buffers | long dependency chain for small $\Delta_{\min}$ |
 | BarrettGF2X | Any monic binary modulus | Primary multiplication-based baseline | reciprocal $\mu$ and reusable product buffers | depends on gf2x multiplication thresholds |
 | L\'opez--Dahab loop | $\deg q\le m-W$, equivalently $\Delta_{\min}\ge W$ | Matched ordinary-loop baseline only where applicable | tap descriptors and a reusable $2m$-bit work buffer | not applicable outside its degree assumption |
@@ -570,7 +574,7 @@ $(h,\Delta_{\min})=(9,1)$. The crossover column is the first stable Barrett
 winner on the $\Delta_{\min}=1$ slice after which every later stable sampled
 weight is also Barrett; uncertain cells do not create a crossover.
 
-| $m$ | GS at $(9,1)$ (ns) | Barrett/GS at $(9,1)$ | persistent Barrett $h$ | Barrett/GS at onset |
+| $m$ | FFR at $(9,1)$ (ns) | Barrett/FFR at $(9,1)$ | persistent Barrett $h$ | Barrett/FFR at onset |
 |---:|---:|---:|---:|---:|
 | 128 | 64.1 | 2.164 | 33 | 0.881 |
 | 512 | 272.9 | 3.807 | 97 | 0.718 |
@@ -586,7 +590,7 @@ recorded primary machine. They are not cross-platform results.
 At the same $(h,\Delta_{\min})=(9,1)$ anchor, setup and requested plan-owned
 storage are:
 
-| $m$ | trials | GS setup ns / bytes | Serial setup ns / bytes | Barrett setup ns / bytes |
+| $m$ | trials | FFR setup ns / bytes | Serial setup ns / bytes | Barrett setup ns / bytes |
 |---:|---:|---:|---:|---:|
 | 128 | 127 | 596.5 / 744 | 119.5 / 416 | 782.0 / 184 |
 | 512 | 127 | 719.5 / 888 | 123.5 / 512 | 4770.5 / 376 |
@@ -604,7 +608,7 @@ cross-platform table remains planned and is intentionally absent.
 
 Report openly:
 
-- high-weight regimes where generalized Suwako loses;
+- high-weight regimes where FFR loses;
 - friendly moduli where serial folding is already sufficient;
 - small degrees dominated by loop overhead;
 - architectures with expensive cross-limb shifts;
@@ -620,10 +624,15 @@ artifact accepts three explicitly recorded experiment-commit/binary cohorts;
 all remaining platform and contract metadata must agree.
 
 At artifact commit `68af036`, a detached fresh worktree completed `make check`,
-verified the external dataset, regenerated 24 paper-facing CSV/SVG products
+verified the external dataset, regenerated the then-current 24 paper-facing
+CSV/SVG products
 with exact hash agreement, reran the measured cost-model analysis, and ran a
-124-row metadata-complete reduction smoke test. The tracked validation record
+124-row metadata-complete reduction smoke test.  The fitted-boundary extension
+adds two deterministic CSV products and changes only the presentation-layer
+winner SVG; its 26-output current-tree rebuild is hash-locked, while a new
+post-commit fresh-checkout audit remains to be recorded.  The tracked validation record
 contains hashes for the external log, smoke rows, metadata snapshot, and
-artifact report. This closes reproducibility for the current primary-platform
-reduction study only; it does not supply real-modulus, end-to-end, proof, or
-cross-platform evidence.
+artifact report.  Thus the timing study and predecessor analysis are
+independently reproduced; only the new deterministic presentation layer
+awaits its post-commit packaging audit.  None of this supplies real-modulus,
+end-to-end, proof, or cross-platform evidence.

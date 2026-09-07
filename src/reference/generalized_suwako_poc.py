@@ -1,4 +1,4 @@
-"""Minimal proof of concept for generalized Suwako reduction over GF(2)[x].
+"""Minimal proof of concept for Frobenius-factorized reduction over GF(2)[x].
 
 Input:
     M H
@@ -8,7 +8,7 @@ The exponents must satisfy:
     e_0 = M > e_1 > ... > e_{H-1} >= 0.
 
 The script tests 10^4 random inputs whose degrees are uniformly chosen from
-[M, 2M - 1].  It prints PASS if generalized Suwako always agrees with naive
+[M, 2M - 1].  It prints PASS if FFR always agrees with naive
 polynomial long division, and FAIL otherwise.
 """
 
@@ -16,7 +16,7 @@ import random
 
 
 def exsuwako_reduce(x, m, exponents):
-    """Reduce x modulo sum(x^e for e in exponents) by generalized Suwako."""
+    """Reduce x modulo sum(x^e for e in exponents) by FFR."""
     mask = (1 << m) - 1
     low = x & mask
     high = x >> m

@@ -2,10 +2,12 @@
 \issueinfo{00}{0}{Xxxx}{XXXX}
 
 \usepackage{amsmath,amssymb,mathtools}
+\usepackage{array}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{url}
 \usepackage[hidelinks]{hyperref}
+\setlength{\emergencystretch}{1em}
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}[theorem]{Lemma}
@@ -21,20 +23,11 @@
 \newcommand{\poly}{\Ftwo[x]}
 \newcommand{\Dmin}{\Delta_{\min}}
 \newcommand{\Wfb}{W_{\mathrm{fb}}}
-\newcommand{\drafttodo}[1]{%
-  \par\smallskip\noindent\textbf{[TODO]} \emph{#1}\par\smallskip}
-\newcommand{\prooftodo}{%
-  \par\smallskip\noindent\textbf{[Proof TODO.] }%
-  Complete the formal proof and audit all boundary cases.\par\smallskip}
-\newcommand{\placeholderbox}[1]{%
-  \begin{center}
-    \fbox{\parbox{0.90\linewidth}{\centering\textbf{Placeholder.} #1}}
-  \end{center}}
 
-\title[Generalized Suwako Reduction]{Generalized Suwako:\
-Sparse Modular Reduction with Logarithmic Feedback Depth}
+\title[Sparse Modular Reduction]{Sparse Modular Reduction with Logarithmic
+Feedback Depth}
 
-% TODO: Replace all author metadata before circulation.
+% Author metadata is intentionally omitted from this working manuscript.
 \author{Author Name}
 \address{Institution and postal address}
 \email{author@example.org}
@@ -53,13 +46,21 @@ close to the leading term.  We study a different schedule obtained by
 expressing the high-part recurrence as the inverse of a nilpotent feedback
 operator.  In characteristic two, this inverse factors into Frobenius powers
 whose individual supports remain controlled by the original tap set.  The
-result is a matrix-free reduction method with an exact feedback-stage count
-and a scheduled-work expression governed by the complete tap geometry.
+result is a matrix-free method, which we call \emph{Frobenius-factorized
+reduction} (FFR), with an exact feedback-stage count and a scheduled-work
+expression governed by the complete tap geometry.
 
-\drafttodo{Replace this paragraph with the final proved complexity statement,
-matched reduction results, and one end-to-end repeated-squaring,
-irreducibility-testing, or factorization result.  Include the platform,
-parameter range, strongest baselines, and losing regions.}
+For a nonleading support of size $s$, we prove an exact logarithmic feedback
+depth and an exact active-tap work formula.  The former is
+$r=\lceil\log_2(m/\Dmin)\rceil$; the latter is bounded by
+$O(ms(1+\log(m/s)))$.  The reusable schedule and scalar temporary space are
+also explicit.  A matched portable-C evaluation over 1,096 controlled
+supports and degrees $128$ through $131072$ identifies distinct FFR,
+L\'opez--Dahab, and gf2x-backed Barrett regions.  On the hostile
+$(h,\Dmin)=(9,1)$ slice, Barrett takes between $2.16$ and $37.71$ times the FFR
+reduction time, whereas Barrett or L\'opez--Dahab wins as support weight or
+feedback distance grows.  These are single-platform reduction-only results;
+we make no end-to-end computational-algebra performance claim.
 \end{abstract}
 
 \maketitle
@@ -73,6 +74,24 @@ appears in polynomial factorization, irreducibility testing, and searches for
 sparse irreducible or primitive polynomials.  In these settings the modulus is
 public and often fixed for many reductions, but the useful degree, support,
 and setup-amortization regimes vary substantially.
+
+In the regime studied here, three modulus parameters provide the principal
+coordinates for reduction time:
+\begin{enumerate}
+\item the degree $m$, which fixes the operand length and hence the amount of
+      word-level data processed;
+\item the Hamming weight $h$, including the leading term, which determines
+      the number of nonleading taps available to sparse shift/XOR methods; and
+\item the nearest-tap distance $\Dmin$, namely the gap from degree $m$ to the
+      highest positive nonleading tap, when one exists, which controls how far
+      feedback can propagate before leaving the degree-$m$ state; without
+      such a tap there is no feedback chain.
+\end{enumerate}
+These three parameters do not determine runtime by themselves: complete tap
+placement, word alignment, setup, and the multiplication backend still affect
+the observed constants.  They nevertheless separate the main size, sparsity,
+and feedback effects and therefore define the axes and slices used in our
+evaluation.
 
 When the nonleading part is sparse, top-down folding uses little setup and can
 be extremely effective.  Its work and latency, however, are controlled by
@@ -102,16 +121,12 @@ power doubles the original tap distances.
 Mixed feedback paths arise through composition across stages rather than by
 expanding a dense reciprocal inside one stage.
 
-The intended contributions are: (i) a nilpotent-feedback formulation for any
+The contributions are: (i) a nilpotent-feedback formulation for any
 monic binary modulus; (ii) a sparse characteristic-two factorization;
-(iii) exact work--feedback-depth geometry; (iv) a matched implementation
-study; and (v) evaluation in repeated modular squaring and one complete
-computational-algebra workload.
-
-\drafttodo{Items (i)--(iii) now have complete binary proofs that passed the
-first internal hostile audit; external review remains open.  Retain
-items (iv)--(v) only to the extent supported by
-Sections~\ref{sec:evaluation} and~\ref{sec:consequences}.}
+(iii) exact coefficient- and packed-word work--feedback-depth geometry,
+including schedule and temporary-space bounds; and (iv) a reproducible
+portable-C study that maps the measured winning and losing regions against
+serial folding, L\'opez--Dahab reduction, and gf2x-backed Barrett reduction.
 
 Correctness does not require irreducibility; sparsity is a performance
 condition rather than an applicability condition.  We do not identify
@@ -173,9 +188,13 @@ We distinguish scheduled coefficient work, machine-word work, feedback depth,
 bounded-fan-in gate depth, setup, and temporary space.  Scheduled coefficient
 work is neither an instruction count nor a minimal XOR-circuit count.  Machine
 latency and throughput are measured under a fixed platform and timed boundary.
-
-\drafttodo{Freeze the word-operation model, representation, top-word masking,
-allocation boundary, and setup-amortization policy.}
+For the packed implementation, coefficient $i$ is bit $i\bmod W$ of word
+$\lfloor i/W\rfloor$ in a little-endian array of
+$n=\lceil m/W\rceil$ words; padding above coefficient $m-1$ is masked on
+state extraction and output.  Caller-owned inputs and outputs are excluded
+from temporary-space counts.  Section~\ref{sec:evaluation} separately fixes
+the steady-state reduction boundary, reusable-plan setup, storage, and any
+amortization over a stated reuse count.
 
 \section{Existing Reduction Paradigms}
 \label{sec:paradigms}
@@ -188,30 +207,38 @@ family assumptions~\cite{LopezDahab2000}.
 
 Dense linear maps and generic parallel division expose a different tradeoff.
 Polynomial division can be reduced to triangular Toeplitz or reciprocal
-inversion~\cite{BiniPan1985}.  Barrett and Montgomery replace serial folding
-with products and modulus-dependent constants.  Their machine cost cannot be
-deduced from sparse shift/XOR counts.
+inversion~\cite{BiniPan1985}.  Barrett and Montgomery instead use polynomial
+products and modulus-dependent constants.  Sparse shift/XOR counts do not
+determine their machine cost.
 
 \begin{table}[t]
 \caption{Frozen direct-reduction comparison contract.  ``Primary'' denotes a
 winner-eligible portable-C method; ``diagnostic'' denotes a screened baseline.}
 \label{tab:families}
 \centering
-\small
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lllll@{}}
+\begin{tabular}{@{}
+  >{\raggedright\arraybackslash}p{0.18\textwidth}
+  >{\raggedright\arraybackslash}p{0.35\textwidth}
+  >{\raggedright\arraybackslash}p{0.37\textwidth}@{}}
 \toprule
-Method & Applicability & Evidence role & Reusable setup & Boundary\\
+Method & Applicability and evidence role & Reusable plan and principal boundary\\
 \midrule
-GS & arbitrary monic & primary & doubled-shift schedule, one state plus sentinel & geometry/traffic\\
-Serial & arbitrary monic & screened sparse baseline & tap descriptors, states & dependency chain\\
-BarrettGF2X & arbitrary monic & primary & reciprocal and product buffers & gf2x thresholds\\
-L\'opez--Dahab & $\deg q\le m-W$ & primary where applicable & taps and $2m$-bit buffer & restricted degree\\
-Dense map & fixed, map $\le64$ MiB & diagnostic & packed $m\times m$ map & quadratic storage\\
-Naive & arbitrary monic & correctness/portability & lightweight context & not tuned\\
+FFR & Arbitrary monic modulus; primary method.
+& Doubled-shift schedule and one state plus a sentinel; cost depends on tap
+geometry and word traffic.\\
+Serial & Arbitrary monic modulus; screened sparse baseline.
+& Tap descriptors and two states; small $\Dmin$ creates a long dependency
+chain.\\
+BarrettGF2X & Arbitrary monic modulus; primary multiplication-based baseline.
+& Reciprocal and reusable product buffers; cost depends on gf2x multiplication
+thresholds.\\
+L\'opez--Dahab & $\deg q\le m-W$; primary baseline where applicable.
+& Tap descriptors and a $2m$-bit work buffer; unavailable outside its degree
+condition.\\
+Dense map & Fixed modulus with packed map at most 64 MiB; diagnostic baseline.
+& Packed $m\times m$ map and high-part scratch; storage is quadratic.\\
 \bottomrule
 \end{tabular}
-}
 \end{table}
 
 Generated fixed-modulus code is outside the general-code winner contract.
@@ -302,8 +329,12 @@ This is a factored truncated reciprocal.  Formal-series inversion itself is
 classical~\cite{Kalorkoti1993}; the proposed contribution is the sparse
 fixed-length realization and its complete tap-geometry analysis.
 
-\section{Generalized Suwako Reduction}
+\section{Frobenius-Factorized Reduction}
 \label{sec:algorithm}
+
+We call the resulting method \emph{Frobenius-factorized reduction} (FFR),
+because it applies the Frobenius factors of the truncated feedback inverse
+without materializing that inverse.
 
 For every $k\ge0$, define
 \begin{equation}
@@ -314,7 +345,7 @@ $2^k\Delta_t$ for $t\in T_k$, $0\le k<r$, and the taps for final low
 assembly.
 
 \begin{quote}
-\textbf{Algorithm 1 (generalized Suwako reduction).}
+\textbf{Algorithm 1 (Frobenius-factorized reduction).}
 Split $A=L+x^mH$ and set $Y\leftarrow H$.  For $k=0,\ldots,r-1$, read one
 immutable stage input $Y_{\rm old}$ and compute synchronously
 \begin{equation*}
@@ -489,7 +520,7 @@ gate depth accounts for the XOR tree inside that stage.
 
 \subsection{Packed-word geometry}
 
-Let $W$ be the machine-word width and $n=\lceil m/W\rceil$.  The following
+Let $W$ be the machine-word width.  Put $n=\lceil m/W\rceil$.  The following
 counts describe destination-word contributions; they are not instruction
 counts.  A feedback shift by $d<m$ has potentially nonzero coefficients in
 $\lceil(m-d)/W\rceil$ destination words.  A low-assembly shift by $t$ touches
@@ -604,6 +635,70 @@ $\Theta(mn)$ row-word products.  These are different cost primitives, so
 their constants and crossovers are determined experimentally rather than by
 equating the displayed source-level counts.
 
+For a compact comparison, let $M(n)$ and $D_M(n)$ denote the work and
+dependency depth of an $n$-word polynomial multiplication.  For $U\ne0$, let
+$\nu_U=\min\{j\ge1:U^j=0\}$; then
+$\nu_U\le\lceil m/\Dmin\rceil$.  The boundary $U=0$ has no dependent
+feedback fold.
+Table~\ref{tab:method-complexity} collects the resulting method-specific
+costs.  The formulas describe the implementations or operation models used
+here, not compiler instructions or measured cycles.
+
+\begin{table}[t]
+\caption{Reduction work and dependency depth.  Here
+$n=\lceil m/W\rceil$, $s=|T|$, and fan-in-two depth assumes free fanout.
+The serial row assumes $U\ne0$, and the L\'opez--Dahab row assumes
+$\deg q\le m-W$.}
+\label{tab:method-complexity}
+\centering
+\small
+\renewcommand{\arraystretch}{1.55}
+\begin{tabular}{@{}
+  >{\raggedright\arraybackslash}p{0.15\textwidth}
+  >{\centering\arraybackslash}p{0.38\textwidth}
+  >{\centering\arraybackslash}p{0.38\textwidth}@{}}
+\toprule
+Method & Work & Depth\\
+\midrule
+FFR
+& $\displaystyle
+  \begin{gathered}
+    C_{\rm coeff}=\Wfb+W_V,\\
+    C_{\rm word}=O\!\left(n+\sum_k a_k\right.\\[-2pt]
+    \left.{}+B_{\rm fb}^{\rm loop}+B_V\right)
+  \end{gathered}$
+& $\displaystyle
+  \begin{gathered}
+    D_{\rm fb}=r=\left\lceil\log_2\frac{m}{\Dmin}\right\rceil,\\
+    D_\oplus\le
+    \sum_{k=0}^{r-1}\left\lceil\log_2(1+h_k)\right\rceil\\[-2pt]
+    {}+\left\lceil\log_2(1+s)\right\rceil
+  \end{gathered}$\\
+Serial
+& $C_{\rm word}=O(sn\nu_U)$
+& $\displaystyle
+  \begin{gathered}
+    D_{\rm fb}\le\nu_U\le\left\lceil\frac{m}{\Dmin}\right\rceil,\\
+    D_\oplus=O\!\left(\nu_U\log(s+1)\right)
+  \end{gathered}$\\
+L\'opez--Dahab
+& $C_{\rm word}=\Theta\!\left(n(1+s)\right)$
+& $\displaystyle
+  \begin{gathered}
+    D_{\rm loop}=n+O(1),\\
+    D_\oplus=O\!\left(n\log(s+1)\right)
+  \end{gathered}$\\
+BarrettGF2X
+& $C_{\rm word}=2M(n)+O(n)$
+& $D=2D_M(n)+O(1)$\\
+Dense map
+& $C_{\rm word}=\Theta(mn)=\Theta(m^2/W)$
+& $D_\oplus=O(\log m)$\\
+\bottomrule
+\end{tabular}
+\renewcommand{\arraystretch}{1}
+\end{table}
+
 \subsection{Uniform fixed-weight supports}
 
 We next record what the deterministic geometry implies for one explicit
@@ -649,31 +744,6 @@ has inclusion probability $s/m$, so
 \]
 \end{proof}
 
-\begin{table}[t]
-\caption{Status of the mathematical claims and their completed computational
-checks.  Passing tests is falsification evidence, not proof.}
-\label{tab:theorem-status}
-\centering
-\small
-\begin{tabular}{@{}p{0.27\textwidth}p{0.18\textwidth}p{0.45\textwidth}@{}}
-\toprule
-Statement & Status & Completed evidence\\
-\midrule
-Feedback decomposition and correctness & internal audit passed & 20,000 random
-GF(2) trials and 299,592 exhaustive binary modulus/input pairs\\
-Frobenius factors and inverse & internal audit passed & independent agreement over
-GF(2), $\mathbb F_4$, dual numbers, and an $\mathbb F_3$ sign/radix check\\
-Exact feedback-stage count & internal audit passed & native schedule checks at all
-72 tested $(m,\Dmin)$ coordinates\\
-Scheduled work $\Wfb$ and coarse bound & internal audit passed & all 262,125
-nonempty supports for $2\le m\le18$ pass; fixed-$m$ runtime correlations are
-$0.987$--$0.993$\\
-Random-support laws & internal audit passed & exact geometry for 10,623 frozen
-supports, including median, p90, and p99\\
-\bottomrule
-\end{tabular}
-\end{table}
-
 Exact work depends on every tap distance, not only on $(h,\Dmin)$.  The bounds
 above therefore describe families and schedules; they do not claim that one
 method wins at every modulus with the same degree and weight.
@@ -683,12 +753,40 @@ method wins at every modulus with the same degree and weight.
 
 Reciprocal and triangular Toeplitz inversion for polynomial division are
 classical~\cite{BiniPan1985}, as are formal-power-series inversion
-\cite{Kalorkoti1993} and parallel recurrence methods~\cite{KoggeStone1973}.
-The inverse identity is not itself a novelty claim.  Sparse binary-field
-reduction includes strong specialized methods
-\cite{LopezDahab2000,NiehuesEtAl2018}; Barrett and Montgomery provide
-multiplication-based alternatives, including restricted precomputation-free
-families~\cite{KnezevicEtAl2008}.
+\cite{Kalorkoti1993}.  Parallel triangular Toeplitz and recurrence solvers
+already use doubling, bandwidth, or prefix structure
+\cite{Bini1984,Morf1980,KoggeStone1973,HoLee1990}.  Consequently, neither the
+finite geometric inverse nor logarithmic-depth recurrence solving is a
+novelty claim here.  Those general methods may use dense reciprocals,
+polynomial multiplication, or expanded state; our question is whether the
+particular sparse fixed-state realization retains useful support geometry.
+
+The closest local antecedent is the term-preserving look-ahead transformation
+for LFSRs: in characteristic two, replacing a generator by its square doubles
+the feedback distances without increasing its term count~\cite{LinEtAl2013}.
+Parallel LFSR and CRC architectures also construct equivalent state-space
+updates for arbitrary generator polynomials~\cite{AyinalaParhi2011}.  These
+works preclude a claim that term-preserving Frobenius doubling or parallel
+feedback is new.  They transform or parallelize a homogeneous recurrence,
+whereas Algorithm~1 applies successive factors of an implicit inverse to a
+forced length-$m$ triangular system without enlarging the state.
+
+Sparse binary-field reduction includes word- and bit-parallel polynomial-basis
+methods~\cite{Wu1999} and strong specialized formulae
+\cite{LopezDahab2000}.  Niehues, Custodio, and Panario give a uniform
+top-down reducer for arbitrary low-weight moduli and explicitly observe that
+tap placement can induce a long critical path~\cite{NiehuesEtAl2018}.
+Finite-field multiplier architectures additionally use multi-degree
+reduction, subexpression sharing, and balanced XOR trees~\cite{Meher2009}.
+FFR therefore claims neither the first arbitrary-tap reducer nor
+the first parallel reduction circuit; its measured comparison keeps serial
+folding and applicable L\'opez--Dahab reduction as direct baselines.
+
+Barrett and Montgomery provide multiplication-based alternatives, including
+restricted precomputation-free families~\cite{KnezevicEtAl2008}.  Thus
+``without precomputation'' is not a novelty claim either.  Our plans avoid a
+materialized reciprocal or dense matrix, but still have a separately measured
+setup cost.
 
 Repeated Frobenius powering in factorization gives the closest application
 context.  Von zur Gathen and Gerhard combine theory, implementation, storage,
@@ -701,25 +799,23 @@ materialized dense reciprocal or matrix, and exact geometry from all tap
 distances.  We do not claim the first reciprocal, Frobenius identity, parallel
 recurrence solver, or balanced XOR realization.
 
-\drafttodo{Insert source-checked TePLAT, LFSR, CRC, prefix, and dense
-linear-circuit comparisons.  Verify all metadata against primary sources.}
-
 \section{Implementations and Evaluation}
 \label{sec:evaluation}
 
 \subsection{Implementations and validation}
 
-The native interface exposes generalized Suwako (GS), serial top-down
-folding, naive long division, and gf2x-backed Barrett reduction through the
-same operation
+The native interface exposes FFR, serial top-down
+folding, and gf2x-backed Barrett reduction through the same operation
 \[
   A\longmapsto A\bmod g,\qquad \deg A<2m.
 \]
-GS and serial folding use the same packed-word shift/XOR primitive.  We also
+FFR and serial folding use the same packed-word shift/XOR primitive.  The
+frozen implementation and dataset retain \texttt{GS} as their internal method
+identifier.  We also
 implemented the ordinary-loop L\'opez--Dahab reducer, using it only when
-$\Dmin\ge W$, and a packed dense linear map for diagnostic screening.  Naive
-long division is a correctness reference rather than a performance
-competitor.  Montgomery REDC is excluded because it computes
+$\Dmin\ge W$, and a packed dense linear map for diagnostic screening.  An
+independent long-division implementation supplies the correctness oracle but
+is not a performance method.  Montgomery REDC is excluded because it computes
 $AR^{-1}\bmod g$ in a different representation and hence does not satisfy the
 frozen direct-reduction contract.
 
@@ -736,10 +832,9 @@ Theorem~\ref{thm:correctness}.
 We measured portable scalar C on one recorded x86-64 host, pinned to logical
 CPU~0.  The programs were compiled with GCC~16.1.1 using
 \texttt{-O3 -std=c11 -Wall -Wextra}; Barrett used
-\texttt{/usr/lib/libgf2x.so.3.0.0}.  The recorded frequency policy used the
-\texttt{powersave} governor with the
-\texttt{balance\_performance} preference and turbo enabled.  Thus every
-timing conclusion below is platform-specific.
+\texttt{/usr/lib/libgf2x.so.3.0.0}.  The governor, energy-performance
+preference, and turbo state accompany every retained row.  Thus every timing
+conclusion below is platform-specific.
 
 For each support, the input corpus consists of eight materialized polynomials
 $A=L+x^mH$, where $L$ and $H$ are independent uniform $m$-bit polynomials.
@@ -757,7 +852,7 @@ The controlled corpus contains 1,096 constant-free supports at
 \]
 It varies $h$ and $\Dmin$ independently: the nearest tap is fixed at
 $m-\Dmin$, and the remaining taps are spread deterministically.  Every point
-compares GS with Barrett.  Serial is present in the 392 points retained from
+compares FFR with Barrett.  Serial is present in the 392 points retained from
 the initial and L\'opez--Dahab screening grids, while high-weight extensions
 omit it; L\'opez--Dahab is present precisely at measured points satisfying
 $\Dmin\ge64$.  Method availability is therefore part of each point, and an
@@ -771,43 +866,19 @@ every paired fastest/competitor ratio interval lies strictly below one.
 Failures of these tests are retained as timing instability, operational ties,
 or statistical ties rather than forced into a phase boundary.
 
-The canonical dataset has 67,576 rows and SHA-256 digest
-\path{7244edc1ac03dabee71870386a59f722ffcde92769486786e22a00212761ee0e}.
-It records the complete taps, seeds, commands, compiler and library paths,
-binary digests, timing and setup contracts, affinity, and frequency policy.
-Three clean collection commits map one-to-one to three binary digests.  From a
-fresh checkout, the artifact verifies this dataset and reconstructs all 24
-declared figures and table sources with exact hash agreement.
-
-\begin{table}[t]
-\caption{Modulus provenance and the resulting claim boundary.  The timing
-corpora deliberately do not infer reducibility or irreducibility from their
-construction.}
-\label{tab:modulus-scope}
-\centering
-\small
-\begin{tabular}{@{}p{0.28\textwidth}p{0.20\textwidth}p{0.42\textwidth}@{}}
-\toprule
-Corpus & Irreducibility status & Completed evidence\\
-\midrule
-Controlled fixed-weight grid & unclassified & 1,096 paper-grade
-reduction-only timing cells; no field-performance claim\\
-Frozen random fixed-weight supports & unclassified & exact geometry for
-10,623 supports; no random-support timing claim\\
-Arbitrary monic correctness cases & possibly reducible & differential and
-theorem-falsification checks; correctness needs only monicity\\
-Named real irreducible moduli & certificate required & not yet timed;
-real-modulus and field-level performance are deferred\\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \subsection{Measured winner regions}
 
 Figure~\ref{fig:winner-panels} gives the complete measured phase diagram.  Its
 axes are the two principal geometric parameters rather than ordinal grid
 indices.  Every block is one observed support; blank regions were not measured
-and are not interpolated.
+and are not interpolated.  To expose the predicted regime decomposition, we
+overlay a fitted cost model.  At each fixed $m$, a deterministic alternating
+split of the sorted grid fits affine times for FFR from its portable scalar
+block-work count and for L\'opez--Dahab from
+$\lceil m/W\rceil(h-1)$; Barrett is represented by its fixed-$m$ calibration
+median.  The minimum predicted time labels each measured coordinate, and a
+line is drawn only where adjacent predicted labels differ.  Thus the blocks
+remain measurements whereas the lines are descriptive model predictions.
 
 \begin{figure}[t]
 \centering
@@ -815,20 +886,22 @@ and are not interpolated.
 \caption{Measured winner regions for six fixed degrees.  The horizontal axis
 is $\log_2(h-1)$ and the vertical axis is
 $\log_2(m/\Dmin)$.  Colors identify the unique winner among the methods
-available at that point; gray cells are uncertain.  GS and Barrett are present
+available at that point; gray cells are uncertain.  FFR and Barrett are present
 everywhere, whereas L\'opez--Dahab is admitted only at its tested
-$\Dmin\ge64$ boundary.  No boundary interpolation is performed.}
+$\Dmin\ge64$ boundary.  Thick lines mark pair-specific interfaces predicted
+by the fixed-$m$ fitted cost model; they neither change measured classifications
+nor interpolate unmeasured cells.}
 \label{fig:winner-panels}
 \end{figure}
 
-Of the 1,096 cells, 983 have a unique winner: GS wins 321, Barrett wins 305,
+Of the 1,096 cells, 983 have a unique winner: FFR wins 321, Barrett wins 305,
 and L\'opez--Dahab wins 357.  The remaining 113 cells comprise 103
 timing-unstable cells and 10 operational ties; no cell is classified as a
 statistical tie.  The largest panel, $m=131072$, deliberately retains only 31
 trials and consequently has 52 unstable cells out of 289.  This visible
 uncertainty is part of the result, not evidence for any adjacent region.
 
-The diagram separates three regimes.  GS occupies the sparse,
+The diagram separates three regimes.  FFR occupies the sparse,
 difficult-feedback region.  As weight increases, multiplication-based Barrett
 eventually wins even when $\Dmin$ is small.  When $\Dmin\ge64$,
 L\'opez--Dahab increasingly dominates the friendly-feedback region as $m$
@@ -841,7 +914,7 @@ crossovers, not monotonicity theorems.
 
 \begin{table}[t]
 \caption{Portable-C reduction summary on the controlled constant-free
-$\Dmin=1$ slice.  GS time and the first ratio use $h=9$.  The crossover is
+$\Dmin=1$ slice.  FFR time and the first ratio use $h=9$.  The crossover is
 the first stable Barrett winner after which every later stable sampled weight
 is also Barrett; uncertain cells neither create nor break it.}
 \label{tab:portable-results}
@@ -849,7 +922,7 @@ is also Barrett; uncertain cells neither create nor break it.}
 \small
 \begin{tabular}{@{}rrrrr@{}}
 \toprule
-$m$ & GS (ns) & Barrett/GS & crossover $h$ & ratio at crossover\\
+$m$ & FFR (ns) & Barrett/FFR & crossover $h$ & ratio at crossover\\
 \midrule
 128    & 64.1    & 2.164  & 33  & 0.881\\
 512    & 272.9   & 3.807  & 97  & 0.718\\
@@ -866,10 +939,10 @@ These medians use \texttt{portable-scalar-c:v1},
 backend on the recorded primary machine.  They establish a platform-specific
 phase boundary, not a cross-platform ordering.
 
-\subsection{Does the work model predict GS time?}
+\subsection{Does the work model predict FFR time?}
 
 Figure~\ref{fig:work-runtime} compares the formal scheduled coefficient work
-$\Wfb$ with measured GS time.  Within each fixed degree, the Spearman
+$\Wfb$ with measured FFR time.  Within each fixed degree, the Spearman
 correlation ranges from $0.9868$ to $0.9934$.  Thus the complete tap geometry
 captured by $\Wfb$ orders these controlled scalar runtimes unusually well.
 The residual scatter is not assigned to cache traffic, alignment, or any
@@ -879,7 +952,7 @@ correlation is not an instruction-count identity.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/work-runtime.pdf}
-\caption{Scheduled active-tap work versus median GS reduction time for all
+\caption{Scheduled active-tap work versus median FFR reduction time for all
 1,096 controlled supports, shown separately at fixed $m$.  Both axes use
 base-two logarithms.  The displayed $\rho$ is the within-panel Spearman
 correlation.}
@@ -896,7 +969,7 @@ $(h,\Dmin)=(9,1)$.  Each entry is ``nanoseconds / bytes.''}
 \small
 \begin{tabular}{@{}rrrrr@{}}
 \toprule
-$m$ & trials & GS & Serial & Barrett\\
+$m$ & trials & FFR & Serial & Barrett\\
 \midrule
 128    & 127 & 596.5 / 744    & 119.5 / 416   & 782.0 / 184\\
 512    & 127 & 719.5 / 888    & 123.5 / 512   & 4770.5 / 376\\
@@ -908,11 +981,11 @@ $m$ & trials & GS & Serial & Barrett\\
 \end{tabular}
 \end{table}
 
-Setup follows \texttt{modulus-plan:v1}.  Storage follows
-\texttt{requested-owned-bytes:v1} and excludes allocator overhead, shared
-modulus storage, benchmark buffers, and transient library workspace.
+Setup and requested plan-owned storage follow separately frozen contracts.
+The storage counts exclude allocator overhead, shared modulus storage,
+benchmark buffers, and transient library workspace.
 The setup measurements show a tradeoff hidden by steady-state timings:
-Barrett's reciprocal construction becomes expensive at large $m$, while GS
+Barrett's reciprocal construction becomes expensive at large $m$, while FFR
 retains a modest schedule-construction cost.  This does not alter the
 reduction-only winner diagram.  For an explicitly chosen reuse count $K$, the
 artifact separately derives
@@ -926,86 +999,153 @@ times.
 \label{sec:consequences}
 
 Distinct-degree factorization, Rabin irreducibility testing, and sparse
-polynomial search repeatedly compute Frobenius powers.  A valid experiment
-must separate square formation, reduction, multiplication, and GCD cost before
-recombining them in a complete workload.  A high-monomial microbenchmark is
-not a square-shaped input distribution.
+polynomial search repeatedly compute modular Frobenius powers, so reduction is
+a genuine component of these workloads.  The present experiment deliberately
+isolates that component.  It does not measure square formation,
+multiplication, GCDs, early exits, or complete factorization and
+irreducibility-testing runs.  In particular, the uniform degree-below-$2m$
+inputs used in Section~\ref{sec:evaluation} are not distributed like polynomial
+squares, whose odd coefficients vanish.  The measured reduction regions are
+therefore evidence about reducer selection, not about end-to-end workload
+speed or the best irreducible modulus for an application.
 
-\placeholderbox{Square formation, reduction, and complete modular-square
-breakdown for random and application-generated Frobenius-chain states.}
+Several additional boundaries matter.  The timing corpus uses controlled
+supports without a constant term, and their irreducibility is unclassified;
+correctness requires only monicity, but no field-performance conclusion follows.  All
+timings come from one x86-64 host, one compiler configuration, a 64-bit scalar
+representation, and one gf2x installation.  The largest panel retains 52
+timing-unstable cells, and serial folding was omitted from the high-weight
+extension after its initial screening.  L\'opez--Dahab participates only for
+$\Dmin\ge64$, while the dense map is diagnostic rather than winner-eligible.
+Setup and requested plan storage are reported separately from steady-state
+reduction, so a different plan-reuse distribution can change total cost.
 
-\drafttodo{Implement the modular-square API and compare with the strongest
-general and applicable family-specific squarers.}
-
-The primary end-to-end candidate is a complete Rabin test, distinct-degree
-factorization kernel, primitive-polynomial certification, or sparse-polynomial
-search.  It must report early exits, candidate distribution, irreducibility
-provenance, and time fractions.  A second question asks whether, under a frozen
-objective, generalized Suwako changes the platform-optimal irreducible modulus.
-
-\begin{table}[t]
-\caption{End-to-end computational-algebra results.}
-\centering
-\begin{tabular}{@{}llllll@{}}
-\toprule
-Workload & degree & modulus family & reducer & total time & reduction share\\
-\midrule
-\multicolumn{6}{c}{\textbf{TODO: reproducible end-to-end data}}\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\drafttodo{Populate only after independent state-by-state verification.  If a
-reduction gain vanishes end to end, report it.  Preserve modulus candidate
-sets and irreducibility certificates and state whether the winner changes.}
-
-Dense supports, small degrees, expensive cross-word shifts, and strong fixed
-reducers can make generalized Suwako unattractive.  Multiplication-based
-methods may dominate once fast polynomial multiplication is effective.  The
-reduction theorem does not establish a lower bound for every fixed modulus, a
-constant-time implementation, or an asymptotic improvement to complete field
+Finally, dense supports, small degrees, cross-word shifts, and specialized
+fixed-modulus reducers can all make FFR unattractive, while
+fast polynomial multiplication favors Barrett.  The theorems give no lower
+bound for every fixed modulus, no optimal XOR circuit, no constant-time or
+side-channel guarantee, and no asymptotic improvement to complete field
 multiplication.
-
-\drafttodo{Replace generic limitations with measured boundaries and threats
-to validity for compiler, machine, sample size, distribution, and setup.}
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-This draft recasts binary polynomial reduction as inversion of a nilpotent
-feedback operator.  Characteristic-two Frobenius powers give a factored
-schedule with logarithmic feedback depth and work governed by the full sparse
-tap geometry, without first constructing a dense reciprocal or matrix.
+We recast reduction by an arbitrary monic binary polynomial as inversion of a
+nilpotent feedback operator.  Characteristic-two Frobenius powers yield a
+matrix-free schedule with exact feedback depth
+$\lceil\log_2(m/\Dmin)\rceil$ and work governed by every tap distance.  The
+analysis also separates coefficient work, packed-word loop geometry, setup,
+and temporary space.
 
-\drafttodo{Rewrite after the proof audit and experiments.  State actual
-winning and losing regions and the measured workload consequence.}
+The portable scalar experiments show that this tradeoff has nontrivial
+algorithm-selection regions.  FFR wins for sparse moduli with
+difficult feedback, gf2x-backed Barrett takes over as weight grows, and
+ordinary-loop L\'opez--Dahab is often strongest when its feedback-distance
+condition applies.  The formal work measure is strongly monotone with FFR
+runtime on the controlled corpus, but the measured boundaries retain unstable
+cells and remain platform-specific.  Establishing a computational-algebra
+speedup requires a separate modular-squaring and end-to-end experiment; it is
+not implied by the reduction-only results reported here.
 
 \appendix
 
 \section{Coefficient-Algebra Extension}
 
-For a commutative characteristic-two algebra and
-$U=\sum_t a_tN^{\Delta_t}$,
-\begin{equation}
-  U^{2^k}=\sum_t a_t^{2^k}N^{2^k\Delta_t}.
-\end{equation}
-Formal scheduled support and actual nonzero support can differ over a
-nonreduced algebra such as $\Ftwo[\varepsilon]/(\varepsilon^2)$.
+Let $R$ be a commutative characteristic-two algebra and let
+\[
+  g=x^m+\sum_{t=0}^{m-1}a_tx^t\in R[x]
+\]
+be monic.  Define $N$ as before on $R^m$, and put
+\[
+  U=\sum_{t=0}^{m-1}a_tN^{m-t},
+  \qquad
+  V(Y)=\sum_{t=0}^{m-1}a_t(x^tY\bmod x^m).
+\]
 
-\drafttodo{Insert the fully quantified proof.  Keep the odd-characteristic
-radix identity and the remainder sign $L-V(Y)$ separate.}
+\begin{theorem}[Coefficient-algebra factorization]
+For every $k\ge0$,
+\begin{equation}
+  U^{2^k}=\sum_{t=0}^{m-1}a_t^{2^k}N^{2^k(m-t)}.
+  \label{eq:coefficient-frobenius}
+\end{equation}
+If $U^{2^r}=0$, then
+\[
+  (I+U)^{-1}=\prod_{k=0}^{r-1}(I+U^{2^k}).
+\]
+Consequently, applying these factors to $H$ and returning $L+V(Y)$ computes
+$A\bmod g$ for every $A=L+x^mH$ of degree below $2m$.
+\end{theorem}
+\begin{proof}
+The summands $a_tN^{m-t}$ commute.  Frobenius is therefore additive on their
+sum, and iterating it gives~\eqref{eq:coefficient-frobenius}.  The telescoping
+identity
+\[
+  (I+U)\prod_{k=0}^{r-1}(I+U^{2^k})=I+U^{2^r}=I
+\]
+proves the inverse formula.  Finally,
+\[
+  A-gY=L+V(Y)+x^m\bigl(H+Y+U(Y)\bigr)
+\]
+in characteristic two, so $H=(I+U)Y$ leaves the unique degree-below-$m$
+remainder $L+V(Y)$.
+\end{proof}
+
+This extension preserves the formal stage schedule, but not necessarily its
+actual nonzero support.  In a nonreduced algebra a coefficient may satisfy
+$a_t\ne0$ and $a_t^{2^k}=0$; for example,
+$\varepsilon^2=0$ in $\Ftwo[\varepsilon]/(\varepsilon^2)$.  Thus the exact
+binary expression $\Wfb$ is scheduled work in this setting, while an
+implementation that removes zero coefficients may do less arithmetic.  In
+odd characteristic $p$, the corresponding radix-$p$ factorization uses
+$\sum_{j=0}^{p-1}(-U^{p^k})^j$, and the final remainder is $L-V(Y)$ rather
+than the characteristic-two expression $L+V(Y)$.
 
 \section{Validation and Additional Results}
 
-\drafttodo{Document seeds, exhaustive ranges, independent oracles, commands,
-complete tables, secondary platforms, setup/storage, generated code size,
-anomalies, and all losing regions.}
+The deterministic algebraic suites use independent polynomial long division
+or direct finite geometric series as their oracles.  Over $\Ftwo$, 20,000
+random cases with $m\le128$ and all 299,592 monic-modulus/input pairs for
+$m\le6$ pass.  Over $\Ftwo[\varepsilon]/(\varepsilon^2)$, 20,000 random cases
+and all 266,304 cases for $m\le3$ pass; 13,573 random instances exhibit a
+nonzero coefficient killed by a Frobenius power, motivating the support
+qualification above.  A further 20,000 random $\mathbb F_4$ cases and 10,000
+random $\mathbb F_3$ cases agree with independent inverse and reduction paths.
+Exhaustive enumeration of all 262,125 nonempty supports for $2\le m\le18$
+finds no counterexample to the scheduled-work formula or its coarse bound.
+
+The repository entry point \texttt{make check} runs these theorem-falsification
+suites together with native differential, boundary, masking, sanitizer, dense,
+and L\'opez--Dahab checks.  The frozen artifact uses these commands:
+\begin{quote}
+\ttfamily
+make artifact-cost-model\\
+make artifact-microbenchmark ARTIFACT\_CPU=0\\
+make artifact-paper
+\end{quote}
+Its 67,576-row external dataset and 26 derived
+outputs are hash-locked.  A detached clean checkout reproduced the 24-output
+predecessor artifact; the fitted-boundary extension has been rebuilt in the
+current tree and awaits its post-commit detached audit.  Exact seeds, tap
+manifests, commands, compiler and gf2x paths,
+binary digests, affinity, and frequency policy accompany every retained row.
+No secondary-platform or end-to-end result is included in this version.
 
 \begin{thebibliography}{99}
 \bibitem{BiniPan1985}
 D.~Bini and V.~Pan, \emph{Fast parallel polynomial division via reduction to
 triangular Toeplitz matrix inversion and to polynomial inversion modulo a
 power}, Inform. Process. Lett. \textbf{21} (1985), no.~2.
+
+\bibitem{Bini1984}
+D.~Bini, \emph{Parallel solution of certain Toeplitz linear systems},
+SIAM J. Comput. \textbf{13} (1984), no.~2, 268--276,
+\url{https://doi.org/10.1137/0213019}.
+
+\bibitem{AyinalaParhi2011}
+M.~Ayinala and K.~K. Parhi, \emph{High-speed parallel architectures for
+linear feedback shift registers}, IEEE Trans. Signal Process. \textbf{59}
+(2011), no.~9, 4459--4469,
+\url{https://doi.org/10.1109/TSP.2011.2159495}.
 
 \bibitem{GathenGerhard2002}
 J.~von zur Gathen and J.~Gerhard, \emph{Polynomial factorization over
@@ -1016,6 +1156,11 @@ $\mathbb F_2$}, Math. Comp. \textbf{71} (2002), no.~240, 1677--1698,
 K.~S.~K. Kalorkoti, \emph{Inverting polynomials and formal power series},
 SIAM J. Comput. \textbf{22} (1993), no.~3,
 \url{https://doi.org/10.1137/0222037}.
+
+\bibitem{HoLee1990}
+C.-W.~Ho and R.~C.~T. Lee, \emph{A parallel algorithm for solving sparse
+triangular systems}, IEEE Trans. Comput. \textbf{39} (1990), no.~6,
+848--852, \url{https://doi.org/10.1109/12.53610}.
 
 \bibitem{KnezevicEtAl2008}
 M.~Knezevic, K.~Sakiyama, J.~Fan, and I.~Verbauwhede, \emph{Modular reduction
@@ -1032,6 +1177,23 @@ J.~L\'opez and R.~Dahab, \emph{High-speed software multiplication in
 $\mathbb F_{2^m}$}, Progress in Cryptology---INDOCRYPT 2000, LNCS 1977,
 Springer, 2000.
 
+\bibitem{LinEtAl2013}
+J.-C.~Lin, S.-J.~Chen, and Y.~H. Hu, \emph{Cycle-efficient LFSR
+implementation on word-based microarchitecture}, IEEE Trans. Comput.
+\textbf{62} (2013), no.~4, 832--836,
+\url{https://doi.org/10.1109/TC.2012.14}.
+
+\bibitem{Meher2009}
+P.~K. Meher, \emph{Systolic and non-systolic scalable modular designs of
+finite field multipliers for Reed--Solomon codec}, IEEE Trans. Very Large
+Scale Integr. (VLSI) Syst. \textbf{17} (2009), no.~6, 747--757,
+\url{https://doi.org/10.1109/TVLSI.2008.2006080}.
+
+\bibitem{Morf1980}
+M.~Morf, \emph{Doubling algorithms for Toeplitz and related equations},
+Proc. IEEE Int. Conf. Acoustics, Speech, and Signal Processing, 1980,
+pp.~954--959, \url{https://doi.org/10.1109/ICASSP.1980.1171074}.
+
 \bibitem{NiehuesEtAl2018}
 L.~Boppre Niehues, R.~Custodio, and D.~Panario, \emph{Fast modular reduction
 and squaring in $\operatorname{GF}(2^m)$}, Inform. Process. Lett.
@@ -1041,6 +1203,11 @@ and squaring in $\operatorname{GF}(2^m)$}, Inform. Process. Lett.
 V.~Shoup, \emph{New algorithms for finding irreducible polynomials over finite
 fields}, Math. Comp. \textbf{54} (1990), no.~189, 435--447,
 \url{https://doi.org/10.1090/S0025-5718-1990-0993933-0}.
+
+\bibitem{Wu1999}
+H.~Wu, \emph{Low complexity bit-parallel finite field arithmetic using
+polynomial basis}, Cryptographic Hardware and Embedded Systems---CHES 1999,
+LNCS 1717, Springer, 1999, pp.~280--291.
 \end{thebibliography}
 
 \end{document}

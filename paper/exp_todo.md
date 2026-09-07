@@ -6,6 +6,11 @@ The paper structure and claim status remain in
 parameter model, metrics, and planned figures remain in
 [sections/implementation_evaluation.md](sections/implementation_evaluation.md).
 
+The paper-facing method name is Frobenius-factorized reduction (FFR).  The
+frozen native API, source filenames, CSV fields, and artifact method keys keep
+the historical identifier `GS`; occurrences of `GS` below refer to that
+internal identifier rather than a second algorithm.
+
 Do not infer a paper claim from a checked implementation task. Advance
 evidence through the following levels:
 
@@ -48,7 +53,7 @@ in their own documents.
 
 The following items describe code that exists, not completed paper evidence.
 
-- [x] A unified native reduction API exposes generalized Suwako, serial sparse
+- [x] A unified native reduction API exposes FFR (internal key `GS`), serial sparse
       folding, naive long division, gf2x-backed Barrett, ordinary-loop
       López--Dahab Algorithm 2, and dense linear-map reduction.
 - [x] The native correctness checks compare the four unrestricted native
@@ -185,7 +190,7 @@ silent deduplication or normalization.
       runs 10,000 stratified random full-input cases for $1\le m\le512$ plus
       700 fixed-degree cases and prints a directly reproducible case on
       failure.
-- [x] [Q] Verify that every generalized-Suwako stage reads one immutable old
+- [x] [Q] Verify that every FFR stage reads one immutable old
       state across all active taps. [A] `tests/check_gs_stage.c` invokes the
       actual private scalar stage kernel without changing the production
       source or API and compares each in-place stage against an independent
@@ -373,7 +378,7 @@ The paper-facing definition of this experiment is in
       $T=\varnothing$ coordinate is counted and annotated separately rather
       than placed on the logarithmic axis; winner assignment remains a later
       Gate 3 item.
-- [x] Compare serial sparse folding (shift/XOR), generalized Suwako, and
+- [x] Compare serial sparse folding (shift/XOR), FFR, and
       gf2x-backed Barrett under the same reduction contract and input corpus.
       [A] For each support, the native benchmark materializes one
       `uniform-full-range:v1` input array, differentially checks all enabled
@@ -430,9 +435,12 @@ The paper-facing definition of this experiment is in
       assigns 983 unique winners and preserves 113 uncertain cells: 103
       timing-unstable, 10 operational ties, and no statistical ties. The
       renderer emits equal-area measured blocks in a $2\times3$ SVG/PNG layout
-      without interpolating missing cells. Its optional cost-model boundary
-      overlay remains exploratory until the fitting analysis is implemented
-      as a reproducible repository script.
+      without interpolating missing cells.  A reproducible repository script
+      now fits fixed-$m$ affine runtime models to the GS and López--Dahab
+      portable scalar word-work formulas, uses the fixed-$m$ Barrett median,
+      preserves a deterministic calibration/holdout split, and overlays only
+      adjacent predicted-class interfaces.  The predicted lines do not alter
+      measured fills or extrapolate into unmeasured cells.
 - [x] Record $W$, full tap placement, input distribution, implementation,
       platform, setup policy, and multiplication backend for every panel. [A]
       A direct audit of all 67,576 retained paper-grade trial rows underlying
@@ -554,15 +562,19 @@ The paper-facing definition of this experiment is in
       `make artifact-microbenchmark ARTIFACT_CPU=N`; `make artifact-paper`
       rebuilds the complete paper analysis.
 - [x] Regenerate every paper figure and table from recorded raw data. [A]
-      `make artifact-paper` reconstructs winner classifications and regions,
+      `make artifact-paper` reconstructs winner classifications, fitted
+      cost-model boundary predictions and diagnostics, winner regions,
       phase/depth/slice/setup/work figures, random-support geometry,
-      cost-model summaries, and paper table sources. All 24 outputs match the
-      SHA-256 values frozen in `bench/artifact/paper-v1.json`.
-- [x] Verify the scoped artifact path from a fresh checkout. [A] A detached
+      cost-model summaries, and paper table sources. The declared outputs and
+      SHA-256 values are frozen in `bench/artifact/paper-v1.json`.
+- [ ] Verify the scoped artifact path from a fresh checkout. [A] A detached
       checkout of artifact commit `68af036` verified the external raw-data
       hash, regenerated all 24 outputs with exact hash agreement, reran the
       cost-model command, and completed a 124-row metadata-complete native
-      timing smoke run. See `bench/artifact/validation-68af036.json`.
+      timing smoke run. See `bench/artifact/validation-68af036.json`.  The
+      subsequent fitted-boundary extension adds two CSV outputs and changes
+      the winner SVG without changing timing data; record a new detached
+      fresh-checkout validation after this extension is committed.
 - [-] Repeat representative classical cases on a second machine or ISA before
       making architecture-independent claims. [A] Not applicable to the
       frozen paper claim: every timing result is explicitly scoped to the
@@ -592,8 +604,8 @@ The paper-facing definition of this experiment is in
 - [x] The classical phase diagram contains both winning and losing regions.
       [A] Its 983 unique winners include GS, BarrettGF2X, and López--Dahab
       regions, while all 113 non-unique cells remain explicitly uncertain.
-- [x] A fresh checkout reproduces every result used by the paper. [A] The
+- [ ] A fresh checkout reproduces every result used by the paper. [A] The
       hash-locked external dataset plus tracked manifests and scripts rebuild
-      all 24 current paper artifacts byte-for-byte at commit `68af036`; the
-      external correctness and smoke-run records are hash-bound by the tracked
-      validation record.
+      the 24-output predecessor artifact byte-for-byte at commit `68af036`;
+      the new 26-output fitted-boundary artifact must receive its own detached
+      post-commit audit before this gate is closed again.

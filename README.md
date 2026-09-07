@@ -1,7 +1,8 @@
 # ExSuwako
 
-**ExSuwako** is an early proof-of-concept implementation of generalized
-Suwako reduction for sparse binary polynomials.
+**ExSuwako** is the repository name for an early proof-of-concept
+implementation of Frobenius-factorized reduction (FFR) for sparse binary
+polynomials.
 
 It extends the original trinomial-oriented Suwako idea to monic moduli of the
 form
@@ -207,7 +208,7 @@ requirements.
 
 ### Native Reducers
 
-- `src/GS.c`: generalized Suwako reduction. It precomputes the sparse doubling
+- `src/GS.c`: Frobenius-factorized reduction. It precomputes the sparse doubling
   schedule and computes
   $L+V((I+U)^{-1}H)$ with one reusable state buffer.
 - `src/serial.c`: word-oriented serial sparse folding baseline. It propagates
@@ -480,10 +481,10 @@ r_t=
 \right\rceil.
 $$
 
-The coarse machine-word work bound for generalized Suwako is
+The coarse machine-word work bound for FFR is
 
 $$
-T_{\mathrm{ExSuwako}}(m,h,W)
+T_{\mathrm{FFR}}(m,h,W)
 =
 O(hnr).
 $$
@@ -507,7 +508,7 @@ $$
 \Theta(M_W(n)).
 $$
 
-Thus generalized Suwako has asymptotically lower machine-word work whenever
+Thus FFR has asymptotically lower machine-word work whenever
 
 $$
 hnr=o(M_W(n)),
@@ -617,7 +618,7 @@ performance measurements on relevant sparse moduli.
 
 ## Repository name
 
-`ExSuwako` is a working name meaning **Extended Suwako**.
-
-The algorithmic terminology used in technical writing should remain
-**generalized Suwako reduction** until a final name and scope are established.
+`ExSuwako` remains the repository name.  The paper-facing algorithmic term is
+**Frobenius-factorized reduction (FFR)**.  Existing `GS`, `gs_*`, and
+GS-named paths are retained as historical implementation and data-schema
+identifiers so that frozen benchmark provenance remains stable.

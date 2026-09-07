@@ -280,7 +280,7 @@ def render_amortization(
             "stroke": color, "stroke-width": "3",
         })
         label = LABELS.get(method, method)
-        add_text(root, legend_x + 23, 51, f"{label}/GS median (p10–p90)", font_size=8)
+        add_text(root, legend_x + 23, 51, f"{label}/FFR median (p10–p90)", font_size=8)
         legend_x += 105 + 5.0 * len(label)
 
     for index, m in enumerate(degrees):
@@ -330,7 +330,7 @@ def render_amortization(
             add_text(root, map_x(value), bottom + 17, str(value), text_anchor="middle", font_size=8)
         add_text(root, (left + right) / 2, bottom + 36, "log2(K)",
                  text_anchor="middle", font_size=10)
-        add_text(root, ox + 13, (top + bottom) / 2, "median log2(T_method / T_GS)",
+        add_text(root, ox + 13, (top + bottom) / 2, "median log2(T_method / T_FFR)",
                  text_anchor="middle", font_size=8,
                  transform=f"rotate(-90 {ox + 13} {(top + bottom) / 2})")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -356,7 +356,7 @@ def render_tradeoff(path: Path, supports: list[Support]) -> None:
         "x": "0", "y": "0", "width": str(width), "height": str(height), "fill": "#fff",
     })
     add_common_style(root)
-    add_text(root, width / 2, 23, "GS work–feedback-depth–setup tradeoff",
+    add_text(root, width / 2, 23, "FFR work–feedback-depth–setup tradeoff",
              text_anchor="middle", font_size=16, font_weight="bold")
     legend_left, legend_right = 408.0, 688.0
     for step in range(80):
@@ -368,7 +368,7 @@ def render_tradeoff(path: Path, supports: list[Support]) -> None:
         })
     add_text(root, legend_left - 7, 47, f"{setup_min:.1f}", text_anchor="end", font_size=8)
     add_text(root, legend_right + 8, 47, f"{setup_max:.1f}", font_size=8)
-    add_text(root, width / 2, 61, "color = log2(GS setup ns + 1)",
+    add_text(root, width / 2, 61, "color = log2(FFR setup ns + 1)",
              text_anchor="middle", font_size=8)
 
     for index, m in enumerate(degrees):

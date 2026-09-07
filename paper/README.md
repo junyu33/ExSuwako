@@ -1,6 +1,7 @@
 # Paper Branch Contract
 
-`main` is the factual research trunk.  It retains the generalized-Suwako
+`main` is the factual research trunk.  It retains the
+Frobenius-factorized reduction (FFR)
 mathematical core, verified prior-art boundary, and the complete `raw/`
 provenance archive.  It deliberately contains no manuscript outline,
 submission gate, application plan, or experimental checklist.

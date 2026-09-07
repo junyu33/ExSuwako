@@ -2,14 +2,14 @@
 
 ## Candidate Titles
 
-1. Generalized Suwako: Sparse Modular Reduction with Logarithmic Feedback Depth
+1. Sparse Modular Reduction with Logarithmic Feedback Depth
 2. Breaking the Feedback Chain in Sparse Binary Polynomial Reduction
 3. Sparse Work without Serial Folding over $\mathbb F_2$
 4. Sparse, Shallow, and Precomputation-Light Modular Reduction
 
 Preferred working title:
 
-> Generalized Suwako: Sparse Modular Reduction with Logarithmic Feedback Depth
+> Sparse Modular Reduction with Logarithmic Feedback Depth
 
 Use "feedback depth" instead of unqualified "circuit depth".
 
@@ -46,7 +46,7 @@ this dependency chain, while Barrett- and Montgomery-style methods support
 arbitrary moduli. These approaches, however, do not simultaneously preserve
 sparse work, logarithmic feedback depth, and lightweight modulus setup.
 
-We present generalized Suwako reduction for moduli
+We present Frobenius-factorized reduction (FFR) for moduli
 
 $$
 g(x)=x^m+q(x)
@@ -400,7 +400,7 @@ $$
 
 ### 1.8 Impact
 
-Generalized Suwako removes the linear feedback-depth penalty of unfriendly
+FFR removes the linear feedback-depth penalty of unfriendly
 sparse moduli without replacing sparse reduction by a dense linear map or a
 multiplication-based reducer. Correctness is arbitrary in the modulus, while
 the work advantage is sparsity-sensitive.

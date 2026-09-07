@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot and validate the exact generalized-Suwako feedback-depth law."""
+"""Plot and validate the exact FFR feedback-depth law."""
 
 from __future__ import annotations
 

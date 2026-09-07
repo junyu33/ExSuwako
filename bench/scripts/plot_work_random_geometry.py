@@ -278,7 +278,7 @@ def render_work_runtime(path: Path, points: list[TimingPoint]) -> list[dict[str,
     degrees = sorted({point.m for point in points})
     if len(degrees) != 6:
         raise ValueError("work/runtime figure requires exactly six degrees")
-    root = figure_root("Scheduled active-tap work versus GS runtime")
+    root = figure_root("Scheduled active-tap work versus FFR runtime")
     summaries: list[dict[str, object]] = []
     for index, m in enumerate(degrees):
         ox, left, right, top, bottom = panel_box(root, index, m)
@@ -326,7 +326,7 @@ def render_work_runtime(path: Path, points: list[TimingPoint]) -> list[dict[str,
         add_text(root, right - 5, top + 14, f"Spearman ρ = {rho:.3f}",
                  text_anchor="end", font_size=8)
         add_text(root, (left + right) / 2, bottom + 36, "log2(W_fb)", text_anchor="middle", font_size=10)
-        add_text(root, ox + 13, (top + bottom) / 2, "log2(GS ns)", text_anchor="middle",
+        add_text(root, ox + 13, (top + bottom) / 2, "log2(FFR ns)", text_anchor="middle",
                  font_size=9, transform=f"rotate(-90 {ox+13} {(top+bottom)/2})")
     path.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)

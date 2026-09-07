@@ -8,7 +8,7 @@ below.
 
 ## Central Thesis
 
-Generalized Suwako reduction applies a sparse, factored truncated reciprocal
+Frobenius-factorized reduction (FFR) applies a sparse, factored truncated reciprocal
 to the nilpotent feedback operator induced by a monic binary modulus. For a
 sparse non-leading part, it retains support-sensitive shift/XOR work while
 reducing the sequential feedback chain to logarithmic length.
@@ -34,7 +34,7 @@ to the `eurocrypt` branch and must not be imported as contributions here.
 
 ## Working Title
 
-> Generalized Suwako: Sparse Modular Reduction with Logarithmic Feedback Depth
+> Sparse Modular Reduction with Logarithmic Feedback Depth
 
 Use *feedback depth* unless a Boolean gate model is explicitly fixed.
 
@@ -64,7 +64,7 @@ scope or final section order.
 2. Preliminaries and cost models
 3. Existing reduction paradigms
 4. Sparse feedback operators
-5. Generalized Suwako reduction
+5. Frobenius-factorized reduction
 6. Complexity analysis
 7. Prior art and novelty boundary
 8. Implementations and evaluation
@@ -79,7 +79,7 @@ claims it summarizes have stabilized.
 
 | Item | Canonical form |
 |---|---|
-| Contribution | generalized Suwako reduction; a method or algorithm |
+| Contribution | Frobenius-factorized reduction (FFR); a method or algorithm |
 | Modulus | \(g(x)=x^m+q(x)=x^m+\bigoplus_{t\in T}x^t\) |
 | Tap distance | \(\Delta_t=m-t\) |
 | Nearest feedback distance | \(\Delta_{\min}=\min_{t\in T}\Delta_t\), only for \(q\ne0\) |
@@ -161,8 +161,11 @@ work, space, setup, and all claimed comparisons.
 
 The evaluation identifies winning and losing regions under fixed platform,
 compiler, modulus, input distribution, and timing boundary. The reduction-only
-artifact gate is complete: a fresh checkout rebuilds all 24 current figures
-and table sources from the externally supplied, hash-locked canonical dataset.
+predecessor artifact gate is complete: a fresh checkout rebuilds its 24
+figures and table sources from the externally supplied, hash-locked canonical
+dataset.  The fitted-boundary extension raises the declared output count to
+26 and requires a new detached post-commit audit before the current artifact
+gate is closed again.
 This is single-platform evidence and does not discharge relevance or theorem
 proof obligations.
 

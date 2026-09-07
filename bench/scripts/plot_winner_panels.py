@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render measured fixed-m winner points without interpolated boundaries."""
+"""Render measured fixed-m winner points and optional predicted boundaries."""
 
 from __future__ import annotations
 
@@ -22,10 +22,18 @@ COLORS = {
     "LopezDahabLoop": "#7651a8",
     "uncertain": "#999999",
 }
+DISPLAY_NAMES = {
+    "GS": "FFR",
+    "Serial": "Serial",
+    "BarrettGF2X": "BarrettGF2X",
+    "Dense": "Dense",
+    "LopezDahabLoop": "LopezDahabLoop",
+    "uncertain": "uncertain",
+}
 BOUNDARY_CLASSES = {
-    frozenset(("GS", "BarrettGF2X")): ("boundary-gs-barrett", "GS–Barrett"),
+    frozenset(("GS", "BarrettGF2X")): ("boundary-gs-barrett", "FFR–Barrett"),
     frozenset(("GS", "LopezDahabLoop")): (
-        "boundary-gs-ld", "GS–López–Dahab",
+        "boundary-gs-ld", "FFR–López–Dahab",
     ),
     frozenset(("BarrettGF2X", "LopezDahabLoop")): (
         "boundary-ld-barrett", "López–Dahab–Barrett",
@@ -162,8 +170,9 @@ def render(
                 "cx": f"{legend_x:.2f}", "cy": "45", "r": "4",
                 "fill": COLORS[winner],
             })
-        add_text(root, legend_x + 7, 49, winner, font_size=9)
-        legend_x += 27 + 5.2 * len(winner)
+        display_name = DISPLAY_NAMES[winner]
+        add_text(root, legend_x + 7, 49, display_name, font_size=9)
+        legend_x += 27 + 5.2 * len(display_name)
     if boundary_points is not None:
         for interface_class, label in BOUNDARY_CLASSES.values():
             ET.SubElement(root, f"{{{SVG_NS}}}line", {

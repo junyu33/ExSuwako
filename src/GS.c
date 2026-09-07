@@ -2,7 +2,9 @@
 #include "sparse_shift.h"
 
 /*
- * Generalized Suwako sparse reduction over GF(2).
+ * Frobenius-factorized sparse reduction over GF(2).
+ *
+ * The GS filename and API prefix are retained for benchmark provenance.
  *
  * For a modulus f = x^m + q(x), split the product input as
  *

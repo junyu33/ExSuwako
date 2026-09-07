@@ -1,6 +1,6 @@
 # Related Work and Novelty Boundary
 
-This section records the current prior-art boundary for generalized Suwako
+This section records the current prior-art boundary for Frobenius-factorized reduction (FFR)
 reduction.  It follows a hostile search rather than an exhaustive priority
 claim.  The central comparison is with reduction modulo a binary monic
 polynomial
@@ -10,7 +10,7 @@ g(x)=x^m+\bigoplus_{t\in T}x^t,
 \qquad T\subseteq\{0,\ldots,m-1\}.
 $$
 
-Generalized Suwako regards the high part of an input as the right-hand side of
+FFR regards the high part of an input as the right-hand side of
 a finite, forced, nilpotent feedback recurrence.  Its proposed contribution is
 not the existence of a reciprocal, a Frobenius identity, or a generic
 logarithmic-depth recurrence solver.  The relevant candidate contribution is
@@ -35,7 +35,7 @@ polynomial division through these reductions [1].  Formal power-series inversion
 Newton/Hensel precision doubling, and finite geometric-series inverses of
 nilpotent operators are likewise established tools [6].  More broadly,
 randomized polylogarithmic-time parallel algorithms exist for general linear
-systems over arbitrary fields [5].  Generalized Suwako must
+systems over arbitrary fields [5].  FFR must
 therefore not be described as the first logarithmic-depth polynomial division
 or as a new inverse identity.
 
@@ -56,7 +56,7 @@ contribution of this work.
 The distinction is representational and algorithmic.  General reciprocal and
 Toeplitz methods address a broader problem and may materialize a dense
 reciprocal or use general polynomial multiplication.  For the sparse feedback
-operator \(U\) induced by a fixed modulus, generalized Suwako instead applies
+operator \(U\) induced by a fixed modulus, FFR instead applies
 
 $$
 (I+U)^{-1}=\prod_{k\geq 0}(I+U^{2^k})
@@ -80,7 +80,7 @@ Bini's banded bound also clarifies why bandwidth alone does not settle that
 question. A feedback operator may contain only a few shifted diagonals while
 its largest shift, and hence its ordinary matrix bandwidth, is close to \(m\).
 The banded processor bound then remains quadratic even though the discrete
-support is sparse. The candidate distinction of generalized Suwako is not a
+support is sparse. The candidate distinction of FFR is not a
 new Toeplitz solver, but the characteristic-two identity
 
 $$
@@ -103,7 +103,7 @@ doubling itself, is new.
 
 TePLAT nevertheless solves a different problem.  It transforms a homogeneous
 LFSR recurrence into one of higher order and trades iteration span against the
-expanded recurrence state.  Generalized Suwako instead solves the finite
+expanded recurrence state.  FFR instead solves the finite
 forced triangular system
 
 $$
@@ -163,9 +163,9 @@ relationship between modulus shape and delay is not clear, while high taps can
 produce long feedback chains [4].
 
 This is the principal classical baseline in the low-weight regime.  Both
-methods are correct for arbitrary binary monic moduli, but generalized Suwako
+methods are correct for arbitrary binary monic moduli, but FFR
 uses sparse, support-sensitive shift/XOR stages and preserves the serial
-feedback traversal only in the baseline.  Generalized Suwako replaces this
+feedback traversal only in the baseline.  FFR replaces this
 traversal by sparse stages at distances \(2^k\Delta_t\).  A final comparison
 must use a common representation and report separately: shift/XOR work,
 sequential feedback depth, bounded-fan-in or gate depth where a circuit model
@@ -184,7 +184,7 @@ $$
 
 For a product of two degree-below-\(m\) polynomials this is at most
 \((m-1)|T|\), specializing to \(2m-2\) XORs for a trinomial and \(4m-4\) for a
-pentanomial. By contrast, the generalized-Suwako feedback stages cost
+pentanomial. By contrast, the FFR feedback stages cost
 
 $$
 W_{\mathrm{fb}}
@@ -233,7 +233,7 @@ Montgomery reductions for two specific characteristic-two modulus families [7],
 rather than for arbitrary binary moduli.
 
 Thus, ``without precomputation'' is not an appropriate novelty claim.  The
-more precise boundary is that generalized Suwako seeks not to materialize a
+more precise boundary is that FFR seeks not to materialize a
 dense reciprocal or reduction matrix while allowing arbitrary binary monic
 moduli.  Sparse support affects the work favorably, but is not a correctness
 assumption.  Any comparison must state the modulus class, required partial

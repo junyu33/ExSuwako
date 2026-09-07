@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot fixed-gap and fixed-weight timing slices relative to GS."""
+"""Plot fixed-gap and fixed-weight timing slices relative to FFR (key GS)."""
 
 from __future__ import annotations
 
@@ -211,7 +211,7 @@ def render(points: list[Point], output: Path, kind: str, selections: list[int]) 
         x_label = "log2(h - 1)" if kind == "weight" else "log2(m / Delta_min)"
         add_text(root, (left + right) / 2, bottom + 36, x_label,
                  text_anchor="middle", font_size=10)
-        add_text(root, ox + 13, (top + bottom) / 2, "log2(T_method / T_GS)",
+        add_text(root, ox + 13, (top + bottom) / 2, "log2(T_method / T_FFR)",
                  text_anchor="middle", font_size=9,
                  transform=f"rotate(-90 {ox + 13} {(top + bottom) / 2})")
 

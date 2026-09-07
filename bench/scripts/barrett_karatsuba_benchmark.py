@@ -1,4 +1,4 @@
-"""Compare Generalized Suwako with Barrett reduction using Karatsuba.
+"""Compare FFR (internal key GS) with Barrett reduction using Karatsuba.
 
 The reciprocal-like auxiliary polynomial is precomputed outside the timed
 reduction path. This remains a Python microbenchmark, not a native result.
