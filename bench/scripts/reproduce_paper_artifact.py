@@ -81,9 +81,15 @@ def verify_raw(path: Path, expected: dict[str, object]) -> dict[str, object]:
 
 
 def run(command: list[str], repository: Path, log: list[dict[str, object]]) -> None:
-    completed = subprocess.run(
-        command, cwd=repository, check=True, capture_output=True, text=True
-    )
+    completed = subprocess.run(command, cwd=repository, capture_output=True, text=True)
+    if completed.returncode:
+        if completed.stdout:
+            print(completed.stdout, end="")
+        if completed.stderr:
+            print(completed.stderr, end="", file=sys.stderr)
+        raise RuntimeError(
+            f"artifact command failed with status {completed.returncode}: {command}"
+        )
     record: dict[str, object] = {
         "command": command,
         "stdout": completed.stdout,
@@ -119,7 +125,8 @@ def rebuild(
         [py, str(script / "analyze_winner_panels.py"), "--input", str(raw),
          "--points", str(files["winner-points.csv"]), "--comparisons",
          str(files["winner-comparisons.csv"]), "--summary",
-         str(files["winner-summary.csv"]), "--paper-grade"],
+         str(files["winner-summary.csv"]), "--paper-grade",
+         "--allow-metadata-cohorts"],
         [py, str(script / "plot_phase_geometry.py"), "--input", str(raw),
          "--output", str(files["phase-geometry.svg"])],
         [py, str(script / "plot_winner_panels.py"), "--input",

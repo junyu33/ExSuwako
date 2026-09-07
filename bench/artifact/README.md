@@ -13,6 +13,12 @@ frequency policy, timing/setup/storage contracts, and binary digest. The
 artifact driver rejects a missing, modified, or non-paper-grade dataset before
 running an analysis.
 
+The winner analyzer normally rejects mixed experiment metadata. The artifact
+uses its explicit `--allow-metadata-cohorts` mode: all environment fields must
+still agree, while each recorded Git commit must map one-to-one to exactly one
+benchmark binary digest. This preserves the three documented collection
+cohorts without pretending that their commit identifiers are identical.
+
 From a clean checkout, with the external dataset available under `bench/data`,
 the principal commands are:
 

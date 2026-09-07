@@ -149,6 +149,7 @@ def load_rows(paths: list[Path]) -> list[dict[str, str]]:
 def analyze_supports(
     raw_rows: list[dict[str, str]], min_trials: int,
     min_batch_repeats: int, min_warmup_runs: int, paper_grade: bool,
+    allow_metadata_cohorts: bool = False,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in raw_rows:
@@ -330,10 +331,27 @@ def analyze_supports(
                 point[f"{method}_relative_half_width"] = ""
         points.append(point)
     if paper_grade:
-        for field in PAPER_METADATA_FIELDS:
+        cohort_fields = {"git_commit", "binary_sha256"}
+        fixed_fields = (
+            field for field in PAPER_METADATA_FIELDS
+            if not allow_metadata_cohorts or field not in cohort_fields
+        )
+        for field in fixed_fields:
             values = {str(point[field]) for point in points}
             if len(values) != 1:
                 raise ValueError(f"paper-grade inputs mix metadata field {field}")
+        if allow_metadata_cohorts:
+            commit_to_binary: dict[str, set[str]] = defaultdict(set)
+            binary_to_commit: dict[str, set[str]] = defaultdict(set)
+            for point in points:
+                commit = str(point["git_commit"])
+                binary = str(point["binary_sha256"])
+                commit_to_binary[commit].add(binary)
+                binary_to_commit[binary].add(commit)
+            if any(len(values) != 1 for values in commit_to_binary.values()):
+                raise ValueError("one paper-grade commit maps to multiple binaries")
+            if any(len(values) != 1 for values in binary_to_commit.values()):
+                raise ValueError("one paper-grade binary maps to multiple commits")
     points.sort(key=lambda row: (int(row["m"]), int(row["h"]), int(row["Delta_min"])))
     return points, comparisons
 
@@ -412,6 +430,10 @@ def main() -> None:
     parser.add_argument("--min-batch-repeats", type=int, default=12)
     parser.add_argument("--min-warmup-runs", type=int, default=1)
     parser.add_argument("--paper-grade", action="store_true")
+    parser.add_argument(
+        "--allow-metadata-cohorts", action="store_true",
+        help="allow multiple one-to-one git-commit/binary cohorts",
+    )
     args = parser.parse_args()
     if (
         args.min_trials <= 0 or args.min_batch_repeats <= 0
@@ -420,7 +442,7 @@ def main() -> None:
         raise ValueError("trial minima must be positive and warm-up nonnegative")
     points, comparisons = analyze_supports(
         load_rows(args.input), args.min_trials, args.min_batch_repeats,
-        args.min_warmup_runs, args.paper_grade,
+        args.min_warmup_runs, args.paper_grade, args.allow_metadata_cohorts,
     )
     write_csv(args.points, points)
     write_csv(args.comparisons, comparisons)
