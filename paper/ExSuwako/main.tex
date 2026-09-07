@@ -37,35 +37,21 @@ sparse polynomials, Frobenius map, parallel algorithms}
 \begin{document}
 
 \begin{abstract}
-Polynomial modular reduction is a basic operation in binary finite-field
-arithmetic and in computational-algebra workloads based on repeated Frobenius
-powers.  For a sparse modulus, conventional top-down folding retains sparse
-shift/XOR work, but its dependency chain can be long when a nonleading term is
-close to the leading term.  We study a different schedule obtained by
-expressing the high-part recurrence as the inverse of a nilpotent feedback
-operator.  In characteristic two, this inverse factors into Frobenius powers
-whose individual supports remain controlled by the original tap set.  The
-result is a method requiring neither a materialized reciprocal nor a dense
-reduction matrix, which we call \emph{Frobenius-factorized reduction} (FFR).
-Its doubled shifts may be generated online without a persistent
-modulus-specific schedule or retained in a reusable plan.  In either form,
-FFR has an exact feedback-stage count and a scheduled-work expression governed
-by the complete tap geometry.
-
-For a nonleading support of size $s$, we prove an exact logarithmic feedback
-depth and an exact active-tap work formula.  The former is
-$r=\lceil\log_2(m/\Dmin)\rceil$; the latter is bounded by
-$O(ms(1+\log(m/s)))$.  The online workspace, reusable schedule, and scalar
-temporary space are also explicit.  A matched portable-C evaluation over 1,096 controlled
-supports and degrees $128$ through $131072$ identifies distinct FFR,
-L\'opez--Dahab, and gf2x-backed Barrett regions.  On the hostile
-$(h,\Dmin)=(9,1)$ slice, Barrett takes between $2.16$ and $37.71$ times the FFR
-reduction time, whereas Barrett or L\'opez--Dahab wins as support weight or
-    feedback distance grows.  On four independently certified irreducible
-    degree-$128$ through degree-$8192$ moduli with $(h,\Dmin)=(9,1)$, FFR also
-    makes a complete Rabin irreducibility test $1.35$--$8.04$ times faster than
-    NTL and $1.60$--$6.81$ times faster than the matched Barrett path on the
-    same platform.
+Polynomial modular reduction is central to binary finite-field arithmetic and
+repeated Frobenius powering.  Sparse top-down folding uses few shift/XOR
+operations, but a tap near the leading term creates a long feedback chain.  We
+formulate this recurrence as inversion of a nilpotent shift operator and factor
+its inverse by characteristic-two Frobenius powers.  The resulting
+\emph{Frobenius-factorized reduction} (FFR) applies to every monic binary
+modulus without materializing a reciprocal or dense reduction matrix, and its
+shifts can be generated online without a persistent modulus-specific schedule.
+For degree $m$, nonleading support size $s$, and nearest-tap distance $\Dmin$,
+FFR has exact feedback depth $\lceil\log_2(m/\Dmin)\rceil$ and scheduled work
+$O(ms(1+\log(m/s)))$.  A portable-C evaluation on 1,096 supports through degree
+$131072$ identifies distinct FFR, L\'opez--Dahab, and gf2x-backed Barrett
+regions.  On four certified irreducible moduli, FFR makes complete Rabin
+irreducibility testing $1.35$--$8.04$ times faster than NTL and
+$1.60$--$6.81$ times faster than the matched Barrett implementation.
 \end{abstract}
 
 \maketitle
@@ -130,6 +116,13 @@ and $U^{2^r}=0$; when $U=0$, no feedback stage is needed.  Each Frobenius
 power doubles the original tap distances.
 Mixed feedback paths arise through composition across stages rather than by
 expanding a dense reciprocal inside one stage.
+
+This construction generalizes our earlier Suwako reducer for trinomials
+$x^m+x^t+1$~\cite{ZhouEtAl2025Suwako}.  That work established the
+logarithmic-depth, precomputation-free trinomial case through two specialized
+doubling folds.  The present contribution begins with the arbitrary multi-tap
+feedback formulation and includes the resulting all-tap geometry, packed-word
+analysis, planned and online implementations, and comparative evaluation.
 
 Our contributions are threefold.
 \begin{enumerate}
@@ -207,9 +200,11 @@ the packed source-level data path. Machine latency and throughput are measured
 under a fixed platform and timed boundary.
 For the packed implementation, coefficient $i$ is bit $i\bmod W$ of word
 $\lfloor i/W\rfloor$ in a little-endian array of
-$n=\lceil m/W\rceil$ words; padding above coefficient $m-1$ is masked on
-state extraction and output.  Caller-owned inputs and outputs are excluded
-from temporary-space counts.  Section~\ref{sec:evaluation} separately fixes
+$n=\lceil m/W\rceil$ words.  An input representing $\deg A<2m$ has canonical
+zero padding above coefficient $2m-1$; right-shift extraction preserves this
+invariant, and output padding above coefficient $m-1$ is masked explicitly.
+Caller-owned inputs and outputs are excluded from temporary-space counts.
+Section~\ref{sec:evaluation} separately fixes
 the steady-state reduction boundary, reusable-plan setup, storage, and any
 amortization over a stated reuse count.
 
@@ -228,6 +223,9 @@ inversion~\cite{BiniPan1985}.  Barrett and Montgomery instead use polynomial
 products and modulus-dependent constants.  Their machine cost therefore
 depends on multiplication and memory behavior as well as sparse shift/XOR
 counts.
+
+Table~\ref{tab:families} summarizes the applicability of the direct-reduction
+methods used in the comparison.
 
 \begin{table}[t]
 \caption{Applicability of the compared direct-reduction methods.  Throughout,
@@ -667,10 +665,12 @@ $O(s+r+S_{\rm fb})$ scalar control work without carrying a descriptor set
 forward as the schedule for the next reduction.
 \end{proof}
 
-The setup bound describes a two-pass schedule construction, not compilation
-of generated code.  The experiments separately time the concrete reusable
-plan builders and the schedule-free workspace, and measure online descriptor
-generation inside reduction.  For comparison, serial sparse folding needs no doubled-shift
+The setup bound describes an available two-pass schedule construction, not
+compilation of generated code.  The benchmarked reusable-plan builder uses a
+simpler stage-by-stage scan, sort, and allocation strategy and is not claimed
+to realize this asymptotic setup bound.  The experiments time that concrete
+builder and the schedule-free workspace separately, and measure online
+descriptor generation inside reduction.  For comparison, serial sparse folding needs no doubled-shift
 schedule but, when $U\ne0$, can execute up to
 $\lceil m/\Dmin\rceil$ dependent feedback iterations; L\'opez--Dahab has
 $\Theta(n(1+s))$ shift/scatter work under its
@@ -797,7 +797,16 @@ recurrence solving. Our question is whether a sparse fixed-state realization
 retains useful support geometry without dense reciprocals, polynomial
 multiplication, or expanded state.
 
-The closest local antecedent is the term-preserving look-ahead transformation
+The direct predecessor of the present method is our Suwako algorithm for
+trinomials $x^m+x^t+1$~\cite{ZhouEtAl2025Suwako}.  It already replaces the
+$\Theta(m/(m-t))$ serial feedback chain by logarithmically many doubling steps
+without modulus-specific precomputation.  The present paper does not claim
+that trinomial mechanism anew: it derives the multi-tap operator equation,
+shows that every Frobenius factor retains the original tap set with doubled
+distances, and develops exact geometry and packed implementations for arbitrary
+monic binary moduli.
+
+The closest external recurrence-level antecedent is the term-preserving look-ahead transformation
 for LFSRs: in characteristic two, replacing a generator by its square doubles
 the feedback distances without increasing its term count~\cite{LinEtAl2013}.
 Parallel LFSR and CRC architectures also construct equivalent state-space
@@ -925,7 +934,10 @@ predictors and fitted times are
   \label{eq:winner-time-model}
 \end{align}
 where each $\alpha$ and $\beta$ is fitted on the calibration half and $b_m$
-is the Barrett calibration median.  If $\mathcal A(p)$ is the set of methods
+is the Barrett calibration median.  Here $C_{\rm FFR}$ is a useful-block-work
+predictor, not the exact executed loop count $B_{\rm fb}^{\rm loop}+B_V$;
+their difference is the padding contribution bounded in
+Proposition~\ref{prop:word-geometry}.  If $\mathcal A(p)$ is the set of methods
 available at grid point $p=(h,\Dmin)$, its predicted region for method $j$ is
 defined by
 \begin{equation}
@@ -973,6 +985,9 @@ successive degrees.  In the L\'opez--Dahab-applicable rows the corresponding
 onsets are $65$, $129$, $129$--$193$, $257$--$385$, $513$--$769$, and beyond
 the largest sampled weight $1025$.  These are the sampled crossover locations
 on the recorded platform.
+
+Table~\ref{tab:portable-results} reports representative reduction times and
+the persistent Barrett crossovers on the $\Dmin=1$ slice.
 
 \begin{table}[t]
 \caption{Portable-C reduction summary on the controlled constant-free
@@ -1025,6 +1040,9 @@ correlation.}
 \end{figure}
 
 \subsection{Setup and storage}
+
+Table~\ref{tab:setup-storage} separates measured setup time from requested
+plan-owned storage for the three principal implementations.
 
 \begin{table}[t]
 \caption{Median setup time and requested plan-owned bytes at
@@ -1177,8 +1195,8 @@ end-to-end computational-algebra result.
 \section*{Software and Data Availability}
 The implementation, deterministic manifests, raw benchmark data, and
 reproduction scripts underlying the reported results are archived in the
-\href{https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v1}
-{\texttt{moc-artifact-v1} GitHub release}.
+\href{https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v2}
+{\texttt{moc-artifact-v2} GitHub release}.
 
 \section*{Use of Artificial Intelligence}
 OpenAI Codex (GPT-5.6 Sol) was used during the research and manuscript-preparation
@@ -1237,7 +1255,7 @@ $a_t\ne0$ and $a_t^{2^k}=0$; for example,
 $\varepsilon^2=0$ in $\Ftwo[\varepsilon]/(\varepsilon^2)$.  Thus the exact
 binary expression $\Wfb$ is scheduled work in this setting, while an
 implementation that removes zero coefficients may do less arithmetic.  In
-odd characteristic $p$, the corresponding radix-$p$ factorization uses
+odd prime characteristic $p$, the corresponding radix-$p$ factorization uses
 $\sum_{j=0}^{p-1}(-U^{p^k})^j$, and the final remainder is $L-V(Y)$ rather
 than the characteristic-two expression $L+V(Y)$.
 
@@ -1251,8 +1269,9 @@ and all 266,304 cases for $m\le3$ pass; 13,573 random instances exhibit a
 nonzero coefficient killed by a Frobenius power, motivating the support
 qualification above.  A further 20,000 random $\mathbb F_4$ cases and 10,000
 random $\mathbb F_3$ cases agree with independent inverse and reduction paths.
-Exhaustive enumeration of all 262,125 nonempty supports for $2\le m\le18$
-finds no counterexample to the scheduled-work formula or its coarse bound.
+Exhaustive enumeration of all 262,125 nonempty constant-free supports for
+$2\le m\le18$ finds no counterexample to the scheduled-work formula or its
+coarse bound.
 
 The repository entry point \texttt{make check} runs these theorem-falsification
 suites together with native differential, boundary, masking, sanitizer, dense,
@@ -1261,7 +1280,9 @@ and L\'opez--Dahab checks.  The frozen artifact uses these commands:
 \ttfamily
 make artifact-cost-model\\
 make artifact-microbenchmark ARTIFACT\_CPU=0\\
-make artifact-paper
+make artifact-paper\\
+make artifact-rabin\\
+make artifact-online
 \end{quote}
 Its 67,576-row external dataset and 26 derived
 outputs are hash-locked.  A detached clean checkout at commit
@@ -1271,9 +1292,17 @@ manifests, commands, compiler and gf2x paths,
 binary digests, affinity, and frequency policy accompany every retained row.
 No secondary-platform result is included in this version.  The separate Rabin
 artifact contains 465 retained rows and deterministically rebuilds its summary
-and figure from the hash-locked external CSV.
+and figure from the hash-locked external CSV.  The online FFR artifact contains
+1,395 retained rows over 45 supports and deterministically rebuilds its summary
+from the third hash-locked external CSV.
 
 \begin{thebibliography}{99}
+\bibitem{ZhouEtAl2025Suwako}
+J.~Zhou, J.~Wang, H.~Ren, S.~Gao, and X.~Lan,
+\emph{Suwako: A logarithmic-depth modular reduction for arbitrary trinomials
+over $\mathbb F_{2^m}$ without pre-computation}, Cryptology ePrint Archive,
+Paper 2025/2303, 2025, \url{https://eprint.iacr.org/2025/2303}.
+
 \bibitem{BiniPan1985}
 D.~Bini and V.~Pan, \emph{Fast parallel polynomial division via reduction to
 triangular Toeplitz matrix inversion and to polynomial inversion modulo a

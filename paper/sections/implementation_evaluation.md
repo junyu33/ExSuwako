@@ -571,7 +571,7 @@ cross-platform experiment.
 | Low/high feedback decomposition and reduction correctness | first internal hostile audit passed | 20,000 random GF(2) trials and 299,592 exhaustive binary modulus/input pairs; native reducers are differentially checked against long division | external review |
 | Sparse Frobenius powers and factored inverse | first internal hostile audit passed for the binary theorem | independent agreement over GF(2), $\mathbb F_4$, dual numbers, and $\mathbb F_3$ sign/radix checks | coefficient-algebra extension remains separate |
 | Exact feedback-stage count | first internal hostile audit passed | exhaustive native schedule checks at all 72 tested $(m,\Delta_{\min})$ coordinates | feedback depth must not be called bounded-fan-in gate depth |
-| Geometry-sensitive scheduled work $W_{\rm fb}$ and its coarse upper bound | first internal hostile audit passed | all 262,125 nonempty supports for $2\le m\le18$ pass the formula/bound checks; fixed-$m$ runtime correlation is $0.987$--$0.993$ | external review of the coefficient- and packed-word models |
+| Geometry-sensitive scheduled work $W_{\rm fb}$ and its coarse upper bound | first internal hostile audit passed | all 262,125 nonempty constant-free supports for $2\le m\le18$ pass the formula/bound checks; fixed-$m$ runtime correlation is $0.987$--$0.993$ | external review of the coefficient- and packed-word models |
 | Random-support depth/work laws | first internal hostile audit passed | exact reconstruction for 10,623 frozen supports; reported median, p90, and p99 trends | the theorem applies only to the stated uniform fixed-weight model |
 
 | Modulus corpus | Irreducibility status | Evidence currently supported | Claim boundary |

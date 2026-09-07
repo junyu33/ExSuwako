@@ -7,7 +7,8 @@ This file goes beyond GF(2).
 Tests:
 1. Randomized + exhaustive tests over dual numbers R=F2[e]/(e^2).
 2. Randomized tests over GF(4)=F2[a]/(a^2+a+1).
-3. Exhaustive support-geometry checks for all nonempty supports with m<=18.
+3. Exhaustive support-geometry checks for all nonempty constant-free supports
+   with m<=18.
 4. Randomized positive-characteristic radix-p tests over F3.
 
 Important observation:
@@ -401,7 +402,8 @@ def exhaustive_support_geometry(max_m=18):
             assert best_ds == expected
 
     print(
-        f"PASS: exhausted all nonempty supports for 2 <= m <= {max_m}"
+        "PASS: exhausted all nonempty constant-free supports "
+        f"for 2 <= m <= {max_m}"
     )
     print(f"Checked {checked:,} (m,support) cases.")
     print(

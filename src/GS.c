@@ -321,8 +321,11 @@ static void assemble_low_part(
 gs_plan *gs_plan_create(const size_t *taps, size_t s, size_t m) {
     if (m == 0) die("GS modulus degree must be positive");
     if (s && !taps) die("GS taps are missing");
-    for (size_t i = 0; i < s; ++i)
+    for (size_t i = 0; i < s; ++i) {
         if (taps[i] >= m) die("GS tap must be smaller than m");
+        if (i && taps[i - 1] >= taps[i])
+            die("GS taps must be canonical and strictly increasing");
+    }
 
     gs_plan *plan = calloc(1, sizeof(*plan));
     shift_desc *round_shifts = s ? malloc(s * sizeof(*round_shifts)) : NULL;

@@ -4,7 +4,8 @@
 implementation of Frobenius-factorized reduction (FFR) for sparse binary
 polynomials.
 
-It extends the original trinomial-oriented Suwako idea to monic moduli of the
+It extends the trinomial-oriented
+[Suwako](https://eprint.iacr.org/2025/2303) algorithm to monic moduli of the
 form
 
 $$
@@ -50,7 +51,7 @@ It is **not** currently intended to be:
 - evidence that all relevant prior work has been exhausted;
 - a claim that the present formulation is novel in every component.
 
-The repository is private while the result is still being investigated.
+The repository is public research software under active development.
 
 ## Operator formulation
 
@@ -434,7 +435,8 @@ The current PoC assumes:
 2. the modulus is monic and has degree $m$;
 3. `taps` contains the complete support of the nonleading part;
 4. tap exponents are distinct and satisfy $0\le t<m$;
-5. the input has degree less than $2m$.
+5. the input has degree less than $2m$, with unused bits in its top backing
+   word set to zero.
 
 The implementation does not construct a dense reciprocal polynomial or a dense
 reduction matrix. Its planned API computes a compact feedback schedule from

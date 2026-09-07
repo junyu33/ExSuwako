@@ -15,6 +15,12 @@ typedef struct {
     size_t scratch_words;
 } gs_source_cost;
 
+/*
+ * Every FFR entry point requires taps[0..s) to be the complete, strictly
+ * increasing, duplicate-free nonleading support below m. Inputs represent
+ * polynomials of degree below 2m, so unused bits in their top backing word
+ * must be zero. Reduction outputs are explicitly masked to m bits.
+ */
 gs_plan *gs_plan_create(const size_t *taps, size_t s, size_t m);
 void gs_plan_destroy(gs_plan *plan);
 /* Read-only schedule metadata; these accessors do not instrument reduction. */
