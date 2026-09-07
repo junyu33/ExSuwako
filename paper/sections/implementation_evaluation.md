@@ -384,8 +384,13 @@ receives a unique winner only when every method's relative interval half-width
 is at most 1%, the median advantage over every competitor is at least 1%, and
 every paired-ratio interval lies strictly below one. Otherwise the point is
 retained as a timing, operational, or statistical uncertainty. The SVG path
-colors only measured points, marks uncertainty in gray, outlines points where
-López--Dahab participated, and never interpolates an unmeasured boundary.
+colors one equal-area block per measured support, marks uncertainty in gray,
+and never interpolates an unmeasured cell. The retained paper-grade rows
+produce 1,096 cells across the six fixed-$m$ panels: 983 unique winners, 103
+timing-unstable cells, 10 operational ties, and no statistical ties. The
+renderer can overlay pair-labelled winner boundaries from a separate
+prediction table; the current fitted boundary is exploratory until its fitting
+procedure is preserved as a reproducible analysis script.
 
 1. **Schematic classical algorithm-selection phase diagram.** For a fixed
    $m$, show modulus Hamming weight $h$ horizontally and

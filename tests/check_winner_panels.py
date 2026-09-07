@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Contract checks for winner classification and 2x3 SVG rendering."""
+"""Contract checks for winner classification and 2x3 block SVG rendering."""
 
 from __future__ import annotations
 
@@ -177,14 +177,38 @@ def main() -> None:
         plotted = run([
             sys.executable, str(plotter), "--input", str(points),
             "--output", str(figure), "--columns", "3",
+            "--boundary-input", str(points),
         ])
         if "panels=6" not in plotted.stdout or "columns=3" not in plotted.stdout:
             raise AssertionError("winner plot did not use the 2x3 contract")
         tree = ET.parse(figure)
         text = " ".join(node.text or "" for node in tree.iter())
-        for label in ["m = 128", "m = 131072", "no boundary interpolation"]:
+        for label in [
+            "m = 128", "m = 131072", "no boundary interpolation",
+            "log2(h - 1)", "log2(m / Delta_min)",
+        ]:
             if label not in text:
                 raise AssertionError(f"winner SVG is missing {label!r}")
+        if "uncertain=" in text:
+            raise AssertionError("winner SVG retained the panel count annotation")
+        namespace = {"svg": "http://www.w3.org/2000/svg"}
+        cells = tree.findall(".//svg:rect[@class='cell']", namespace)
+        if len(cells) != len(rows):
+            raise AssertionError("block plot does not contain one cell per measured point")
+        boundaries = [
+            node for node in tree.findall(".//svg:line", namespace)
+            if "predicted-boundary" in node.attrib.get("class", "").split()
+        ]
+        if len(boundaries) < 2:
+            raise AssertionError("predicted winner boundaries were not overlaid")
+        boundary_classes = {
+            name
+            for node in boundaries
+            for name in node.attrib.get("class", "").split()
+        }
+        for name in ["boundary-gs-barrett", "boundary-gs-ld", "boundary-ld-barrett"]:
+            if name not in boundary_classes:
+                raise AssertionError(f"winner SVG is missing {name!r}")
 
         incomplete = root / "incomplete.csv"
         with source.open(newline="", encoding="utf-8") as stream:

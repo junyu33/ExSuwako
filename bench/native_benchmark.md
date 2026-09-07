@@ -405,12 +405,17 @@ python3 bench/scripts/plot_winner_panels.py \
 resamples. A unique winner must be stable to the 1% relative-half-width rule,
 at least 1% faster in median time than every competitor, and have every
 trial-paired ratio interval strictly below one. All other measured points are
-retained with an explicit uncertainty reason. The renderer plots only those
-points, uses three columns (six main degrees form a $2\times3$ figure), and
-does not infer boundaries between them. The summary recommends 63 and then
-127 trials when more than 5% of a panel remains timing-unstable. Dense screen
-rows additionally report whether any stable point lies within 1.10 times the
-fastest primary method and therefore requires a new five-method contract.
+retained with an explicit uncertainty reason. The renderer draws one
+equal-area block per measured coordinate, labels the axes by
+$\log_2(h-1)$ and $\log_2(m/\Delta_{\min})$, uses three columns (six main
+degrees form a $2\times3$ figure), and leaves unmeasured cells blank. An
+optional `--boundary-input` winner table must contain exactly the measured
+coordinates; adjacent predicted winner changes are overlaid as pair-labelled,
+high-contrast boundaries without interpolating across missing cells. The
+summary recommends 63 and then 127 trials when more than 5% of a panel remains
+timing-unstable. Dense screen rows additionally report whether any stable
+point lies within 1.10 times the fastest primary method and therefore requires
+a new five-method contract.
 
 ### Paper-grade run metadata
 

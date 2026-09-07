@@ -22,6 +22,28 @@ COLORS = {
     "LopezDahabLoop": "#7651a8",
     "uncertain": "#999999",
 }
+BOUNDARY_CLASSES = {
+    frozenset(("GS", "BarrettGF2X")): ("boundary-gs-barrett", "GS–Barrett"),
+    frozenset(("GS", "LopezDahabLoop")): (
+        "boundary-gs-ld", "GS–López–Dahab",
+    ),
+    frozenset(("BarrettGF2X", "LopezDahabLoop")): (
+        "boundary-ld-barrett", "López–Dahab–Barrett",
+    ),
+}
+# Pair-specific high-contrast colors chosen to remain visible across the two
+# adjacent cool winner fills; they are not intended as literal RGB inverses.
+BOUNDARY_COLORS = {
+    "boundary-gs-barrett": "#ff6b35",
+    "boundary-gs-ld": "#e6b800",
+    "boundary-ld-barrett": "#00c7e6",
+}
+
+
+def boundary_class(left: str, right: str) -> str:
+    return BOUNDARY_CLASSES.get(
+        frozenset((left, right)), ("boundary-other", "other boundary")
+    )[0]
 
 
 @dataclass(frozen=True)
@@ -94,7 +116,10 @@ def load_points(path: Path) -> list[WinnerPoint]:
     return points
 
 
-def render(points: list[WinnerPoint], output: Path, columns: int) -> None:
+def render(
+    points: list[WinnerPoint], output: Path, columns: int, mode: str, heading: str,
+    boundary_points: list[WinnerPoint] | None,
+) -> None:
     degrees = sorted({point.m for point in points})
     columns = min(columns, len(degrees))
     panel_rows = math.ceil(len(degrees) / columns)
@@ -102,26 +127,52 @@ def render(points: list[WinnerPoint], output: Path, columns: int) -> None:
     width = panel_width * columns
     height = 76 + panel_height * panel_rows
     root = element("svg", width=width, height=height, viewBox=f"0 0 {width} {height}")
+    ET.SubElement(root, f"{{{SVG_NS}}}rect", {
+        "x": "0", "y": "0", "width": str(width), "height": str(height),
+        "fill": "#ffffff",
+    })
     title = ET.SubElement(root, f"{{{SVG_NS}}}title")
     title.text = "Measured reduction winners by fixed modulus degree"
     style = ET.SubElement(root, f"{{{SVG_NS}}}style")
     style.text = (
         "text{font-family:sans-serif;fill:#222}.axis{stroke:#222;stroke-width:1}"
-        ".grid{stroke:#ddd;stroke-width:1}.ld{stroke:#111;stroke-width:2}"
+        ".grid{stroke:#ddd;stroke-width:1}.cell{stroke:#fff;stroke-width:.65}"
+        ".predicted-boundary{stroke-width:4;stroke-linecap:round}"
+        f".boundary-gs-barrett{{stroke:{BOUNDARY_COLORS['boundary-gs-barrett']}}}"
+        f".boundary-gs-ld{{stroke:{BOUNDARY_COLORS['boundary-gs-ld']}}}"
+        f".boundary-ld-barrett{{stroke:{BOUNDARY_COLORS['boundary-ld-barrett']}}}"
     )
     add_text(
-        root, width / 2, 22, "Measured winners (no boundary interpolation)",
+        root, width / 2, 22, heading,
         text_anchor="middle", font_size=16, font_weight="bold",
     )
 
     legend_x = 18.0
+    observed_winners = set(point.winner for point in points)
     for winner in COLORS:
-        ET.SubElement(root, f"{{{SVG_NS}}}circle", {
-            "cx": f"{legend_x:.2f}", "cy": "45", "r": "4",
-            "fill": COLORS[winner],
-        })
+        if winner not in observed_winners:
+            continue
+        if mode == "blocks":
+            ET.SubElement(root, f"{{{SVG_NS}}}rect", {
+                "x": f"{legend_x - 4:.2f}", "y": "41", "width": "8",
+                "height": "8", "fill": COLORS[winner],
+            })
+        else:
+            ET.SubElement(root, f"{{{SVG_NS}}}circle", {
+                "cx": f"{legend_x:.2f}", "cy": "45", "r": "4",
+                "fill": COLORS[winner],
+            })
         add_text(root, legend_x + 7, 49, winner, font_size=9)
         legend_x += 27 + 5.2 * len(winner)
+    if boundary_points is not None:
+        for interface_class, label in BOUNDARY_CLASSES.values():
+            ET.SubElement(root, f"{{{SVG_NS}}}line", {
+                "x1": f"{legend_x - 4:.2f}", "x2": f"{legend_x + 14:.2f}",
+                "y1": "45", "y2": "45",
+                "class": f"predicted-boundary {interface_class}",
+            })
+            add_text(root, legend_x + 19, 49, label, font_size=9)
+            legend_x += 42 + 5.2 * len(label)
 
     for panel_index, m in enumerate(degrees):
         column = panel_index % columns
@@ -130,15 +181,14 @@ def render(points: list[WinnerPoint], output: Path, columns: int) -> None:
         oy = 65 + panel_row * panel_height
         left, right, top, bottom = ox + 62, ox + 347, oy + 34, oy + 230
         panel = [point for point in points if point.m == m]
-        h_values = [point.h for point in panel]
-        logs = [point.log_ratio for point in panel]
-        x_min, x_max = min(h_values), max(h_values)
-        if x_min == x_max:
-            x_min -= 1
-            x_max += 1
-        y_min, y_max = math.floor(min(logs)), math.ceil(max(logs))
-        if y_min == y_max:
-            y_max += 1
+        h_values = sorted({point.h for point in panel})
+        log_values = sorted({point.log_ratio for point in panel})
+        h_indices = {h: index for index, h in enumerate(h_values)}
+        log_indices = {
+            log_ratio: index for index, log_ratio in enumerate(log_values)
+        }
+        x_min, x_max = -0.5, len(h_values) - 0.5
+        y_min, y_max = -0.5, len(log_values) - 0.5
 
         def map_x(value: float) -> float:
             return left + (value - x_min) / (x_max - x_min) * (right - left)
@@ -146,17 +196,22 @@ def render(points: list[WinnerPoint], output: Path, columns: int) -> None:
         def map_y(value: float) -> float:
             return bottom - (value - y_min) / (y_max - y_min) * (bottom - top)
 
+        ET.SubElement(root, f"{{{SVG_NS}}}rect", {
+            "x": str(left), "y": str(top), "width": str(right - left),
+            "height": str(bottom - top), "fill": "#f5f5f5",
+        })
         add_text(
             root, (left + right) / 2, oy + 18, f"m = {m}",
             text_anchor="middle", font_size=13, font_weight="bold",
         )
-        for exponent in range(y_min, y_max + 1):
-            y = map_y(exponent)
+        for index, log_ratio in enumerate(log_values):
+            y = map_y(index)
             ET.SubElement(root, f"{{{SVG_NS}}}line", {
                 "x1": str(left), "x2": str(right), "y1": str(y),
                 "y2": str(y), "class": "grid",
             })
-            add_text(root, left - 7, y + 3, f"2^{exponent}", text_anchor="end", font_size=9)
+            label = f"{log_ratio:g}"
+            add_text(root, left - 7, y + 3, label, text_anchor="end", font_size=9)
         ET.SubElement(root, f"{{{SVG_NS}}}line", {
             "x1": str(left), "x2": str(right), "y1": str(bottom),
             "y2": str(bottom), "class": "axis",
@@ -165,12 +220,38 @@ def render(points: list[WinnerPoint], output: Path, columns: int) -> None:
             "x1": str(left), "x2": str(left), "y1": str(top),
             "y2": str(bottom), "class": "axis",
         })
-        for h in sorted(set(h_values)):
-            x = map_x(h)
-            add_text(root, x, bottom + 17, str(h), text_anchor="middle", font_size=9)
+        labelled_h = {h for h in h_values if (h - 1) & (h - 2) == 0}
+        labelled_h.update((h_values[0], h_values[-1]))
+        for h in h_values:
+            x = map_x(h_indices[h])
+            ET.SubElement(root, f"{{{SVG_NS}}}line", {
+                "x1": str(x), "x2": str(x), "y1": str(top),
+                "y2": str(bottom), "class": "grid",
+            })
+            if h in labelled_h:
+                log_weight = math.log2(h - 1)
+                tick_label = (
+                    str(round(log_weight))
+                    if log_weight.is_integer()
+                    else f"{log_weight:.2f}"
+                )
+                add_text(
+                    root, x, bottom + 17, tick_label,
+                    text_anchor="middle", font_size=8,
+                )
         for point in panel:
-            x, y = map_x(point.h), map_y(point.log_ratio)
-            if point.winner == "uncertain":
+            x_coordinate = h_indices[point.h]
+            y_coordinate = log_indices[point.log_ratio]
+            x, y = map_x(x_coordinate), map_y(y_coordinate)
+            if mode == "blocks":
+                ET.SubElement(root, f"{{{SVG_NS}}}rect", {
+                    "x": f"{map_x(x_coordinate - 0.5):.2f}",
+                    "y": f"{map_y(y_coordinate + 0.5):.2f}",
+                    "width": f"{map_x(x_coordinate + 0.5) - map_x(x_coordinate - 0.5):.2f}",
+                    "height": f"{map_y(y_coordinate - 0.5) - map_y(y_coordinate + 0.5):.2f}",
+                    "fill": COLORS[point.winner], "class": "cell",
+                })
+            elif point.winner == "uncertain":
                 ET.SubElement(root, f"{{{SVG_NS}}}line", {
                     "x1": f"{x - 4:.2f}", "x2": f"{x + 4:.2f}",
                     "y1": f"{y - 4:.2f}", "y2": f"{y + 4:.2f}",
@@ -186,21 +267,63 @@ def render(points: list[WinnerPoint], output: Path, columns: int) -> None:
                     "cx": f"{x:.2f}", "cy": f"{y:.2f}", "r": "4",
                     "fill": COLORS[point.winner],
                 }
-                if point.lopez_dahab_enabled:
-                    attributes["class"] = "ld"
                 ET.SubElement(root, f"{{{SVG_NS}}}circle", attributes)
-        counts = Counter(point.winner for point in panel)
+        if boundary_points is not None:
+            predicted_panel = [point for point in boundary_points if point.m == m]
+            predicted = {
+                (point.h, point.log_ratio): point.winner
+                for point in predicted_panel
+            }
+            measured_coordinates = {
+                (point.h, point.log_ratio) for point in panel
+            }
+            if set(predicted) != measured_coordinates:
+                raise ValueError(
+                    f"boundary predictions do not match measured coordinates for m={m}"
+                )
+            for y_index, log_ratio in enumerate(log_values):
+                for x_index, h in enumerate(h_values):
+                    winner = predicted.get((h, log_ratio))
+                    if winner is None:
+                        continue
+                    if x_index + 1 < len(h_values):
+                        right_winner = predicted.get(
+                            (h_values[x_index + 1], log_ratio)
+                        )
+                        if right_winner is not None and right_winner != winner:
+                            interface_class = boundary_class(winner, right_winner)
+                            x = map_x(x_index + 0.5)
+                            ET.SubElement(root, f"{{{SVG_NS}}}line", {
+                                "x1": f"{x:.2f}", "x2": f"{x:.2f}",
+                                "y1": f"{map_y(y_index - 0.5):.2f}",
+                                "y2": f"{map_y(y_index + 0.5):.2f}",
+                                "class": f"predicted-boundary {interface_class}",
+                            })
+                    if y_index + 1 < len(log_values):
+                        upper_winner = predicted.get(
+                            (h, log_values[y_index + 1])
+                        )
+                        if upper_winner is not None and upper_winner != winner:
+                            interface_class = boundary_class(winner, upper_winner)
+                            y = map_y(y_index + 0.5)
+                            ET.SubElement(root, f"{{{SVG_NS}}}line", {
+                                "x1": f"{map_x(x_index - 0.5):.2f}",
+                                "x2": f"{map_x(x_index + 0.5):.2f}",
+                                "y1": f"{y:.2f}", "y2": f"{y:.2f}",
+                                "class": f"predicted-boundary {interface_class}",
+                            })
+        # Redraw the axes after the cells so the plot boundary remains crisp.
+        ET.SubElement(root, f"{{{SVG_NS}}}rect", {
+            "x": str(left), "y": str(top), "width": str(right - left),
+            "height": str(bottom - top), "fill": "none", "class": "axis",
+        })
         add_text(
-            root, right, top + 10,
-            f"n={len(panel)}, uncertain={counts['uncertain']}",
-            text_anchor="end", font_size=9,
-        )
-        add_text(
-            root, (left + right) / 2, bottom + 36, "modulus Hamming weight h",
+            root, (left + right) / 2, bottom + 36,
+            "log2(h - 1)",
             text_anchor="middle", font_size=10,
         )
         add_text(
-            root, ox + 14, (top + bottom) / 2, "m / Delta_min (log2)",
+            root, ox + 14, (top + bottom) / 2, "log2(m / Delta_min)",
             text_anchor="middle", font_size=10,
             transform=f"rotate(-90 {ox + 14} {(top + bottom) / 2})",
         )
@@ -214,18 +337,29 @@ def main() -> None:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--columns", type=int, default=3)
+    parser.add_argument("--mode", choices=("blocks", "points"), default="blocks")
+    parser.add_argument(
+        "--title", default="Measured winners (block cells; no boundary interpolation)",
+    )
+    parser.add_argument(
+        "--boundary-input", type=Path,
+        help="optional winner-point CSV whose adjacent class changes are overlaid",
+    )
     args = parser.parse_args()
     if args.output.suffix.lower() != ".svg":
         raise ValueError("winner-panel output must use the .svg extension")
     if args.columns <= 0:
         raise ValueError("columns must be positive")
     points = load_points(args.input)
-    render(points, args.output, args.columns)
+    boundary_points = load_points(args.boundary_input) if args.boundary_input else None
+    render(
+        points, args.output, args.columns, args.mode, args.title, boundary_points,
+    )
     outcomes = Counter(point.winner for point in points)
     print(
         f"panels={len({point.m for point in points})} points={len(points)} "
         f"uncertain={outcomes['uncertain']} columns={args.columns} "
-        f"output={args.output}"
+        f"mode={args.mode} output={args.output}"
     )
 
 

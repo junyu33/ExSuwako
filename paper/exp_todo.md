@@ -409,12 +409,16 @@ The paper-facing definition of this experiment is in
       with irreducibility unclassified; they are not labelled reducible
       without a test. Any future field/application experiment must introduce
       a separate manifest with reproducible irreducibility evidence.
-- [ ] Produce fixed-$m$ winner panels and mark statistically or operationally
-      uncertain cells instead of forcing a clean boundary.
-      The paired-bootstrap analyzer and non-interpolating SVG renderer are
-      implemented and exercised by an exploratory $m=512$ pilot. This item
-      remains open until the metadata contract is implemented and all six
-      paper panels can be regenerated from retained formal rows.
+- [x] Produce fixed-$m$ winner panels and mark statistically or operationally
+      uncertain cells instead of forcing a clean boundary. [A] Retained
+      paper-grade rows reconstruct the six $m\in\{128,512,2048,8192,32768,
+      131072\}$ panels and 1,096 measured cells. The paired-bootstrap analyzer
+      assigns 983 unique winners and preserves 113 uncertain cells: 103
+      timing-unstable, 10 operational ties, and no statistical ties. The
+      renderer emits equal-area measured blocks in a $2\times3$ SVG/PNG layout
+      without interpolating missing cells. Its optional cost-model boundary
+      overlay remains exploratory until the fitting analysis is implemented
+      as a reproducible repository script.
 - [ ] Record $W$, full tap placement, input distribution, implementation,
       platform, setup policy, and multiplication backend for every panel.
       `capture_benchmark_metadata.py` and the phase driver's explicit
