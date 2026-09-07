@@ -70,6 +70,18 @@ def main() -> None:
         "--trials", "1",
         expect_success=False,
     )
+    no_serial = run(
+        args.binary,
+        "--m", "8",
+        "--taps", "0,1,3,4",
+        "--trials", "1",
+        "--warmups", "1",
+        "--no-serial",
+    )
+    if {row["method"] for row in csv.DictReader(io.StringIO(no_serial.stdout))} != {
+        "FFR", "BarrettGF2X", "NTL-IterIrredTest"
+    }:
+        raise AssertionError("--no-serial emitted the wrong method set")
     print("Rabin benchmark contract checks passed")
 
 

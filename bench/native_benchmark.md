@@ -894,3 +894,18 @@ Add `--paper-grade` only from a clean experiment commit.  The collector then
 refuses a dirty worktree and records the exact command, commit, binary digest,
 compiler, linked gf2x and NTL libraries, host, affinity, and frequency policy.
 CSV data remain ignored under `bench/data/`.
+
+After the pilot, the frozen scaling manifest keeps $h=9$ and
+$\Delta_{\min}=1$ while using $m=128,512,2048,8192$:
+
+```text
+python3 bench/scripts/collect_rabin_benchmark.py \
+  --binary build/rabin_irreducibility_benchmark \
+  --manifest bench/manifests/e2e/rabin-main-delta1-h9.jsonl \
+  --output bench/data/rabin-main.csv \
+  --trials 31 --warmups 1 --cpu 0 --serial-max-m 2048 --paper-grade
+```
+
+The explicit Serial cutoff follows a retained one-trial smoke measurement:
+at $m=8192$ its complete test took about 47.5 seconds, versus about 44 ms for
+FFR.  Serial is therefore absent, not classified as a loser, at that degree.

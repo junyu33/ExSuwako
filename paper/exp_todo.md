@@ -628,7 +628,9 @@ $\gcd(x^{2^{m/2}}-x,g)$, and checks $x^{2^m}=x\pmod g$.
       $T=\{0,54,96,156,271,346,476,511\}$, search seed
       `0x524142494e5031`, accepted attempt 221, and Sage 10.9 certificate
       provenance; `check_rabin_manifest.py` reconstructs the polynomial,
-      verifies irreducibility, and reproduces the manifest byte-for-byte.
+      verifies irreducibility, and reproduces the manifest byte-for-byte.  The
+      positive pilot freezes the main $h=9$, $\Delta_{\min}=1$ scaling
+      manifest at $m\in\{128,512,2048,8192\}$ by the same rule.
 - [x] Implement one shared scalar polynomial squarer and a matched Rabin
       driver that changes only the reducer among FFR, BarrettGF2X, Serial, and
       L\'opez--Dahab where applicable.  The shared GCD/check path must not
@@ -659,7 +661,10 @@ $\gcd(x^{2^{m/2}}-x,g)$, and checks $x^{2^m}=x\pmod g$.
       incomplete paired trials before producing deterministic 10,000-resample
       median and ratio intervals. Pipeline regression tests exercise this
       contract; the current pilot rows remain explicitly exploratory because
-      they were collected from a dirty implementation worktree.
+      they were collected from a dirty implementation worktree. Serial is
+      retained through $m=2048$ but omitted at $m=8192$, where a measured
+      smoke trial takes about 47.5 seconds; that threshold is explicit in the
+      command and every output row rather than treating Serial as a loser.
 - [x] Run the $m=512$ pilot.  Expand the corpus only if the implementation is
       correct, the end-to-end interval is stable, and reduction remains a
       material fraction of total time; otherwise record the negative result

@@ -225,6 +225,7 @@ int main(int argc, char **argv) try {
     size_t m = 0;
     size_t trials = 0;
     size_t warmups = 1;
+    bool with_serial = true;
     std::string tap_text;
     std::string sample_id = "unspecified";
     for (int i = 1; i < argc; ++i) {
@@ -237,6 +238,7 @@ int main(int argc, char **argv) try {
         else if (!std::strcmp(argv[i], "--trials")) trials = parse_size(need_value("--trials"), "trials");
         else if (!std::strcmp(argv[i], "--warmups")) warmups = parse_size(need_value("--warmups"), "warmups");
         else if (!std::strcmp(argv[i], "--sample-id")) sample_id = need_value("--sample-id");
+        else if (!std::strcmp(argv[i], "--no-serial")) with_serial = false;
         else throw std::runtime_error(std::string("unknown option: ") + argv[i]);
     }
     if (m < 2 || (m & (m - 1)) || m > static_cast<size_t>(LONG_MAX))
@@ -252,9 +254,9 @@ int main(int argc, char **argv) try {
     if (NTL::IterIrredTest(ntl_modulus) != 1)
         throw std::runtime_error("modulus is not irreducible according to NTL");
     ReferenceChain reference = ntl_reference_chain(ntl_modulus, m);
-    std::vector<MethodKind> methods = {
-        MethodKind::FFR, MethodKind::Barrett, MethodKind::Serial, MethodKind::NTL
-    };
+    std::vector<MethodKind> methods = {MethodKind::FFR, MethodKind::Barrett};
+    if (with_serial) methods.push_back(MethodKind::Serial);
+    methods.push_back(MethodKind::NTL);
     if (m > WORD_BITS && m - taps.back() >= WORD_BITS)
         methods.insert(methods.end() - 1, MethodKind::LopezDahab);
 

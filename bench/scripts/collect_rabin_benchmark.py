@@ -87,6 +87,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--trials", type=int, default=31)
     parser.add_argument("--warmups", type=int, default=1)
+    parser.add_argument("--serial-max-m", type=int)
     parser.add_argument("--cpu", type=int, required=True)
     parser.add_argument("--cc", default=os.environ.get("CC", "cc"))
     parser.add_argument("--cflags", default="-O3 -std=c11 -Wall -Wextra")
@@ -98,6 +99,8 @@ def main() -> None:
     manifest = args.manifest.resolve()
     if not binary.is_file() or args.trials < 1 or args.warmups < 1:
         raise ValueError("binary must exist and trial counts must be positive")
+    if args.serial_max_m is not None and args.serial_max_m < 1:
+        raise ValueError("serial-max-m must be positive")
     if args.cpu not in os.sched_getaffinity(0):
         raise ValueError("requested CPU is outside the current affinity set")
     compiler = shutil.which(args.cc)
@@ -135,6 +138,7 @@ def main() -> None:
         "timing_order": "cyclic-method-rotation:v1",
         "square_backend": "scalar-bit-dilation:v1",
         "gcd_backend": "ntl-gf2x-gcd:v1",
+        "serial_max_m": "unbounded" if args.serial_max_m is None else args.serial_max_m,
     }
 
     collected: list[dict[str, object]] = []
@@ -147,6 +151,8 @@ def main() -> None:
             "--warmups", str(args.warmups),
             "--sample-id", entry["sample_id"],
         ]
+        if args.serial_max_m is not None and entry["m"] > args.serial_max_m:
+            command.append("--no-serial")
         result = subprocess.run(command, check=True, capture_output=True, text=True)
         native_rows = list(csv.DictReader(io.StringIO(result.stdout)))
         if not native_rows:
