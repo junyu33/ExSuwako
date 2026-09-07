@@ -1,541 +1,149 @@
 # ExSuwako
 
-**ExSuwako** is an early proof-of-concept implementation of generalized
-Suwako reduction for sparse binary polynomials.
+ExSuwako is a research implementation of **Frobenius-factorized reduction
+(FFR)** for monic binary polynomials. It extends the trinomial-oriented
+[Suwako](https://eprint.iacr.org/2025/2303) construction to arbitrary
+nonleading supports and evaluates when the resulting sparse shift/XOR schedule
+is preferable to serial folding or multiplication-based reduction.
 
-It extends the original trinomial-oriented Suwako idea to moduli of the form
+The repository separates shared results from venue-specific work:
 
-$$
-g(x)=x^m+1+\sum_{t\in T}x^t,
-$$
+- [`main`](https://github.com/junyu33/ExSuwako/tree/main) is the factual
+  research trunk;
+- [`math-comp`](https://github.com/junyu33/ExSuwako/tree/math-comp) contains
+  the theorem-first manuscript and computational-algebra evaluation;
+- [`eurocrypt`](https://github.com/junyu33/ExSuwako/tree/eurocrypt) contains
+  the cryptographic-application and reversible-circuit research tracks.
 
-where
+The current arXiv manuscript snapshot is tagged
+[`arxiv-v1`](https://github.com/junyu33/ExSuwako/tree/arxiv-v1). Its datasets
+and reproduction assets are frozen in the
+[`moc-artifact-v2`](https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v2)
+release. Moving branches are not substitutes for these immutable versions.
 
-$$
-0<t<m
-$$
+## Core construction
 
-for every $t\in T$. The Hamming weight of the modulus is therefore
-
-$$
-h=|T|+2\ge 3.
-$$
-
-The current implementation operates over $\mathbb F_2[x]$ and reduces inputs
-of degree less than $2m$, which is the usual degree range produced by
-multiplying two polynomials of degree less than $m$. The repository now has a
-portable C reduction API, a Python reference implementation, correctness tests,
-and exploratory benchmark drivers.
-
-## Status
-
-This repository is a research prototype.
-
-The current code is intended to:
-
-- validate the generalized construction against a simple reference reducer;
-- expose the operator structure of the algorithm;
-- support further correctness, complexity, implementation, and prior-art work;
-- serve as a starting point for SIMD and hardware implementations.
-
-It is **not** currently intended to be:
-
-- a production cryptographic library;
-- a constant-time Python implementation;
-- a formally verified implementation;
-- evidence that all relevant prior work has been exhausted;
-- a claim that the present formulation is novel in every component.
-
-The repository is private while the result is still being investigated.
-
-## Operator formulation
-
-Write the input as
+For
 
 $$
-C=L+x^mH,
+g(x)=x^m+\sum_{t\in T}x^t,
+\qquad T\subseteq\{0,\ldots,m-1\},
 $$
 
-where $L$ contains the low $m$ coefficients and $H$ contains the high
-coefficients.
+the canonical `taps` representation is the complete, strictly increasing,
+duplicate-free list of exponents in $T$. The implementation reduces inputs
+of degree below $2m$ over $\mathbb F_2[x]$; irreducibility of $g$ is not
+required.
 
-For every internal exponent $t\in T$, define
-
-$$
-\Delta_t=m-t.
-$$
-
-On the truncated $m$-bit coefficient space, define the feedback operator
+Write $A=L+x^mH$, define $\Delta_t=m-t$, and let
 
 $$
-U(X)=\bigoplus_{t\in T}\left(X\gg\Delta_t\right).
+U(X)=\bigoplus_{t\in T}(X\mathbin{\gg}\Delta_t),
+\qquad
+V(X)=\bigoplus_{t\in T}((X\mathbin{\ll}t)\bmod x^m).
 $$
 
-Also define the low-part assembly operator
+Then
 
 $$
-V(X)
-=
-X
-\oplus
-\bigoplus_{t\in T}
-\left((X\ll t)\bmod x^m\right).
+\mathrm{red}_g(A)=L\oplus V((I+U)^{-1}H).
 $$
 
-Equivalently, with
+In characteristic two, Frobenius doubles every tap distance without creating
+new taps:
 
 $$
-f(x)=1+\sum_{t\in T}x^t,
+(I+U)^{-1}=\prod_{k=0}^{r-1}(I+U^{2^k}),
+\qquad
+r=\left\lceil\log_2\frac{m}{\Delta_{\min}}\right\rceil
 $$
 
-the product $fX$ splits as
+when feedback is nonzero; otherwise $r=0$. Every shift in one factor must
+read the same immutable stage input. FFR can retain the doubled descriptors
+in a reusable plan or generate them online on every call.
 
-$$
-fX=V(X)+x^mU(X).
-$$
+The complete proofs, cost models, and evaluation are available in the tagged
+[LaTeX source](https://github.com/junyu33/ExSuwako/blob/arxiv-v1/paper/ExSuwako/main.tex)
+and [compiled manuscript](https://github.com/junyu33/ExSuwako/blob/arxiv-v1/paper/ExSuwako/output.pdf).
 
-Since $g=x^m+f$ implies $x^m\equiv f$ modulo $g$, cancelling the high part
-requires solving
+## Build and validate
 
-$$
-H=(I+U)X.
-$$
+Requirements are Python 3, a C11 compiler, GNU Make, and a native `gf2x`
+installation. Override `GF2X_PREFIX` when `gf2x` is outside `/usr/local`.
 
-The reduction implemented by the PoC can be written as
-
-$$
-\operatorname{red}_g(C)
-=
-L\oplus V\!\left((I+U)^{-1}H\right).
-$$
-
-Because the shift operators commute and the coefficient field has
-characteristic two,
-
-$$
-U^{2^k}(X)
-=
-\bigoplus_{t\in T}
-\left(X\gg 2^k\Delta_t\right).
-$$
-
-The operator $U$ is nilpotent on the truncated space. Consequently, for a
-sufficient number of rounds,
-
-$$
-(I+U)^{-1}
-=
-\prod_{k\ge 0}\left(I+U^{2^k}\right).
-$$
-
-The corresponding iteration is
-
-$$
-X_{k+1}
-=
-X_k
-\oplus
-\bigoplus_{t\in T}
-\left(X_k\gg 2^k\Delta_t\right).
-$$
-
-All shifts in a single round must read the same old value $X_k$. They must
-not observe partially updated results from other taps in that round.
-
-In a SIMD or hardware implementation, this naturally suggests two
-ping-pong buffers. The Python PoC expresses the same dependency rule through
-an immutable `old` state within each round.
-
-If
-
-$$
-\Delta_{\min}=\min_{t\in T}(m-t),
-$$
-
-the number of dependent feedback rounds used by the implementation is
-
-$$
-\left\lceil
-\log_2\left(\frac{m}{\Delta_{\min}}\right)
-\right\rceil.
-$$
-
-The exact ceiling is important. When the closest tap is a fixed distance from
-the leading term, the bare expression $\log(m/\Delta_{\min})$ tends to zero,
-but the feedback closure still needs one round. Asymptotic statements should
-therefore keep the exact $r$ or use
-
-$$
-r=\Theta\left(1+\log\frac{m}{\Delta_{\min}}\right).
-$$
-
-## Files
-
-### Source Layout
-
-- `include/`: public C headers and small shared word-level primitives.
-- `src/`: reusable native reducer implementations.
-- `src/reference/`: independent Python reference code.
-- `tests/`: native and Python correctness-only test programs.  `make check`
-  runs the native reducer check and the two theorem-falsification suites.
-- `bench/scripts/`: benchmark entrypoints and experiment drivers.
-- `bench/data/`: local benchmark CSV outputs. These are ignored by Git during
-  the exploratory phase.
-- `bench/*.md`: benchmark notes and command documentation.
-- `paper/`: mathematical notes, verified prior-art facts, and provenance.
-  Venue-specific writing plans and experiment checklists live only on their
-  corresponding paper branches.
-
-The native reducers share the `reduction_method` wrapper in
-`include/reduction.h`. A method owns reducer-specific setup state, exposes its
-required output size, and provides the common timed contract
-
-```c
-reduce_into(input, context, output)
+```sh
+make GF2X_PREFIX=/path/to/gf2x
+make check GF2X_PREFIX=/path/to/gf2x
 ```
 
-This wrapper is intentionally small: it lets correctness tests and benchmark
-drivers call GS, serial sparse folding, naive long division, and Barrett
-through the same API without hiding each algorithm's real setup and scratch
-requirements.
+`make check` runs native differential and component tests, boundary checks,
+and deterministic algebraic falsification suites. Venue branches may add
+further implementation and artifact checks.
 
-### Native Reducers
+The independent Python reference can also be run directly:
 
-- `src/GS.c`: generalized Suwako reduction. It precomputes the sparse doubling
-  schedule and computes
-  $L+V((I+U)^{-1}H)$ with one reusable state buffer.
-- `src/serial.c`: word-oriented serial sparse folding baseline. It propagates
-  high-part feedback one round at a time.
-- `src/naive.c`: simple long-division reference baseline.
-- `src/barrett.c`: Barrett-style GF(2) polynomial reduction using `gf2x_mul`
-  through `poly_mul_gf2x`.
-- `src/reduction.c`: common wrapper API used by tests and native benchmarks.
-
-### Python Reference
-
-Contains:
-
-- `generalized_suwako`, the generalized reduction prototype;
-- `naive_sparse_reduction`, a bit-by-bit reference implementation;
-- input and modulus validation;
-- hand-picked edge cases;
-- randomized differential testing;
-- detailed diagnostics on a mismatch.
-
-The implementation uses Python arbitrary-precision integers as coefficient
-vectors. Bit $i$ represents the coefficient of $x^i$.
-
-## Requirements
-
-For the Python reference:
-
-- Python 3 and its standard library.
-
-For the native C implementation and benchmarks:
-
-- a C11 compiler;
-- `make`;
-- a native `gf2x` installation providing `gf2x.h` and `-lgf2x`.
-
-The Makefile defaults to
-
-```make
-GF2X_PREFIX=/usr/local
-```
-
-and links with
-
-```text
--I$(GF2X_PREFIX)/include -L$(GF2X_PREFIX)/lib -lgf2x
-```
-
-On the current development machine, this resolves `-lgf2x` to
-`/usr/lib/libgf2x.so`; no `/usr/local/lib/libgf2x.a` is present.
-
-## Running the validation
-
-Run the native correctness suite with:
-
-```bash
-make check
-```
-
-This builds and runs `tests/check_reduction.c`, which compares GS, serial,
-naive, and Barrett through the common `reduction_method` API on randomized
-sparse moduli and product-range inputs. It includes word-boundary degrees and
-forced $\Delta_{\min}=1$ cases.
-
-The older alias is kept for now:
-
-```bash
-make check-serial
-```
-
-Run the Python reference validation suite with:
-
-```bash
+```sh
 python3 src/reference/generalized_suwako_poc.py
 ```
 
-The default suite includes:
+## Native reducers and benchmark
 
-- hand-picked trinomial, pentanomial, and higher-weight cases;
-- cases with taps close to both ends of the modulus;
-- cases with $\Delta_{\min}=1$;
-- 10,000 randomized cases;
-- degrees up to $m=2048$;
-- modulus Hamming weights from 3 through 12.
+All native methods use the common `reduction_method` wrapper in
+[`include/reduction.h`](include/reduction.h):
 
-For a reproducible run with a fixed random seed:
+- planned and online FFR (`src/GS.c`);
+- serial sparse folding (`src/serial.c`);
+- Barrett reduction through `gf2x` (`src/barrett.c`);
+- L\'opez--Dahab Algorithm 2 (`src/lopez_dahab.c`);
+- naive long division (`src/naive.c`);
+- diagnostic dense-map and generated fixed-modulus reducers.
 
-```bash
-PYTHONPATH=src/reference python3 -c \
-  'from generalized_suwako_poc import run_validation; run_validation(seed=0)'
+Build the benchmark with `make`, then benchmark an exact support with:
+
+```sh
+build/reduction_benchmark --taps 0,7,12 16 3 283 0x1
 ```
 
-The generalized result is compared against the bit-by-bit reference reducer
-for every test case.
+The benchmark records setup and steady-state reduction separately and retains
+the complete support, seed, timing order, compiler, linked `gf2x`, platform,
+and affinity metadata. Its full CLI, timing contracts, input distributions,
+manifests, and analysis pipeline are documented in
+[`bench/native_benchmark.md`](bench/native_benchmark.md). The `math-comp`
+planned-versus-online experiment has a
+[separate frozen contract](https://github.com/junyu33/ExSuwako/blob/arxiv-v1/bench/ffr_online_benchmark.md).
 
-## Building and Benchmarking
+Local CSV files and generated analyses belong under `bench/data/` and are
+ignored by Git.
 
-Build the native benchmark with:
+## Paper and artifact
 
-```bash
-make
-```
+The `arxiv-v1` tag fixes the manuscript source, figures, implementation, and
+reproduction scripts. Download the three released CSV payloads from
+[`moc-artifact-v2`](https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v2)
+before running the paper targets. The exact commands, expected row counts,
+SHA-256 values, output hashes, dependencies, and clean-checkout audit are in
+the tagged
+[artifact contract](https://github.com/junyu33/ExSuwako/blob/arxiv-v1/bench/artifact/README.md).
 
-or with an explicit gf2x prefix:
+## Repository map
 
-```bash
-make GF2X_PREFIX=/path/to/gf2x
-```
+- `include/`: public C interfaces and shared word-level primitives.
+- `src/`: reusable native implementations.
+- `src/reference/`: independent Python reference reducer.
+- `tests/`: native and algebraic correctness suites.
+- `bench/scripts/`: benchmark, manifest, analysis, and plotting programs.
+- `bench/manifests/`: deterministic experiment supports.
+- `paper/`: branch-specific factual records or venue materials; its
+  `README.md` states the current branch contract.
 
-The benchmark binary is:
+## Scope and naming
 
-```bash
-build/reduction_benchmark
-```
+The implementation is research software, not a production or constant-time
+cryptographic library. Correctness applies to every monic binary modulus;
+the favorable performance regions depend on degree, support geometry, machine
+word width, platform, and setup amortization.
 
-Its arguments are:
-
-```text
-supports inputs repeats m s seed [no-naive]
-```
-
-Example:
-
-```bash
-build/reduction_benchmark 4 16 3 1024 8 0x9e3779b97f4a7c15
-```
-
-The output is CSV with reduction-only timing in nanoseconds per input:
-
-```text
-m,s,h,Delta_min,GS_ns,Serial_ns,Naive_ns,BarrettGF2X_ns,...
-```
-
-Setup, input generation, output allocation, correctness checks, and checksum
-consumption are outside the timed region. This is a steady-state fixed-modulus
-microbenchmark, not an end-to-end multiplication benchmark.
-
-Experiment drivers live in `bench/scripts/`. Local CSV outputs should go under
-`bench/data/`; they are ignored by Git while the measurements remain
-exploratory.
-
-## Scope and assumptions
-
-The current PoC assumes:
-
-1. coefficients are in $\mathbb F_2$;
-2. the modulus is monic and has degree $m$;
-3. the constant coefficient of the modulus is one;
-4. all internal tap exponents are distinct;
-5. every internal tap satisfies $0<t<m$;
-6. at least one internal tap is present, so the Hamming weight is at least 3;
-7. the input has degree less than $2m$.
-
-The implementation does not construct a dense reciprocal polynomial or a dense
-reduction matrix. It computes the feedback schedule directly from the sparse
-tap positions.
-
-This is best viewed as a matrix-free sparse reciprocal application. It does
-not deny the reciprocal structure; rather, it avoids explicitly materializing
-the usually dense reciprocal $q(z)^{-1}\bmod z^m$, where
-
-$$
-q(z)=1+\bigoplus_{t\in T}z^{\Delta_t},
-$$
-
-and applies it through sparse Frobenius factors:
-
-$$
-q(z)^{-1}
-\equiv
-\prod_{k=0}^{r-1}
-\left(
-1+\bigoplus_{t\in T}z^{2^k\Delta_t}
-\right)
-\pmod{z^m}.
-$$
-
-## Comparison with multiplication-based reduction
-
-Let
-
-$$
-n=\left\lceil\frac{m}{W}\right\rceil
-$$
-
-be the number of $W$-bit machine words used to represent an $m$-bit
-polynomial, and let
-
-$$
-r=
-\left\lceil
-\log_2\left(\frac{m}{\Delta_{\min}}\right)
-\right\rceil.
-$$
-
-For an individual tap, define
-
-$$
-r_t=
-\left\lceil
-\log_2\left(\frac{m}{\Delta_t}\right)
-\right\rceil.
-$$
-
-The coarse machine-word work bound for generalized Suwako is
-
-$$
-T_{\mathrm{ExSuwako}}(m,h,W)
-=
-O(hnr).
-$$
-
-A more precise schedule-sensitive bound, counting only active tap shifts in
-rounds where $2^k\Delta_t<m$, is
-
-$$
-O\left(n\left(r+\sum_{t\in T}r_t+|T|\right)\right).
-$$
-
-The $r$ term accounts for the per-round state update, the sum accounts for
-active feedback shifts, and the $|T|$ term accounts for the final low-part
-assembly.
-
-Let $M_W(n)$ denote the machine-word complexity of multiplying two
-$n$-word binary polynomials. A Barrett- or Montgomery-style reduction
-dominated by a constant number of polynomial multiplications has work
-
-$$
-\Theta(M_W(n)).
-$$
-
-Thus generalized Suwako has asymptotically lower machine-word work whenever
-
-$$
-hnr=o(M_W(n)),
-$$
-
-or equivalently,
-
-$$
-h
-=
-o\left(
-\frac{M_W(n)}
-     {nr}
-\right).
-$$
-
-Using $r=\Theta(1+\log(m/\Delta_{\min}))$, this may be written as
-
-$$
-h
-=
-o\left(
-\frac{M_W(n)}
-     {n\left(1+\log(m/\Delta_{\min})\right)}
-\right).
-$$
-
-For schoolbook word multiplication,
-
-$$
-M_W(n)=\Theta(n^2),
-$$
-
-which gives
-
-$$
-h
-=
-o\left(
-\frac{m}
-     {W\left(1+\log(m/\Delta_{\min})\right)}
-\right).
-$$
-
-For Karatsuba word multiplication,
-
-$$
-M_W(n)=\Theta\left(n^{\log_2 3}\right),
-$$
-
-which gives
-
-$$
-h
-=
-o\left(
-\frac{(m/W)^{\log_2 3-1}}
-     {1+\log(m/\Delta_{\min})}
-\right)
-=
-o\left(
-\frac{(m/W)^{0.585\ldots}}
-     {1+\log(m/\Delta_{\min})}
-\right).
-$$
-
-These bounds compare asymptotic machine-word work. They do not by themselves
-determine the practical crossover point, which also depends on shift/XOR
-throughput, carryless-multiplication instructions, vector width, memory
-traffic, tap placement, and implementation constants.
-
-## Research directions
-
-The present prototype is intended to support work on:
-
-- a complete formal derivation of the reduction map;
-- precise work, depth, and space bounds;
-- comparison with serial sparse folding;
-- comparison with multiplication-based reduction methods;
-- comparison with LFSR look-ahead, CRC unfolding, parallel polynomial
-  division, and related hardware techniques;
-- SIMD implementations with explicit ping-pong buffers;
-- RTL implementations and area/depth tradeoffs;
-- code generation for compile-time modulus parameters;
-- evaluation on cryptographically relevant sparse moduli;
-- characterization of the regimes in which the generalized method is useful.
-
-## Current triage status
-
-The algebraic core has passed the current first-round correctness checks:
-manual derivation, comparison against a bit-by-bit reference reducer, and an
-independent reimplementation-based differential check. These checks are useful
-evidence against off-by-one, synchronous-update, tap-interaction, final
-assembly, and round-count mistakes.
-
-This does not yet establish novelty, importance, or a compelling application.
-The next kill steps are prior-art search around reciprocal methods, sparse
-operator factorization, LFSR and CRC unfolding, and concrete C/SIMD/RTL
-performance measurements on relevant sparse moduli.
-
-## Repository name
-
-`ExSuwako` is a working name meaning **Extended Suwako**.
-
-The algorithmic terminology used in technical writing should remain
-**generalized Suwako reduction** until a final name and scope are established.
+**ExSuwako** remains the repository name. **GS** abbreviates **Generalized
+Suwako**, the original implementation name; the paper-facing method name is
+**Frobenius-factorized reduction (FFR)**. Existing `GS`, `gs_*`, and GS-named
+artifact fields remain unchanged to preserve API and dataset provenance.
