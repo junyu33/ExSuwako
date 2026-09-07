@@ -660,8 +660,9 @@ $\gcd(x^{2^{m/2}}-x,g)$, and checks $x^{2^m}=x\pmod g$.
       collector attaches all required fields, and the analyzer rejects
       incomplete paired trials before producing deterministic 10,000-resample
       median and ratio intervals. Pipeline regression tests exercise this
-      contract; the current pilot rows remain explicitly exploratory because
-      they were collected from a dirty implementation worktree. Serial is
+      contract. The 465-row scaling dataset was collected paper-grade from
+      clean commit `5d91ddc`; every row records that commit and a common
+      binary digest. Serial is
       retained through $m=2048$ but omitted at $m=8192$, where a measured
       smoke trial takes about 47.5 seconds; that threshold is explicit in the
       command and every output row rather than treating Serial as a loser.
@@ -674,9 +675,15 @@ $\gcd(x^{2^{m/2}}-x,g)$, and checks $x^{2^m}=x\pmod g$.
       Paired competitor/FFR median ratios were respectively 2.35, 3.80, and
       84.4, with all 95\% intervals strictly above one. The matched FFR
       squaring chain occupied about 95\% of its total time. This clears
-      expansion but is not paper evidence until recollected from a clean
-      experiment commit.
-- [ ] Integrate the result into the manuscript only if a complete Rabin test,
+      expansion; a clean-commit repeat gives the same ordering and replaces
+      the exploratory values in paper claims.
+- [x] Integrate the result into the manuscript only if a complete Rabin test,
       not merely its reduction or modular-squaring component, shows the stated
       effect.  A win over matched reducers but not over NTL must be reported
-      with that distinction.
+      with that distinction. [A] At $m=128,512,2048,8192$, all paired 95\%
+      intervals place both complete NTL and matched Barrett above FFR. Their
+      median ratios span 1.35--8.04 and 1.60--6.81, respectively. The
+      manuscript reports one bounded Rabin result and retains polynomial
+      factorization, candidate search, and modulus-distribution claims as
+      limitations. `bench/artifact/rabin-v1.json` hash-locks the 465 raw rows,
+      four-modulus manifest, summary, and figure.

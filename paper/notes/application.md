@@ -1,6 +1,9 @@
 # Application Hypotheses: Sparse Polynomial Search and Modulus Selection
 
-This note records candidate application directions for Frobenius-factorized reduction (FFR). It is not evidence that the method accelerates an end-to-end task. Each direction becomes a paper-facing claim only after a matched implementation, a reproducible workload, and comparison against the strongest specialized baseline.
+This note records application directions for Frobenius-factorized reduction
+(FFR).  A complete Rabin irreducibility experiment now supplies one bounded
+end-to-end result; the broader factorization, polynomial-search, and
+platform-optimal-modulus directions remain hypotheses.
 
 The target regime is a sparse non-leading part with a high internal tap:
 
@@ -89,7 +92,7 @@ The first two directions should be pursued together: a cost model and a search o
 |---|---|
 | Repeated modular squaring occurs in factorization and irreducibility workflows | Established background; verify exact workload formulations and citations. |
 | Sparse high-tap moduli can be hostile to serial feedback | Proved at the feedback-depth level. |
-| FFR improves an irreducibility-testing workload on a sparse high-tap modulus | Supported by one metadata-complete but exploratory $m=512$ pilot: FFR was 2.35x faster than NTL and 3.80x faster than matched Barrett in median complete-test time; clean-commit collection and broader degrees remain open. |
+| FFR improves an irreducibility-testing workload on a sparse high-tap modulus | Measured at $m=128,512,2048,8192$ on deterministically generated Sage-certified $(h,\Delta_{\min})=(9,1)$ moduli: complete NTL/FFR ratios are 1.35--8.04 and matched Barrett/FFR ratios are 1.60--6.81. |
 | The platform-optimal irreducible modulus changes under FFR | Open experimental hypothesis. |
 | CRC/Rabin is a compelling primary application | Currently unsupported. |
 

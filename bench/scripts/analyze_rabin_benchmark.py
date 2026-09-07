@@ -40,8 +40,13 @@ def main() -> None:
     with args.input.open(newline="", encoding="utf-8") as stream:
         rows = list(csv.DictReader(stream))
     grouped: dict[str, dict[str, dict[int, float]]] = defaultdict(lambda: defaultdict(dict))
+    sample_info: dict[str, dict[str, str]] = {}
     for row in rows:
         grouped[row["sample_id"]][row["method"]][int(row["trial"])] = float(row["e2e_ns"])
+        info = {name: row[name] for name in ("m", "h", "delta_min", "taps")}
+        if row["sample_id"] in sample_info and sample_info[row["sample_id"]] != info:
+            raise ValueError(f"{row['sample_id']} has inconsistent modulus metadata")
+        sample_info[row["sample_id"]] = info
 
     output_rows: list[dict[str, object]] = []
     rng = random.Random(args.seed)
@@ -64,6 +69,7 @@ def main() -> None:
             output_rows.append(
                 {
                     "sample_id": sample_id,
+                    **sample_info[sample_id],
                     "method": method,
                     "trials": len(values),
                     "median_e2e_ns": f"{median:.9g}",

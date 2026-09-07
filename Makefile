@@ -171,6 +171,11 @@ artifact-microbenchmark: $(TARGET)
 		--seed 0x4152544946414354 --no-naive \
 		--metadata $(ARTIFACT_METADATA) --paper-grade
 
+artifact-rabin:
+	$(PYTHON) bench/scripts/reproduce_rabin_artifact.py \
+		--data-root $(ARTIFACT_DATA) \
+		--output $(ARTIFACT_OUTPUT)/rabin-v1
+
 check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(GS_COMPONENT_CHECK_TARGET) $(SPARSE_SHIFT_CHECK_TARGET) \
 	$(GF2_SQUARE_CHECK_TARGET) $(DENSE_CHECK_TARGET) \
@@ -204,6 +209,7 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(PYTHON) tests/check_rabin_benchmark.py --binary $(RABIN_TARGET)
 	$(PYTHON) tests/check_rabin_manifest.py
 	$(PYTHON) tests/check_rabin_pipeline.py --binary $(RABIN_TARGET)
+	$(PYTHON) tests/check_rabin_plot.py
 	$(MAKE) check-theory
 
 check-theory:

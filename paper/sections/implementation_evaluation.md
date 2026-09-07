@@ -647,14 +647,13 @@ baseline.  The primary `rabin-power-of-two-irred:v1` interval includes reducer
 setup, all $m$ modular squares, the $m/2$ checkpoint GCD, and the final
 $x^{2^m}=x$ test.
 
-The deterministic pilot modulus has
-$m=512$, $h=9$, $\Delta_{\min}=1$, and
-$T=\{0,54,96,156,271,346,476,511\}$.  Sage 10.9 certifies it as irreducible,
-and the generator reaches it at attempt 221 from seed `0x524142494e5031`.
-Across 31 exploratory trials pinned to CPU 0, median complete times were
-0.154 ms for FFR, 0.359 ms for NTL, 0.588 ms for BarrettGF2X, and 13.06 ms for
-Serial.  The paired competitor/FFR median ratios were 2.35, 3.80, and 84.4;
-all bootstrap 95% intervals remained above one.  The FFR squaring chain
-accounted for about 95% of its total time.  These rows validate the experiment
-design and justify a clean-commit expansion, but remain exploratory and are
-not yet manuscript evidence.
+The deterministic scaling manifest contains one Sage-certified irreducible
+modulus at each $m\in\{128,512,2048,8192\}$, all with
+$(h,\Delta_{\min})=(9,1)$.  Across 31 paper-grade trials pinned to CPU 0,
+NTL/FFR median complete-time ratios are 1.35, 2.31, 3.64, and 8.04; matched
+Barrett/FFR ratios are 1.60, 3.76, 3.27, and 6.81. All paired bootstrap 95%
+intervals remain above one.  The FFR squaring chain grows from about 85.5% to
+98.9% of its complete time.  Serial is retained through $m=2048$ but omitted
+at $m=8192$ after one smoke trial took about 47.5 seconds.  The separate Rabin
+artifact hash-locks all 465 raw rows and deterministically reconstructs the
+summary and paper figure.

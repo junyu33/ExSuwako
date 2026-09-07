@@ -59,8 +59,11 @@ supports and degrees $128$ through $131072$ identifies distinct FFR,
 L\'opez--Dahab, and gf2x-backed Barrett regions.  On the hostile
 $(h,\Dmin)=(9,1)$ slice, Barrett takes between $2.16$ and $37.71$ times the FFR
 reduction time, whereas Barrett or L\'opez--Dahab wins as support weight or
-feedback distance grows.  These are single-platform reduction-only results;
-we make no end-to-end computational-algebra performance claim.
+    feedback distance grows.  On four independently certified irreducible
+    degree-$128$ through degree-$8192$ moduli with $(h,\Dmin)=(9,1)$, FFR also
+    makes a complete Rabin irreducibility test $1.35$--$8.04$ times faster than
+    NTL and $1.60$--$6.81$ times faster than the matched Barrett path on the
+    same platform.
 \end{abstract}
 
 \maketitle
@@ -125,8 +128,10 @@ The contributions are: (i) a nilpotent-feedback formulation for any
 monic binary modulus; (ii) a sparse characteristic-two factorization;
 (iii) exact coefficient- and packed-word work--feedback-depth geometry,
 including schedule and temporary-space bounds; and (iv) a reproducible
-portable-C study that maps the measured winning and losing regions against
-serial folding, L\'opez--Dahab reduction, and gf2x-backed Barrett reduction.
+  portable-C study that maps the measured winning and losing regions against
+  serial folding, L\'opez--Dahab reduction, and gf2x-backed Barrett reduction;
+  and (v) an end-to-end Rabin irreducibility experiment on certified sparse
+  moduli, including an optimized NTL baseline.
 
 Correctness does not require irreducibility; sparsity is a performance
 condition rather than an applicability condition.  We do not identify
@@ -995,19 +1000,55 @@ artifact separately derives
 we do not fold an unstated amortization factor into the reported reduction
 times.
 
+\subsection{End-to-end irreducibility testing}
+
+We finally test whether the reduction result survives inside one complete
+computational-algebra workload.  For a power-of-two degree $m$, Rabin's
+criterion computes the chain of $m$ modular squares beginning at $x$, checks
+\[
+  \gcd\bigl(x^{2^{m/2}}-x,g\bigr)=1,
+  \qquad
+  x^{2^m}=x\pmod g.
+\]
+We deterministically selected one Sage-certified irreducible modulus at each
+$m\in\{128,512,2048,8192\}$, always with $(h,\Dmin)=(9,1)$.  Each matched
+path uses the same scalar bit-dilation squarer and NTL GCD code and changes
+only the reducer.  Its primary interval includes reducer setup, all modular
+squares, the GCD, and the final equality test.  NTL
+\texttt{IterIrredTest} is timed separately as an optimized complete-library
+baseline.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/rabin-e2e.pdf}
+\caption{Complete Rabin irreducibility testing on four deterministically
+selected, Sage-certified sparse moduli with $(h,\Dmin)=(9,1)$.  The left panel
+shows median end-to-end time with bootstrap 95\% intervals; the right panel
+normalizes each complete implementation by FFR.  Every point contains 31
+trials.  Serial is omitted at $m=8192$ after a retained smoke trial took about
+47.5 seconds; it is absent rather than classified as a loser.}
+\label{fig:rabin-e2e}
+\end{figure}
+
+Figure~\ref{fig:rabin-e2e} shows a stable end-to-end effect.  Across increasing
+$m$, NTL takes $1.35$, $2.31$, $3.64$, and $8.04$ times the FFR time; the
+matched Barrett path takes $1.60$, $3.76$, $3.27$, and $6.81$ times the FFR
+time.  All paired ratio intervals lie strictly above one.  The modular-square
+chain accounts for $85.5\%$ of FFR time at $m=128$ and $98.9\%$ at $m=8192$,
+so the measured difference remains central to the complete test rather than
+being hidden by setup or the terminal GCD.
+
 \section{Computational-Algebra Consequences and Limitations}
 \label{sec:consequences}
 
 Distinct-degree factorization, Rabin irreducibility testing, and sparse
-polynomial search repeatedly compute modular Frobenius powers, so reduction is
-a genuine component of these workloads.  The present experiment deliberately
-isolates that component.  It does not measure square formation,
-multiplication, GCDs, early exits, or complete factorization and
-irreducibility-testing runs.  In particular, the uniform degree-below-$2m$
-inputs used in Section~\ref{sec:evaluation} are not distributed like polynomial
-squares, whose odd coefficients vanish.  The measured reduction regions are
-therefore evidence about reducer selection, not about end-to-end workload
-speed or the best irreducible modulus for an application.
+polynomial search repeatedly compute modular Frobenius powers.  The phase
+diagram isolates reduction on uniform degree-below-$2m$ inputs, whereas the
+Rabin experiment includes square formation, application-generated states, the
+GCD, and the final decision.  It therefore establishes an end-to-end effect
+for the tested irreducibility certificates.  It does not establish the best
+irreducible modulus, average sparse-polynomial search time, complete
+factorization speed, or behavior on reducible candidates with early exits.
 
 Several additional boundaries matter.  The timing corpus uses controlled
 supports without a constant term, and their irreducibility is unclassified;
@@ -1019,6 +1060,9 @@ extension after its initial screening.  L\'opez--Dahab participates only for
 $\Dmin\ge64$, while the dense map is diagnostic rather than winner-eligible.
 Setup and requested plan storage are reported separately from steady-state
 reduction, so a different plan-reuse distribution can change total cost.
+The Rabin study adds only four deterministically generated high-tap moduli of
+one weight; its scaling trend must not be read as a distribution over all
+irreducible polynomials.
 
 Finally, dense supports, small degrees, cross-word shifts, and specialized
 fixed-modulus reducers can all make FFR unattractive, while
@@ -1043,9 +1087,11 @@ difficult feedback, gf2x-backed Barrett takes over as weight grows, and
 ordinary-loop L\'opez--Dahab is often strongest when its feedback-distance
 condition applies.  The formal work measure is strongly monotone with FFR
 runtime on the controlled corpus, but the measured boundaries retain unstable
-cells and remain platform-specific.  Establishing a computational-algebra
-speedup requires a separate modular-squaring and end-to-end experiment; it is
-not implied by the reduction-only results reported here.
+cells and remain platform-specific.  On the four certified high-tap moduli,
+the reduction advantage does survive a complete Rabin irreducibility test and
+widens relative to NTL over the measured degree range.  This establishes one
+computational-algebra consequence, not a claim about factorization, polynomial
+search, or arbitrary irreducible-modulus distributions.
 
 \appendix
 
@@ -1128,7 +1174,9 @@ predecessor artifact; the fitted-boundary extension has been rebuilt in the
 current tree and awaits its post-commit detached audit.  Exact seeds, tap
 manifests, commands, compiler and gf2x paths,
 binary digests, affinity, and frequency policy accompany every retained row.
-No secondary-platform or end-to-end result is included in this version.
+No secondary-platform result is included in this version.  The separate Rabin
+artifact contains 465 retained rows and deterministically rebuilds its summary
+and figure from the hash-locked external CSV.
 
 \begin{thebibliography}{99}
 \bibitem{BiniPan1985}

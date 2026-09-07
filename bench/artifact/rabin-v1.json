@@ -1,0 +1,18 @@
+{
+  "schema": "exsuwako-rabin-artifact:v1",
+  "dataset": {
+    "filename": "rabin-main-5d91ddc.csv",
+    "rows": 465,
+    "sha256": "c68e1ef2a204e3bb63c2d057fedd2023b229494f9b6313ef481575c598ed0f95",
+    "git_commit": "5d91ddcb70d5cddf0fd55a70e0a206174df3edf7",
+    "binary_sha256": "58912ece9cbdec19283a8c5ded468c77debb9f592f49674456a361ea66cda8bb"
+  },
+  "manifest": {
+    "path": "bench/manifests/e2e/rabin-main-delta1-h9.jsonl",
+    "sha256": "7fb592e1978d0163f3a85f6f47ccce0cebd9c6eaf46f79c64f676bdb43abc319"
+  },
+  "outputs": {
+    "rabin-summary.csv": "ec52b95f6496ff4ad30c6a3929b602c34087cb3a8262f4fac5b1229ef0a42d8c",
+    "rabin-e2e.svg": "970efee290a22fd84869f2aa0ebc95e6700ada3f692ae1489c664d3963bcaa2f"
+  }
+}

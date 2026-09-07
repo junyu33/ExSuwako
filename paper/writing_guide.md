@@ -106,7 +106,7 @@ Boolean-circuit upper bound into hardware depth without fixing the model.
 | Algebraic computational falsification | Reproducible independent tests | Measured over GF(2), GF(4), dual numbers, and F3; not a proof |
 | Generic bounded-fan-in depth lower bound | Formal model and proof | Open and omitted from the current manuscript |
 | Native scalar speed regions and setup amortization | Reproducible matched experiments | Fresh-checkout artifact reproduced from the hash-locked 67,576-row primary-platform dataset; no cross-platform claim |
-| Rabin irreducibility-test speedup | Complete matched-driver and NTL measurements | Promising $m=512$ exploratory pilot; no paper claim before clean-commit collection |
+| Rabin irreducibility-test speedup | Complete matched-driver and NTL measurements | Paper-grade 31-trial measurements at $m=128,512,2048,8192$; FFR leads both NTL and matched Barrett on the selected certified family |
 | Platform-optimal modulus changes | Search plus end-to-end measurements | Open hypothesis |
 | Novelty | Hostile primary-source audit | Provisional |
 
@@ -174,4 +174,6 @@ proof obligations.
 
 At least one repeated-squaring, irreducibility-testing, factorization, or
 sparse-polynomial-search workload demonstrates the computational consequence
-of the result.  A reduction-only speedup is not presented as workload impact.
+of the result.  The complete Rabin experiment discharges this gate for four
+certified $(h,\Delta_{\min})=(9,1)$ moduli; it does not establish a
+factorization, search, or modulus-distribution claim.

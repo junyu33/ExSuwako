@@ -27,6 +27,7 @@ make check
 make artifact-cost-model
 make artifact-microbenchmark ARTIFACT_CPU=0
 make artifact-paper
+make artifact-rabin
 ```
 
 - `make check` is the correctness command.
@@ -37,6 +38,11 @@ make artifact-paper
 - `make artifact-paper` verifies the external dataset and regenerates the
   winner analysis, region summaries, phase/depth/slice/setup/work figures,
   random-support geometry, cost-model summaries, and paper table sources.
+- `make artifact-rabin` independently verifies
+  `DATA_ROOT/rabin-main-5d91ddc.csv` against
+  [`rabin-v1.json`](rabin-v1.json), then rebuilds the complete-test summary
+  and Rabin E2E figure.  Its 465 rows come from one clean experiment commit
+  and are not mixed with the reduction-only dataset.
 
 Override `ARTIFACT_DATA` and `ARTIFACT_OUTPUT` when the CSV payload and derived
 outputs live outside the checkout. The committed config contains expected
