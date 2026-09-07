@@ -369,7 +369,15 @@ governor/EPP/turbo observations, portable implementation registry, and
 multiplication backend. The driver enforces the recorded CPU affinity and
 adds its own command plus the exact native command to every row. Paper-grade
 mode rejects absent metadata, dirty or mismatched commits, and a binary digest
-mismatch; exploratory rows cannot pass the paper-grade winner analyzer.
+mismatch; exploratory rows cannot pass the paper-grade winner analyzer. A
+direct audit of the 67,576 retained formal trial rows found every required
+field present and every one of the 1,096 sample trial sequences complete and
+internally consistent. All rows use the same compiler, flags, gf2x library,
+platform, affinity, frequency policy, word width, input distribution, timing
+scope, setup scope, implementation, and multiplication backend. Collection
+spans three clean commits only to introduce the explicit no-Serial
+high-weight method set and then the tested López--Dahab boundary
+$\Delta_{\min}=W$; no sample pools trials across commits.
 
 ### 9.4 Planned Figures
 

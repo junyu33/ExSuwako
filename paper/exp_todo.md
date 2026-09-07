@@ -419,15 +419,20 @@ The paper-facing definition of this experiment is in
       without interpolating missing cells. Its optional cost-model boundary
       overlay remains exploratory until the fitting analysis is implemented
       as a reproducible repository script.
-- [ ] Record $W$, full tap placement, input distribution, implementation,
-      platform, setup policy, and multiplication backend for every panel.
-      `capture_benchmark_metadata.py` and the phase driver's explicit
-      metadata mode now record and validate these fields, the clean commit,
-      binary digest, compiler, flags, resolved gf2x library, CPU affinity,
-      frequency policy, and exact commands. `--paper-grade` enforces the
-      recorded affinity and rejects missing metadata, a dirty tree, a commit
-      mismatch, or a binary mismatch. This item remains open until every
-      retained formal panel carries that contract.
+- [x] Record $W$, full tap placement, input distribution, implementation,
+      platform, setup policy, and multiplication backend for every panel. [A]
+      A direct audit of all 67,576 retained paper-grade trial rows underlying
+      the 1,096 panel cells found no missing metadata, duplicate trial index,
+      incomplete trial sequence, or within-sample contract change. Every row
+      records $W=64$, complete taps, `uniform-full-range:v1`,
+      `portable-scalar-c:v1`, `reduction-steady-state:v1`,
+      `modulus-plan:v1`, `gf2x:v1`, the compiler and flags, resolved gf2x
+      library, clean commit and binary digest, host/platform, CPU 0 affinity,
+      frequency policy, seed, and exact driver/native commands. The three
+      clean collection commits preserve the GS, Barrett, and LD reduction
+      bodies: the intermediate commit adds the explicit no-Serial high-weight
+      method set, and the final commit admits and remeasures the independently
+      tested LD boundary $\Delta_{\min}=W$ rather than pooling old trials.
 - [ ] Report friendly sparse regions, high-weight losses, small-degree
       overhead, and Barrett crossovers. [A] A preliminary no-Serial sweep
       located the crossover between approximately $h=65$ and $81$ at
