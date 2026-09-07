@@ -350,6 +350,9 @@ FFR applies the Frobenius factors of the truncated feedback inverse without
 materializing that inverse.  We distinguish a \emph{planned} realization,
 which retains compact shift descriptors, from an \emph{online} realization,
 which derives them from the original taps on every call.
+Both implementation interfaces accept the complete nonleading support $T$ as
+a duplicate-free list of exponents in strictly increasing order, and both
+constructors validate this canonical representation.
 
 For every $k\ge0$, define
 \begin{equation}
@@ -798,7 +801,7 @@ retains useful support geometry without dense reciprocals, polynomial
 multiplication, or expanded state.
 
 The direct predecessor of the present method is our Suwako algorithm for
-trinomials $x^m+x^t+1$~\cite{ZhouEtAl2025Suwako}.  It already replaces the
+trinomials $x^m+x^t+1$~\cite[Lemma~2, Eq.~(5)]{ZhouEtAl2025Suwako}.  It already replaces the
 $\Theta(m/(m-t))$ serial feedback chain by logarithmically many doubling steps
 without modulus-specific precomputation.  The present paper does not claim
 that trinomial mechanism anew: it derives the multi-tap operator equation,
@@ -1273,29 +1276,21 @@ Exhaustive enumeration of all 262,125 nonempty constant-free supports for
 $2\le m\le18$ finds no counterexample to the scheduled-work formula or its
 coarse bound.
 
-The repository entry point \texttt{make check} runs these theorem-falsification
-suites together with native differential, boundary, masking, sanitizer, dense,
-and L\'opez--Dahab checks.  The frozen artifact uses these commands:
-\begin{quote}
-\ttfamily
-make artifact-cost-model\\
-make artifact-microbenchmark ARTIFACT\_CPU=0\\
-make artifact-paper\\
-make artifact-rabin\\
-make artifact-online
-\end{quote}
-Its 67,576-row external dataset and 26 derived
-outputs are hash-locked.  A detached clean checkout at commit
-\texttt{668e52a} reproduced all 26 outputs, the Rabin artifact, and the online
-FFR summary with exact hash agreement and passed the complete correctness
-suite.  Exact seeds, tap
-manifests, commands, compiler and gf2x paths,
-binary digests, affinity, and frequency policy accompany every retained row.
-No secondary-platform result is included in this version.  The separate Rabin
-artifact contains 465 retained rows and deterministically rebuilds its summary
-and figure from the hash-locked external CSV.  The online FFR artifact contains
-1,395 retained rows over 45 supports and deterministically rebuilds its summary
-from the third hash-locked external CSV.
+The repository entry point \texttt{make check} runs these suites together with
+the native differential, boundary, masking, sanitizer, dense, and
+L\'opez--Dahab checks.  The exact artifact entry points are
+\begin{center}
+\small\ttfamily
+make artifact-cost-model; make artifact-paper; make artifact-rabin;\\
+make artifact-microbenchmark ARTIFACT\_CPU=0; make artifact-online.
+\end{center}
+The 67,576-row primary dataset and its 26 derived outputs are hash-locked.  From
+a detached clean checkout at commit \texttt{668e52a}, all 26 outputs, the
+465-row Rabin artifact, and the 1,395-row, 45-support online artifact reproduced
+with exact hash agreement while the full correctness suite passed.  Every
+retained row records its seed, taps, command, compiler and gf2x paths, binary
+digest, affinity, and frequency policy.  This version contains no
+secondary-platform result.
 
 \begin{thebibliography}{99}
 \bibitem{ZhouEtAl2025Suwako}
