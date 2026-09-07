@@ -399,6 +399,10 @@ python3 bench/scripts/analyze_winner_panels.py \
 python3 bench/scripts/plot_winner_panels.py \
   --input bench/data/winner-points.csv \
   --output bench/data/winner-panels.svg --columns 3
+python3 bench/scripts/summarize_winner_regions.py \
+  --input bench/data/winner-points.csv \
+  --detail bench/data/winner-regions.csv \
+  --summary bench/data/winner-region-summary.csv
 ```
 
 `paired-bootstrap-one-percent:v1` uses 10,000 deterministic bootstrap
@@ -416,6 +420,15 @@ summary recommends 63 and then 127 trials when more than 5% of a panel remains
 timing-unstable. Dense screen rows additionally report whether any stable
 point lies within 1.10 times the fastest primary method and therefore requires
 a new five-method contract.
+
+The region summarizer keeps one row per exact $(m,\Delta_{\min})$ slice and
+compresses its measured winner runs in increasing $h$. Its reported
+`persistent_Barrett_h` is the earliest stable Barrett point after which every
+later stable measured point is also Barrett; uncertain cells are retained but
+do not create a false crossover. The summary separates the hard-feedback
+$\Delta_{\min}<W$ rows from the López--Dahab-applicable
+$\Delta_{\min}\ge W$ rows and records when no persistent Barrett region was
+observed within the sampled weight range.
 
 ### Paper-grade run metadata
 

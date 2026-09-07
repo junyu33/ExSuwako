@@ -400,6 +400,28 @@ renderer can overlay pair-labelled winner boundaries from a separate
 prediction table; the current fitted boundary is exploratory until its fitting
 procedure is preserved as a reproducible analysis script.
 
+The measured persistent Barrett crossover is defined slice by slice as the
+first stable Barrett winner after which all later stable sampled weights also
+select Barrett; uncertain cells never manufacture a crossover. The resulting
+onset ranges are:
+
+| $m$ | $\Delta_{\min}<64$ | $\Delta_{\min}\ge64$ |
+|---:|---:|---:|
+| 128 | $33$--$65$ | $65$ |
+| 512 | $97$ | $129$ |
+| 2048 | $65$--$97$ | $129$--$193$ |
+| 8192 | $129$ | $257$--$385$ |
+| 32768 | $225$--$257$ | $513$--$769$ |
+| 131072 | $641$ | not observed through $1025$ |
+
+The first column shows GS losing to multiplication-based reduction as weight
+increases in the difficult-feedback regime. In the second, ordinary-loop
+López--Dahab increasingly replaces GS and delays the Barrett crossover. The
+smallest degree is visibly overhead-sensitive: at $m=128$ Barrett takes over
+by $h=33$--$65$, while López--Dahab wins only two friendly cells. The measured
+low-feedback GS/LD pockets are not monotone, so the exact per-slice runs and
+uncertain cells are retained alongside this aggregate table.
+
 1. **Schematic classical algorithm-selection phase diagram.** For a fixed
    $m$, show modulus Hamming weight $h$ horizontally and
    $m/\Delta_{\min}$ vertically on a logarithmic scale. Label the three

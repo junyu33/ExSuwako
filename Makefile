@@ -124,6 +124,7 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(PYTHON) tests/check_fixed_weight_summary.py
 	$(PYTHON) tests/check_fixed_weight_manifest.py
 	$(PYTHON) tests/check_winner_panels.py
+	$(PYTHON) tests/check_winner_regions.py
 	$(PYTHON) tests/check_benchmark_metadata.py --binary $(TARGET)
 	$(MAKE) check-theory
 

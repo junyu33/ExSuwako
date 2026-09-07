@@ -433,17 +433,23 @@ The paper-facing definition of this experiment is in
       bodies: the intermediate commit adds the explicit no-Serial high-weight
       method set, and the final commit admits and remeasures the independently
       tested LD boundary $\Delta_{\min}=W$ rather than pooling old trials.
-- [ ] Report friendly sparse regions, high-weight losses, small-degree
-      overhead, and Barrett crossovers. [A] A preliminary no-Serial sweep
-      located the crossover between approximately $h=65$ and $81$ at
-      $m=128$, and between $h=513$ and $1025$ at $m=131072$.  The frozen
-      `highweight-m*-core/ld.jsonl` suites now cover every feasible
-      power-of-two $\Delta_{\min}$ on a common logarithmic weight grid while
-      retaining earlier crossover-refinement weights. They
-      disable Serial setup and timing explicitly because the primary panels
-      already place it far outside the competitive region; every point keeps
-      GS and Barrett, while eligible $\Delta_{\min}\ge64$ points also keep
-      ordinary-loop López--Dahab.
+- [x] Report friendly sparse regions, high-weight losses, small-degree
+      overhead, and Barrett crossovers. [A]
+      `summarize_winner_regions.py` preserves every exact
+      $(m,\Delta_{\min})$ winner run and defines the crossover as the earliest
+      stable Barrett point after which every later stable sampled point is
+      also Barrett. Across the hard-feedback rows $\Delta_{\min}<64$, the
+      persistent onset ranges for $m=128,512,2048,8192,32768,131072$ are
+      respectively $h=33$--$65$, $97$, $65$--$97$, $129$, $225$--$257$, and
+      $641$. Where López--Dahab applies, the corresponding onsets are $65$,
+      $129$, $129$--$193$, $257$--$385$, $513$--$769$, and beyond the sampled
+      $h=1025$. Thus GS owns the difficult-feedback sparse region but loses at
+      high weight; López--Dahab increasingly dominates friendly feedback as
+      $m$ grows. At $m=128$, Barrett already takes over by $h=33$--$65$ and
+      López--Dahab wins only two cells, marking an implementation-overhead-
+      sensitive small-degree regime without assigning a hardware cause;
+      low-feedback GS/LD pockets and all uncertain cells remain recorded
+      rather than being forced into a monotone boundary.
 - [ ] Plot feedback-stage count versus $\Delta_{\min}$ and gap-one scaling
       versus $m$ to test the predicted depth law.
 - [ ] Plot fixed-gap weight sweeps and fixed-weight gap sweeps so that tap
