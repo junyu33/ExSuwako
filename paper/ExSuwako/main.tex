@@ -92,11 +92,10 @@ coordinates for reduction time:
       feedback can propagate before leaving the degree-$m$ state; without
       such a tap there is no feedback chain.
 \end{enumerate}
-These three parameters do not determine runtime by themselves: complete tap
-placement, word alignment, setup, and the multiplication backend still affect
-the observed constants.  They nevertheless separate the main size, sparsity,
-and feedback effects and therefore define the axes and slices used in our
-evaluation.
+Observed runtime also depends on complete tap placement, word alignment,
+setup, and the multiplication backend.  The three parameters above separate
+the main size, sparsity, and feedback effects and therefore define the axes
+and slices used in our evaluation.
 
 When the nonleading part is sparse, top-down folding uses little setup and can
 be extremely effective.  Its work and latency, however, are controlled by
@@ -116,10 +115,9 @@ We answer this question with \emph{Frobenius-factorized reduction} (FFR).
 It requires no materialized reciprocal, dense reduction matrix, or persistent
 modulus-specific shift schedule: the doubled shifts may be derived online
 from the original taps or retained in a lightweight reusable plan.  Online
-execution still uses an $m$-bit state and tap-sized descriptor scratch, so the
-claim concerns precomputed reduction data rather than allocation-free
-execution.  For an
-input of degree below twice the modulus degree, reduction gives a
+execution uses an $m$-bit state and tap-sized descriptor scratch; ``no
+persistent schedule'' refers specifically to precomputed reduction data.  For
+an input of degree below twice the modulus degree, reduction gives a
 finite forced recurrence.  We write it as $(I+U)Y=H$ for a truncated shift
 operator $U$.  When $U\ne0$, characteristic two gives
 \begin{equation}
@@ -147,11 +145,10 @@ Our contributions are threefold.
       Rabin irreducibility test with an optimized NTL baseline.
 \end{enumerate}
 
-Correctness does not require irreducibility; sparsity is a performance
-condition rather than an applicability condition.  We do not identify
-feedback depth with Boolean gate depth, claim an unconditional improvement to
-complete field multiplication, or infer a side-channel result from a public
-fixed schedule alone.
+Correctness holds for every monic binary modulus, while sparsity governs the
+performance regime.  Our depth results use the synchronous feedback-stage and
+bounded-fan-in models defined below; complete-workload effects are evaluated
+separately through Rabin irreducibility testing.
 
 Sections~\ref{sec:preliminaries}--\ref{sec:paradigms} fix the problem and
 comparison models.  Sections~\ref{sec:operators}--\ref{sec:complexity} develop
@@ -205,8 +202,9 @@ when the quotient is intended to be a field.
 
 We distinguish scheduled coefficient work, machine-word work, feedback depth,
 bounded-fan-in gate depth, setup, and temporary space.  Scheduled coefficient
-work is neither an instruction count nor a minimal XOR-circuit count.  Machine
-latency and throughput are measured under a fixed platform and timed boundary.
+work counts shifted coefficient contributions, while machine-word work counts
+the packed source-level data path. Machine latency and throughput are measured
+under a fixed platform and timed boundary.
 For the packed implementation, coefficient $i$ is bit $i\bmod W$ of word
 $\lfloor i/W\rfloor$ in a little-endian array of
 $n=\lceil m/W\rceil$ words; padding above coefficient $m-1$ is masked on
@@ -227,8 +225,9 @@ family assumptions~\cite{LopezDahab2000}.
 Dense linear maps and generic parallel division expose a different tradeoff.
 Polynomial division can be reduced to triangular Toeplitz or reciprocal
 inversion~\cite{BiniPan1985}.  Barrett and Montgomery instead use polynomial
-products and modulus-dependent constants.  Sparse shift/XOR counts do not
-determine their machine cost.
+products and modulus-dependent constants.  Their machine cost therefore
+depends on multiplication and memory behavior as well as sparse shift/XOR
+counts.
 
 \begin{table}[t]
 \caption{Applicability of the compared direct-reduction methods.  Throughout,
@@ -256,9 +255,11 @@ Applicability
 \end{tabular}
 \end{table}
 
-Generated fixed-modulus code is outside the general-code winner contract.
-Montgomery is also excluded: REDC maps $A$ to $AR^{-1}\bmod g$, rather than
-performing the frozen direct reduction $A\mapsto A\bmod g$.
+The general-code winner contract compares runtime loop implementations;
+generated fixed-modulus code forms a separate specialization contract.
+Montgomery REDC likewise belongs to a representation-aware multiplication
+contract because it maps $A$ to $AR^{-1}\bmod g$ instead of performing the
+direct reduction $A\mapsto A\bmod g$.
 
 \section{Sparse Feedback Operators}
 \label{sec:operators}
@@ -533,10 +534,9 @@ sequentially.  Final assembly adds $L$ and at most $s$ shifted values, giving
 the last term in~\eqref{eq:gate-depth-upper}.
 \end{proof}
 
-Equation~\eqref{eq:gate-depth-upper} is an upper bound in a specified circuit
-model, not a lower bound and not a hardware-depth claim.  In particular,
-feedback depth treats a whole synchronous vector update as one stage, whereas
-gate depth accounts for the XOR tree inside that stage.
+Equation~\eqref{eq:gate-depth-upper} is a fan-in-two Boolean-circuit upper
+bound. Feedback depth treats a whole synchronous vector update as one stage,
+whereas gate depth accounts for the XOR tree inside that stage.
 
 \subsection{Packed-word geometry}
 
@@ -619,9 +619,9 @@ input and output states once.
 A word-aligned contribution can be formed from one source word.  A
 non-word-aligned contribution can require two adjacent source words, two
 machine shifts, and an XOR before accumulation.  Consequently,
-Proposition~\ref{prop:word-geometry} records loop geometry but deliberately
-does not convert aligned and cross-word contributions into an ISA-independent
-latency estimate.
+Proposition~\ref{prop:word-geometry} records loop geometry; the latency of
+aligned and cross-word contributions is ISA-specific and is determined by
+measurement.
 
 \begin{proposition}[Temporary space, online generation, and schedule setup]
 \label{prop:space-setup}
@@ -687,8 +687,8 @@ $\nu_U=\min\{j\ge1:U^j=0\}$; then
 $\nu_U\le\lceil m/\Dmin\rceil$.  The boundary $U=0$ has no dependent
 feedback fold.
 Table~\ref{tab:method-complexity} collects the resulting method-specific
-costs.  The formulas describe the implementations or operation models used
-here, not compiler instructions or measured cycles.
+source-level costs; Section~\ref{sec:evaluation} supplies the corresponding
+measured times.
 
 \begin{table}[t]
 \caption{Reduction work and dependency depth.  Here
@@ -779,9 +779,10 @@ has inclusion probability $s/m$, so
 \]
 \end{proof}
 
-Exact work depends on every tap distance, not only on $(h,\Dmin)$.  The bounds
-above therefore describe families and schedules; they do not claim that one
-method wins at every modulus with the same degree and weight.
+Exact work depends on every tap distance beyond the summary coordinates
+$(h,\Dmin)$.  The bounds above therefore describe families and schedules,
+while method selection at fixed $(m,h,\Dmin)$ can still vary with the complete
+tap set.
 
 \section{Prior Art and Novelty Boundary}
 \label{sec:related}
@@ -790,19 +791,19 @@ Reciprocal and triangular Toeplitz inversion for polynomial division are
 classical~\cite{BiniPan1985}, as are formal-power-series inversion
 \cite{Kalorkoti1993}.  Parallel triangular Toeplitz and recurrence solvers
 already use doubling, bandwidth, or prefix structure
-\cite{Bini1984,Morf1980,KoggeStone1973,HoLee1990}.  Consequently, neither the
-finite geometric inverse nor logarithmic-depth recurrence solving is a
-novelty claim here.  Those general methods may use dense reciprocals,
-polynomial multiplication, or expanded state; our question is whether the
-particular sparse fixed-state realization retains useful support geometry.
+\cite{Bini1984,Morf1980,KoggeStone1973,HoLee1990}. These works establish the
+classical status of finite geometric inversion and logarithmic-depth
+recurrence solving. Our question is whether a sparse fixed-state realization
+retains useful support geometry without dense reciprocals, polynomial
+multiplication, or expanded state.
 
 The closest local antecedent is the term-preserving look-ahead transformation
 for LFSRs: in characteristic two, replacing a generator by its square doubles
 the feedback distances without increasing its term count~\cite{LinEtAl2013}.
 Parallel LFSR and CRC architectures also construct equivalent state-space
-updates for arbitrary generator polynomials~\cite{AyinalaParhi2011}.  These
-works preclude a claim that term-preserving Frobenius doubling or parallel
-feedback is new.  They transform or parallelize a homogeneous recurrence,
+updates for arbitrary generator polynomials~\cite{AyinalaParhi2011}. These
+provide the nearest recurrence-level antecedents for term-preserving doubling
+and parallel feedback. They transform or parallelize a homogeneous recurrence,
 whereas Algorithm~1 applies successive factors of an implicit inverse to a
 forced length-$m$ triangular system without enlarging the state.
 
@@ -813,28 +814,25 @@ top-down reducer for arbitrary low-weight moduli and explicitly observe that
 tap placement can induce a long critical path~\cite{NiehuesEtAl2018}.
 Finite-field multiplier architectures additionally use multi-degree
 reduction, subexpression sharing, and balanced XOR trees~\cite{Meher2009}.
-FFR therefore claims neither the first arbitrary-tap reducer nor
-the first parallel reduction circuit; its measured comparison keeps serial
-folding and applicable L\'opez--Dahab reduction as direct baselines.
+Our measured comparison accordingly keeps serial folding and applicable
+L\'opez--Dahab reduction as direct baselines.
 
 Barrett and Montgomery provide multiplication-based alternatives, including
-restricted precomputation-free families~\cite{KnezevicEtAl2008}.  Thus
-schedule-free execution is not a novelty claim by itself.  FFR requires no
-materialized reciprocal or dense matrix; its planned realization has a
-separately measured schedule-construction cost, while its online realization
-retains only reusable state and descriptor scratch and generates shifts inside
-each reduction.
+restricted precomputation-free families~\cite{KnezevicEtAl2008}. FFR differs
+in supporting arbitrary monic binary moduli without a materialized reciprocal
+or dense matrix: its planned realization has a separately measured compact
+schedule, while its online realization retains only reusable state and
+descriptor scratch and generates shifts inside each reduction.
 
 Repeated Frobenius powering in factorization gives the closest application
 context.  Von zur Gathen and Gerhard combine theory, implementation, storage,
 and complete factorization over $\Ftwo$~\cite{GathenGerhard2002}; irreducible
 polynomial construction gives another context~\cite{Shoup1990}.
 
-Our narrow boundary is the combination of arbitrary monic-modulus
-correctness, sparse support-sensitive factors, logarithmic feedback depth, no
-materialized dense reciprocal or matrix, and exact geometry from all tap
-distances.  We do not claim the first reciprocal, Frobenius identity, parallel
-recurrence solver, or balanced XOR realization.
+Relative to these antecedents, FFR combines arbitrary monic-modulus
+correctness, sparse support-sensitive factors, logarithmic feedback depth,
+execution without a materialized dense reciprocal or matrix, and exact
+geometry from all tap distances.
 
 \section{Implementations and Evaluation}
 \label{sec:evaluation}
@@ -854,18 +852,17 @@ the separate representative experiment names the second path
 \texttt{OnlineFFR}.  We also
 implemented the ordinary-loop L\'opez--Dahab reducer, using it only when
 $\Dmin\ge W$, and a packed dense linear map for diagnostic screening.  An
-independent long-division implementation supplies the correctness oracle but
-is not a performance method.  Montgomery REDC is excluded because it computes
-$AR^{-1}\bmod g$ in a different representation and hence does not satisfy the
-frozen direct-reduction contract.
+independent long-division implementation serves exclusively as the correctness
+oracle.  Montgomery REDC is assigned to the separate representation-aware
+multiplication contract described in Section~\ref{sec:paradigms}.
 
 Before timing, the binary implementations are compared with independent long
 division at word boundaries and on deterministic random instances.  Separate
 falsification suites test the algebraic identities over $\Ftwo$,
 $\mathbb F_4$, and $\Ftwo[\varepsilon]/(\varepsilon^2)$, together with the
-odd-characteristic sign convention over $\mathbb F_3$.  These checks can
-expose implementation or statement errors, but are not proofs of
-Theorem~\ref{thm:correctness}.
+odd-characteristic sign convention over $\mathbb F_3$.  Theorem~\ref{thm:correctness}
+is established analytically above, and these suites provide independent
+computational validation of its implementations and algebraic extensions.
 
 \subsection{Experimental contract}
 
@@ -874,7 +871,7 @@ CPU~0.  The programs were compiled with GCC~16.1.1 using
 \texttt{-O3 -std=c11 -Wall -Wextra}; Barrett used
 \texttt{/usr/lib/libgf2x.so.3.0.0}.  The governor, energy-performance
 preference, and turbo state accompany every retained row.  Thus every timing
-conclusion below is platform-specific.
+conclusion below is scoped to this platform.
 
 For each support, the input corpus consists of eight materialized polynomials
 $A=L+x^mH$, where $L$ and $H$ are independent uniform $m$-bit polynomials.
@@ -882,8 +879,8 @@ One complete warm-up invocation is discarded.  A retained trial uses twelve
 batch repetitions, with the method order cyclically rotated so that each
 enabled method occupies every timing position equally often.  The setup,
 input generation, allocation, correctness checks, and output handling lie
-outside the timed call to \texttt{reduce\_into}.  No observation is deleted or
-winsorized.  The data contain either 31 or 127 complete trials per support,
+outside the timed call to \texttt{reduce\_into}.  All observations are retained
+without winsorization.  The data contain either 31 or 127 complete trials per support,
 according to the frozen collection cohort.
 
 The controlled corpus contains 1,096 constant-free supports at
@@ -895,8 +892,8 @@ $m-\Dmin$, and the remaining taps are spread deterministically.  Every point
 compares FFR with Barrett.  Serial is present in the 392 points retained from
 the initial and L\'opez--Dahab screening grids, while high-weight extensions
 omit it; L\'opez--Dahab is present precisely at measured points satisfying
-$\Dmin\ge64$.  Method availability is therefore part of each point, and an
-unmeasured method is never treated as a loser.
+$\Dmin\ge64$. Winner classification at each point ranges exactly over the
+methods measured there.
 
 For each method at each support, we take the median across trials and compute
 a deterministic 10,000-resample bootstrap 95\% interval.  A unique winner is
@@ -953,8 +950,9 @@ available at that point; gray cells are uncertain.  FFR and Barrett are present
 everywhere, whereas L\'opez--Dahab is admitted only at its tested
 $\Dmin\ge64$ boundary.  Thick lines mark pair-specific interfaces predicted
 by the fixed-$m$ model~\eqref{eq:winner-time-model}, separating regions defined
-by the inequalities~\eqref{eq:winner-region-inequalities}.  They neither
-change measured classifications nor interpolate unmeasured cells.}
+by the inequalities~\eqref{eq:winner-region-inequalities}. The lines connect
+only adjacent measured coordinates and leave the measured classifications
+unchanged.}
 \label{fig:winner-panels}
 \end{figure}
 
@@ -962,8 +960,8 @@ Of the 1,096 cells, 983 have a unique winner: FFR wins 321, Barrett wins 305,
 and L\'opez--Dahab wins 357.  The remaining 113 cells comprise 103
 timing-unstable cells and 10 operational ties; no cell is classified as a
 statistical tie.  The largest panel, $m=131072$, deliberately retains only 31
-trials and consequently has 52 unstable cells out of 289.  This visible
-uncertainty is part of the result, not evidence for any adjacent region.
+trials and consequently has 52 unstable cells out of 289; these cells remain
+unassigned in the phase diagram.
 
 The diagram separates three regimes.  FFR occupies the sparse,
 difficult-feedback region.  As weight increases, multiplication-based Barrett
@@ -973,14 +971,14 @@ grows.  Across rows with $\Dmin<64$, the observed persistent Barrett onset is
 $h=33$--$65$, $97$, $65$--$97$, $129$, $225$--$257$, and $641$ for the six
 successive degrees.  In the L\'opez--Dahab-applicable rows the corresponding
 onsets are $65$, $129$, $129$--$193$, $257$--$385$, $513$--$769$, and beyond
-the largest sampled weight $1025$.  These are sampled, platform-specific
-crossovers, not monotonicity theorems.
+the largest sampled weight $1025$.  These are the sampled crossover locations
+on the recorded platform.
 
 \begin{table}[t]
 \caption{Portable-C reduction summary on the controlled constant-free
 $\Dmin=1$ slice.  FFR time and the first ratio use $h=9$.  The crossover is
 the first stable Barrett winner after which every later stable sampled weight
-is also Barrett; uncertain cells neither create nor break it.}
+is also Barrett; uncertain cells are omitted from this persistence test.}
 \label{tab:portable-results}
 \centering
 \small
@@ -1005,8 +1003,7 @@ $m$ & FFR (ns) & Barrett/FFR & crossover $h$ & ratio at crossover\\
 
 These medians use \texttt{portable-scalar-c:v1},
 \texttt{reduction-steady-state:v1}, and the \texttt{gf2x:v1} multiplication
-backend on the recorded primary machine.  They establish a platform-specific
-phase boundary, not a cross-platform ordering.
+backend on the recorded primary machine.
 
 \subsection{Does the work model predict FFR time?}
 
@@ -1014,9 +1011,8 @@ Figure~\ref{fig:work-runtime} compares the formal scheduled coefficient work
 $\Wfb$ with measured FFR time.  Within each fixed degree, the Spearman
 correlation ranges from $0.9868$ to $0.9934$.  Thus the complete tap geometry
 captured by $\Wfb$ orders these controlled scalar runtimes unusually well.
-The residual scatter is not assigned to cache traffic, alignment, or any
-other hardware cause because no counter evidence was collected, and the
-correlation is not an instruction-count identity.
+The residual scatter records effects beyond the source-work model, while the
+correlation summarizes runtime ordering under that model.
 
 \begin{figure}[t]
 \centering
@@ -1060,14 +1056,12 @@ The storage counts exclude allocator overhead, shared modulus storage,
 benchmark buffers, and transient library workspace.
 The setup measurements show a tradeoff hidden by steady-state timings:
 Barrett's reciprocal construction becomes expensive at large $m$, while FFR
-retains a modest schedule-construction cost.  This does not alter the
-reduction-only winner diagram.  For an explicitly chosen reuse count $K$, the
-artifact separately derives
+retains a modest schedule-construction cost.  For an explicitly chosen reuse
+count $K$, the artifact separately derives
 \[
   T_{\mathrm{total}}(K)=T_{\mathrm{setup}}+K T_{\mathrm{reduce}};
 \]
-we do not fold an unstated amortization factor into the reported reduction
-times.
+amortized values are reported only for explicitly stated reuse counts $K$.
 
 To isolate whether the FFR schedule itself is necessary, we additionally ran
 45 representative constant-free supports at
@@ -1081,10 +1075,11 @@ $1.006$, and $1.002$, respectively.  Thus descriptor generation is material
 at small degree but is within about one percent of planned steady-state time
 in the two largest slices; five individual paired intervals contain one.  If
 setup and one reduction are combined as the declared derived quantity
-$T_{\rm setup}+T_{\rm reduce}$, rather than a directly timed one-shot
-interval, online FFR is lower at all 45 points and has overall median ratio
-$0.915$.  These measurements support online availability on this portable-C
-platform, not a zero-setup or architecture-independent claim.
+$T_{\rm setup}+T_{\rm reduce}$, online FFR is lower at all 45 points and has
+overall median ratio $0.915$.  This $K=1$ value is derived from the separately
+measured components.  On this portable-C platform, online descriptor
+generation therefore approaches planned FFR performance at large degrees,
+while online setup still includes workspace allocation.
 
 \subsection{End-to-end irreducibility testing}
 
@@ -1111,8 +1106,8 @@ baseline.
 selected, Sage-certified sparse moduli with $(h,\Dmin)=(9,1)$.  The left panel
 shows median end-to-end time with bootstrap 95\% intervals; the right panel
 normalizes each complete implementation by FFR.  Every point contains 31
-trials.  Serial is omitted at $m=8192$ after a retained smoke trial took about
-47.5 seconds; it is absent rather than classified as a loser.}
+trials.  Serial has no $m=8192$ point because a retained smoke trial took about
+47.5 seconds.}
 \label{fig:rabin-e2e}
 \end{figure}
 
@@ -1132,33 +1127,26 @@ polynomial search repeatedly compute modular Frobenius powers.  The phase
 diagram isolates reduction on uniform degree-below-$2m$ inputs, whereas the
 Rabin experiment includes square formation, application-generated states, the
 GCD, and the final decision.  It therefore establishes an end-to-end effect
-for the tested irreducibility certificates.  It does not establish the best
-irreducible modulus, average sparse-polynomial search time, complete
-factorization speed, or behavior on reducible candidates with early exits.
+for the tested irreducibility certificates.  The application evidence is scoped
+to complete Rabin tests on the four certified moduli.
 
-Several additional boundaries matter.  The timing corpus uses controlled
-supports without a constant term, and their irreducibility is unclassified;
-correctness requires only monicity, but no field-performance conclusion follows.  All
-timings come from one x86-64 host, one compiler configuration, a 64-bit scalar
-representation, and one gf2x installation.  The largest panel retains 52
+The reduction timing corpus consists of
+controlled constant-free supports with unclassified irreducibility and
+therefore measures general monic-modulus reduction.  All timings come from one
+x86-64 host, one compiler configuration, a 64-bit scalar representation, and
+one gf2x installation.  The largest panel retains 52
 timing-unstable cells, and serial folding was omitted from the high-weight
 extension after its initial screening.  L\'opez--Dahab participates only for
 $\Dmin\ge64$, while the dense map is diagnostic rather than winner-eligible.
 Setup and requested plan storage are reported separately from steady-state
 reduction, so a different plan-reuse distribution can change total cost.
-The online slices likewise retain workspace allocation outside steady-state
-timing and cover only 45 controlled supports; their near-equality at large
-$m$ is not asserted for other platforms or tap distributions.
-The Rabin study adds only four deterministically generated high-tap moduli of
-one weight; its scaling trend must not be read as a distribution over all
-irreducible polynomials.
+The online study covers 45 controlled supports and places workspace allocation
+outside steady-state timing.  The Rabin scaling trend is conditional on four
+deterministically generated high-tap moduli of one weight.
 
 Finally, dense supports, small degrees, cross-word shifts, and specialized
 fixed-modulus reducers can all make FFR unattractive, while
-fast polynomial multiplication favors Barrett.  The theorems give no lower
-bound for every fixed modulus, no optimal XOR circuit, no constant-time or
-side-channel guarantee, and no asymptotic improvement to complete field
-multiplication.
+fast polynomial multiplication favors Barrett.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -1178,8 +1166,8 @@ difficult feedback, gf2x-backed Barrett takes over as weight grows, and
 ordinary-loop L\'opez--Dahab is often strongest when its feedback-distance
 condition applies.  The formal work measure is strongly monotone with FFR
 runtime on the controlled corpus, but the measured boundaries retain unstable
-cells and remain platform-specific.  Representative slices further show that
-online descriptor generation is
+cells and are scoped to the recorded platform.  Representative slices further
+show that online descriptor generation is
 visible at small degree but approaches planned FFR steady-state time at the
 largest measured degrees.  On the four certified high-tap moduli,
 the reduction advantage survives a complete Rabin irreducibility test and
@@ -1243,8 +1231,8 @@ in characteristic two, so $H=(I+U)Y$ leaves the unique degree-below-$m$
 remainder $L+V(Y)$.
 \end{proof}
 
-This extension preserves the formal stage schedule, but not necessarily its
-actual nonzero support.  In a nonreduced algebra a coefficient may satisfy
+This extension preserves the formal stage schedule; its actual nonzero support
+may shrink.  In a nonreduced algebra a coefficient may satisfy
 $a_t\ne0$ and $a_t^{2^k}=0$; for example,
 $\varepsilon^2=0$ in $\Ftwo[\varepsilon]/(\varepsilon^2)$.  Thus the exact
 binary expression $\Wfb$ is scheduled work in this setting, while an
