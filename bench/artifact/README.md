@@ -47,3 +47,8 @@ hashes; it is generated locally and is not part of the deterministic hash set.
 The artifact establishes the reported primary portable-scalar platform only.
 It makes no architecture-independent speed claim and therefore does not
 require or imply a second-machine result.
+
+[`validation-68af036.json`](validation-68af036.json) records the fresh-worktree
+validation of the frozen artifact commit. The complete correctness log, short
+microbenchmark CSV and metadata, and generated artifact report remain beside
+the external CSV payload and are authenticated by the hashes in that record.

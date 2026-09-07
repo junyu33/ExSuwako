@@ -104,7 +104,7 @@ Boolean-circuit upper bound into hardware depth without fixing the model.
 | Random-support work and depth laws | Formal distributional proof | Geometry agrees on 10,623 frozen supports; not a proof or timing result |
 | Algebraic computational falsification | Reproducible independent tests | Measured over GF(2), GF(4), dual numbers, and F3; not a proof |
 | Generic bounded-fan-in depth lower bound | Formal model and proof | Candidate theorem |
-| Native scalar speed regions and setup amortization | Reproducible matched experiments | Measured on the primary scalar platform; second-platform and artifact gates remain open |
+| Native scalar speed regions and setup amortization | Reproducible matched experiments | Fresh-checkout artifact reproduced from the hash-locked 67,576-row primary-platform dataset; no cross-platform claim |
 | Platform-optimal modulus changes | Search plus end-to-end measurements | Open hypothesis |
 | Novelty | Hostile primary-source audit | Provisional |
 
@@ -159,7 +159,11 @@ work, space, setup, and all claimed comparisons.
 ### Gate 3: Evidence
 
 The evaluation identifies winning and losing regions under fixed platform,
-compiler, modulus, input distribution, and timing boundary.
+compiler, modulus, input distribution, and timing boundary. The reduction-only
+artifact gate is complete: a fresh checkout rebuilds all 24 current figures
+and table sources from the externally supplied, hash-locked canonical dataset.
+This is single-platform evidence and does not discharge relevance or theorem
+proof obligations.
 
 ### Gate 4: Relevance
 

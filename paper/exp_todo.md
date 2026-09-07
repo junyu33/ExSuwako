@@ -59,9 +59,18 @@ The following items describe code that exists, not completed paper evidence.
       bench/scripts/.
 - [x] Local exploratory CSV files are separated under bench/data/ and are
       ignored by Git.
-- [ ] Rerun every claimed correctness and timing result from the eventual
+- [-] Rerun every claimed correctness and timing result from the eventual
       experiment commit and record the command, seed, compiler, gf2x path,
-      machine, CPU-affinity policy, and raw output.
+      machine, CPU-affinity policy, and raw output. [A] Superseded by the
+      frozen multi-cohort artifact: the reported timing rows were already
+      collected at three clean experiment commits necessitated by the
+      no-Serial high-weight and $\Delta_{\min}=W$ López--Dahab contract
+      changes. Recollecting them at a later manuscript commit would create a
+      different experiment rather than validate the retained one. The
+      canonical 67,576-row dataset preserves all required metadata and is
+      hash-locked; its complete analysis was reproduced from a fresh checkout.
+      Correctness and a short metadata-complete timing smoke run were rerun at
+      the frozen artifact commit.
 
 The current reduction benchmark samples uniformly from the full
 degree-below-$2m$ input domain and measures only reduction modulo the selected
@@ -154,11 +163,16 @@ silent deduplication or normalization.
 
 ## Gate 1: Correctness
 
-- [ ] At the frozen experiment/artifact commit, run `make check` and archive
+- [x] At the frozen experiment/artifact commit, run `make check` and archive
       its complete output together with the environment metadata required by
       Gate 4. Ordinary development commits do not independently reset this
       item; rerun it after changes that affect algorithms, tests, toolchains,
-      or experimental semantics.
+      or experimental semantics. [A] A detached fresh worktree at
+      `68af03679c8114e691c0b0cee45fe2904a083ffa` completed `make check` with
+      exit status zero. The 109-line external log has SHA-256
+      `6ef8b4ca51d84358933baa7a842a5e79fc2c4006e9f26d927afe3add025ee83a`;
+      the tracked validation record binds it to the compiler, gf2x library,
+      platform, affinity, and frequency metadata.
 - [x] [Q] Exhaust all tap sets and all inputs for small $m$ where feasible.
       [A] [Round 1](../tests/check_theory_round1_gf2.py) checks every monic
       binary modulus and every input of degree below $2m$ for $m\le6$ against
@@ -515,25 +529,68 @@ The paper-facing definition of this experiment is in
 
 ## Gate 4: Reproducibility and Artifact
 
-- [ ] Keep benchmark entrypoints and drivers under bench/scripts/.
-- [ ] Keep exploratory raw CSV files under bench/data/; promote only
+- [x] Keep benchmark entrypoints and drivers under bench/scripts/. [A] All
+      benchmark C entrypoints and Python collection/analysis drivers are under
+      `bench/scripts/`; reusable reducers remain under `src/` and correctness
+      programs under `tests/`.
+- [x] Keep exploratory raw CSV files under bench/data/; promote only
       documented manifests and final evidence artifacts according to the
-      repository publication policy.
-- [ ] Emit commit, command, seed, modulus manifest, compiler, linked gf2x
-      library, machine, affinity, and timing metadata with every run.
-- [ ] Provide one command for correctness, one for cost-model validation, and
-      one for reduction microbenchmarks.
-- [ ] Regenerate every paper figure and table from recorded raw data.
-- [ ] Verify the scoped artifact path from a fresh checkout.
-- [ ] Repeat representative classical cases on a second machine or ISA before
-      making architecture-independent claims.
-- [ ] Record all losing regions and failed hypotheses.
+      repository publication policy. [A] `.gitignore` excludes the complete
+      `bench/data/` payload. Git tracks deterministic JSONL manifests, scripts,
+      the canonical raw-data hash/row-count contract, and validation hashes;
+      no CSV or generated figure is tracked.
+- [x] Emit commit, command, seed, modulus manifest, compiler, linked gf2x
+      library, machine, affinity, and timing metadata with every run. [A] All
+      67,576 canonical rows pass the paper-grade metadata audit. Three clean
+      commits map one-to-one to three binary digests while all other frozen
+      environment fields agree; the fresh smoke run independently exercises
+      the same metadata path.
+- [x] Provide one command for correctness, one for cost-model validation, and
+      one for reduction microbenchmarks. [A] The documented entrypoints are
+      `make check`, `make artifact-cost-model`, and
+      `make artifact-microbenchmark ARTIFACT_CPU=N`; `make artifact-paper`
+      rebuilds the complete paper analysis.
+- [x] Regenerate every paper figure and table from recorded raw data. [A]
+      `make artifact-paper` reconstructs winner classifications and regions,
+      phase/depth/slice/setup/work figures, random-support geometry,
+      cost-model summaries, and paper table sources. All 24 outputs match the
+      SHA-256 values frozen in `bench/artifact/paper-v1.json`.
+- [x] Verify the scoped artifact path from a fresh checkout. [A] A detached
+      checkout of artifact commit `68af036` verified the external raw-data
+      hash, regenerated all 24 outputs with exact hash agreement, reran the
+      cost-model command, and completed a 124-row metadata-complete native
+      timing smoke run. See `bench/artifact/validation-68af036.json`.
+- [-] Repeat representative classical cases on a second machine or ISA before
+      making architecture-independent claims. [A] Not applicable to the
+      frozen paper claim: every timing result is explicitly scoped to the
+      recorded primary portable-scalar platform, and the manuscript makes no
+      architecture-independent ordering or speed claim. A second-platform
+      table requires a future separately frozen experiment.
+- [x] Record all losing regions and failed hypotheses. [A] The retained
+      1,096-cell winner data includes GS's high-weight losses, friendly
+      López--Dahab regions, small-degree overhead, 103 timing-unstable cells,
+      10 operational ties, and the Dense diagnostic result; uncertain cells
+      are never converted into wins.
 
 ## Completion Gates
 
-- [ ] Every claimed reducer passes an independent correctness check.
-- [ ] Every complexity claim is tied to a stated operation or gate model.
-- [ ] Every speed claim uses matched inputs, outputs, setup policy, and timing
-      boundaries.
-- [ ] The classical phase diagram contains both winning and losing regions.
-- [ ] A fresh checkout reproduces every result used by the paper.
+- [x] Every claimed reducer passes an independent correctness check. [A] The
+      fresh `make check` run covers unrestricted reducers, the López--Dahab
+      applicability boundary, Dense, and generated fixed reducers against
+      independent long division before any retained timing is interpreted.
+- [x] Every complexity claim is tied to a stated operation or gate model. [A]
+      Scheduled coefficient work, scalar source-word counts, feedback depth,
+      setup, storage, and any future gate depth remain separately named; none
+      is relabelled as instructions, memory traffic, latency, or circuit depth.
+- [x] Every speed claim uses matched inputs, outputs, setup policy, and timing
+      boundaries. [A] The canonical paper-grade rows enforce one direct-
+      reduction operation, immutable shared inputs, cyclic method rotation,
+      separate setup, and the frozen timing/aggregation contracts.
+- [x] The classical phase diagram contains both winning and losing regions.
+      [A] Its 983 unique winners include GS, BarrettGF2X, and López--Dahab
+      regions, while all 113 non-unique cells remain explicitly uncertain.
+- [x] A fresh checkout reproduces every result used by the paper. [A] The
+      hash-locked external dataset plus tracked manifests and scripts rebuild
+      all 24 current paper artifacts byte-for-byte at commit `68af036`; the
+      external correctness and smoke-run records are hash-bound by the tracked
+      validation record.

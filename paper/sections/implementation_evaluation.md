@@ -608,3 +608,21 @@ Report openly:
 - small degrees dominated by loop overhead;
 - architectures with expensive cross-limb shifts;
 - quasi-linear multiplication regimes where the asymptotic comparison changes.
+
+### 9.7 Artifact Status
+
+The reduction-only artifact is frozen by
+`bench/artifact/paper-v1.json`. The repository retains no CSV payload: the
+external canonical dataset is identified by its 67,576-row count and SHA-256,
+while tracked JSONL manifests preserve deterministic support generation. The
+artifact accepts three explicitly recorded experiment-commit/binary cohorts;
+all remaining platform and contract metadata must agree.
+
+At artifact commit `68af036`, a detached fresh worktree completed `make check`,
+verified the external dataset, regenerated 24 paper-facing CSV/SVG products
+with exact hash agreement, reran the measured cost-model analysis, and ran a
+124-row metadata-complete reduction smoke test. The tracked validation record
+contains hashes for the external log, smoke rows, metadata snapshot, and
+artifact report. This closes reproducibility for the current primary-platform
+reduction study only; it does not supply real-modulus, end-to-end, proof, or
+cross-platform evidence.

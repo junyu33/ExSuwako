@@ -820,3 +820,14 @@ setup/storage summary uses the same exact support and reports medians under
 `modulus-plan:v1` together with `requested-owned-bytes:v1`. These files do not
 create a real-irreducible-modulus or cross-platform result; those scopes remain
 unpopulated until their own gates are completed.
+
+## Frozen Paper Artifact
+
+The complete reduction artifact contract is
+[`artifact/paper-v1.json`](artifact/paper-v1.json). It identifies the external
+67,576-row canonical dataset by SHA-256, permits only the three recorded
+one-to-one experiment-commit/binary cohorts, and freezes hashes for 24 derived
+tables and SVGs. Run `make artifact-verify-data`, `make artifact-paper`,
+`make artifact-cost-model`, and `make artifact-microbenchmark ARTIFACT_CPU=N`
+as documented in [`artifact/README.md`](artifact/README.md). No CSV payload or
+generated figure is tracked in Git.

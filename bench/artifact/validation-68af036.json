@@ -1,0 +1,51 @@
+{
+  "schema": "exsuwako-artifact-validation:v1",
+  "artifact_commit": "68af03679c8114e691c0b0cee45fe2904a083ffa",
+  "fresh_worktree": true,
+  "git_dirty_before_validation": false,
+  "correctness": {
+    "command": "make check",
+    "exit_code": 0,
+    "external_log": "paper-v1-check-68af036.log",
+    "log_lines": 109,
+    "log_sha256": "6ef8b4ca51d84358933baa7a842a5e79fc2c4006e9f26d927afe3add025ee83a"
+  },
+  "paper_artifact": {
+    "command": "make artifact-paper ARTIFACT_DATA=<external-data-root> ARTIFACT_OUTPUT=<temporary-output>",
+    "exit_code": 0,
+    "derived_outputs": 24,
+    "all_output_hashes_matched": true,
+    "external_report_sha256": "ab8f58bbdc26b17275c21e6c9f25209f930ceda7c8c77d101fe5fcce01d4c8d2"
+  },
+  "cost_model": {
+    "command": "make artifact-cost-model ARTIFACT_DATA=<external-data-root> ARTIFACT_OUTPUT=<temporary-output>",
+    "exit_code": 0,
+    "supports": 1096,
+    "panels": 6
+  },
+  "microbenchmark": {
+    "command": "make artifact-microbenchmark ARTIFACT_CPU=0",
+    "exit_code": 0,
+    "external_csv": "paper-v1-smoke-68af036.csv",
+    "csv_rows": 124,
+    "csv_sha256": "aceeffdc45200a8797daa810fe431fba03b0a62a84b857f8e382ab773235edc3",
+    "external_metadata": "paper-v1-smoke-metadata-68af036.json",
+    "metadata_sha256": "6699bd9fa48007e6ba16ae3c8c66668bc812eeb0940343221eac1273826831a6"
+  },
+  "environment": {
+    "compiler": "cc (GCC) 16.1.1 20260728",
+    "compiler_flags": "-O3 -std=c11 -Wall -Wextra",
+    "gf2x_library": "/usr/lib/libgf2x.so.3.0.0",
+    "platform": "Linux-6.18.42-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "hostname": "zjy-work",
+    "cpu_affinity": 0,
+    "frequency_policy": {
+      "energy_performance_preference": "balance_performance",
+      "governor": "powersave",
+      "turbo_disabled": "0"
+    },
+    "implementation": "portable-scalar-c:v1",
+    "multiplication_backend": "gf2x:v1"
+  }
+}
