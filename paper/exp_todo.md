@@ -450,8 +450,16 @@ The paper-facing definition of this experiment is in
       sensitive small-degree regime without assigning a hardware cause;
       low-feedback GS/LD pockets and all uncertain cells remain recorded
       rather than being forced into a monotone boundary.
-- [ ] Plot feedback-stage count versus $\Delta_{\min}$ and gap-one scaling
-      versus $m$ to test the predicted depth law.
+- [x] Plot feedback-stage count versus $\Delta_{\min}$ and gap-one scaling
+      versus $m$ to test the predicted depth law. [A]
+      `plot_feedback_depth.py` collapses repeated trials to 72 distinct
+      $(m,\Delta_{\min})$ coordinates, rejects any native stage count unequal
+      to $\lceil\log_2(m/\Delta_{\min})\rceil$, and emits a two-panel SVG: six
+      fixed-$m$ gap sweeps and the $\Delta_{\min}=1$ scaling line. All retained
+      coordinates pass exactly; in particular the six gap-one points satisfy
+      $D_{\rm fb}=\log_2m$ for the sampled power-of-two degrees. This validates
+      the native schedule depth against the structural formula, not wall-clock
+      latency, instruction depth, or circuit gate depth.
 - [ ] Plot fixed-gap weight sweeps and fixed-weight gap sweeps so that tap
       count and feedback difficulty are not conflated.
 - [ ] Plot setup amortization over $K$ and a work--feedback-depth--setup

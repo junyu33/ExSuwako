@@ -149,6 +149,14 @@ independently from the complete tap set and rejects any row whose schedule
 metadata disagrees with the predicted geometry.  This checks the structural
 predictor before it is correlated with timing data; it does not by itself
 establish the latency-scaling claim or an instruction-count model.
+The retained six-panel data collapse to 72 distinct
+$(m,\Delta_{\min})$ coordinates. A two-panel depth figure plots the six
+fixed-$m$ gap sweeps and the $\Delta_{\min}=1$ scaling slice; every emitted
+native stage count agrees exactly with
+$D_{\rm fb}=\lceil\log_2(m/\Delta_{\min})\rceil$, and the six power-of-two
+gap-one points lie on $D_{\rm fb}=\log_2m$. This is an implementation-level
+check of schedule depth, not evidence that wall-clock latency equals the
+stage count or that one software stage is one circuit layer.
 The separate `scalar-source-v1` profile models the complete portable GS data
 path and distinguishes aligned from cross-word contributions, together with
 nonzero word shifts, word XORs, logical array reads and writes, and plan-owned

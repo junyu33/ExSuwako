@@ -577,6 +577,21 @@ has no $\Delta_{\min}$ and is therefore counted and annotated separately
 rather than assigned a fabricated location on the logarithmic axis. This plot
 validates only the phase coordinates; it does not select or color a winner.
 
+To validate and plot the exact feedback-depth law from the emitted native
+schedule, run:
+
+```text
+python3 bench/scripts/plot_feedback_depth.py \
+  --input bench/data/phase_raw.csv \
+  --output bench/data/feedback_depth.svg
+```
+
+The left panel plots `feedback_stages` against $\log_2\Delta_{\min}$ for each
+fixed $m$; the right panel restricts to $\Delta_{\min}=1$ and plots the same
+stage count against $\log_2m$. The plotter rejects any row that differs from
+$\lceil\log_2(m/\Delta_{\min})\rceil$ before rendering. This is schedule-depth
+evidence, not a wall-clock latency or gate-depth measurement.
+
 The `scalar-source-v1` model covers the complete portable-scalar
 `gs_reduce_into()` data path for a canonical degree-below-$2m$ input and an
 $m$-bit output. It counts only data-word operations: descriptor accesses,
