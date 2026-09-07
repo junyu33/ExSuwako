@@ -28,6 +28,7 @@ make artifact-cost-model
 make artifact-microbenchmark ARTIFACT_CPU=0
 make artifact-paper
 make artifact-rabin
+make artifact-online
 ```
 
 - `make check` is the correctness command.
@@ -43,6 +44,9 @@ make artifact-rabin
   [`rabin-v1.json`](rabin-v1.json), then rebuilds the complete-test summary
   and Rabin E2E figure.  Its 465 rows come from one clean experiment commit
   and are not mixed with the reduction-only dataset.
+- `make artifact-online` verifies the 1,395-row planned-versus-online dataset
+  against [`ffr-online-v1.json`](ffr-online-v1.json) and deterministically
+  rebuilds its 45-row representative summary.
 
 Override `ARTIFACT_DATA` and `ARTIFACT_OUTPUT` when the CSV payload and derived
 outputs live outside the checkout. The committed config contains expected
@@ -54,13 +58,14 @@ The artifact establishes the reported primary portable-scalar platform only.
 It makes no architecture-independent speed claim and therefore does not
 require or imply a second-machine result.
 
-The two canonical CSV payloads are published together in the
-[`moc-artifact-v1`](https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v1)
-release as `ExSuwako-MoC-artifact-v1.tar.gz`.  Its archive size and SHA-256,
-and the independent row counts and hashes of both extracted datasets, are
-frozen in [`data-release-v1.json`](data-release-v1.json).  Extract the archive
-under `bench/data/` before running the commands above; exploratory CSV files
-are not part of the release.
+The three reported raw CSV payloads are published together in the
+[`moc-artifact-v2`](https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v2)
+release as `ExSuwako-MoC-artifact-v2.tar.gz`.  Its archive size and SHA-256,
+and the independent row counts and hashes of all extracted datasets, are
+frozen in [`data-release-v2.json`](data-release-v2.json).  Extract the archive
+under `bench/data/` before running the commands above; unrelated exploratory
+CSV files are not part of the release.  The preceding two-dataset v1 contract
+remains recorded in [`data-release-v1.json`](data-release-v1.json).
 
 [`validation-4465388.json`](validation-4465388.json) records the current
 fresh-worktree validation of the 26-output paper artifact and the two-output

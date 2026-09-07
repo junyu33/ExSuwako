@@ -1,0 +1,14 @@
+{
+  "schema": "exsuwako-ffr-online-artifact:v1",
+  "raw_dataset": {
+    "file": "ffr-online-v2/representative-raw.csv",
+    "rows": 1395,
+    "samples": 45,
+    "trials_per_sample": 31,
+    "sha256": "25964f8ee1a181ab7bddcd6b51b483501dd7c0df569f6c75b958bcb4dbc0de62"
+  },
+  "expected_summary": {
+    "rows": 45,
+    "sha256": "4f0deddf198ed72b14ee7a9ad8a12bb28b02695c293a917eeb8917b975b7c57f"
+  }
+}

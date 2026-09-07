@@ -8,6 +8,7 @@ ARTIFACT_OUTPUT ?= bench/data/paper-v1-artifact
 ARTIFACT_CPU ?= 0
 ARTIFACT_METADATA ?= /tmp/exsuwako-artifact-metadata.json
 ARTIFACT_SMOKE ?= bench/data/paper-v1-smoke.csv
+ARTIFACT_ONLINE_OUTPUT ?= $(ARTIFACT_OUTPUT)/ffr-online-v1
 ifeq ($(OS),Windows_NT)
 DL_LIBS ?=
 else
@@ -204,6 +205,11 @@ artifact-rabin:
 		--data-root $(ARTIFACT_DATA) \
 		--output $(ARTIFACT_OUTPUT)/rabin-v1
 
+artifact-online:
+	$(PYTHON) bench/scripts/reproduce_ffr_online_artifact.py \
+		--data-root $(ARTIFACT_DATA) \
+		--output $(ARTIFACT_ONLINE_OUTPUT)
+
 check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(GS_COMPONENT_CHECK_TARGET) $(GS_ONLINE_CHECK_TARGET) \
 	$(SPARSE_SHIFT_CHECK_TARGET) $(FFR_ONLINE_TARGET) \
@@ -236,6 +242,7 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(PYTHON) tests/check_operator_schematic.py
 	$(PYTHON) tests/check_paper_tables.py
 	$(PYTHON) tests/check_artifact_driver.py
+	$(PYTHON) tests/check_ffr_online_artifact.py
 	$(PYTHON) tests/check_benchmark_metadata.py --binary $(TARGET)
 	$(PYTHON) tests/check_rabin_benchmark.py --binary $(RABIN_TARGET)
 	$(PYTHON) tests/check_rabin_manifest.py
