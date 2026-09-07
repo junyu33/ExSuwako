@@ -208,9 +208,10 @@ requirements.
 
 ### Native Reducers
 
-- `src/GS.c`: Frobenius-factorized reduction. It precomputes the sparse doubling
-  schedule and computes
-  $L+V((I+U)^{-1}H)$ with one reusable state buffer.
+- `src/GS.c`: Frobenius-factorized reduction. Its planned API precomputes the
+  sparse doubling schedule; its schedule-free online API regenerates doubled
+  descriptors per call. Both compute $L+V((I+U)^{-1}H)$ through the same
+  scalar stage and assembly kernels.
 - `src/serial.c`: word-oriented serial sparse folding baseline. It propagates
   high-part feedback one round at a time.
 - `src/naive.c`: simple long-division reference baseline.
@@ -404,6 +405,11 @@ derivation. Random-mode rows use provenance
 Each row also reports every enabled reducer's plan-owned requested bytes under
 `requested-owned-bytes:v1`, separately from setup and reduction timing.
 
+The planned-versus-online FFR representative slices are deliberately separate
+from this frozen benchmark and its `paper-v1` rows. Their API, 45-point
+manifest, commands, data directory, and exploratory result are documented in
+[bench/ffr_online_benchmark.md](bench/ffr_online_benchmark.md).
+
 Deterministic failures and anomalous supports are promoted into versioned
 regression inputs rather than left only in console output or local CSV. Native
 exact inputs live in `tests/reduction_regressions.h`; benchmark support cases
@@ -431,12 +437,13 @@ The current PoC assumes:
 5. the input has degree less than $2m$.
 
 The implementation does not construct a dense reciprocal polynomial or a dense
-reduction matrix. It computes the feedback schedule directly from the sparse
-tap positions.
+reduction matrix. Its planned API computes a compact feedback schedule from
+the tap positions, while its online API regenerates the active descriptors on
+each call and retains no modulus-specific shift schedule.
 
-This is best viewed as a matrix-free sparse reciprocal application. It does
-not deny the reciprocal structure; rather, it avoids explicitly materializing
-the usually dense feedback reciprocal $p(z)^{-1}\bmod z^m$, where
+This is a factored sparse reciprocal application. It does not deny the
+reciprocal structure; rather, it avoids explicitly materializing the usually
+dense feedback reciprocal $p(z)^{-1}\bmod z^m$, where
 
 $$
 p(z)=1+\bigoplus_{t\in T}z^{\Delta_t},

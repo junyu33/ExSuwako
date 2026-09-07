@@ -8,8 +8,8 @@ the remote editor.
 
 | PDF | Canonical SVG | SVG SHA-256 |
 |---|---|---|
-| `winner-panels.pdf` | `winner-panels.svg` | `9187e9c114a51fcc50380a8072700e680929522b0b55716e669a6af8ea7f74a8` |
-| `work-runtime.pdf` | `work-runtime.svg` | `c73c091a8af139710483d060c6b16bd8a2802dd602f36484c3f53bedc2c717b6` |
+| `winner-panels.pdf` | `winner-panels.svg` | `e5426e0c49dcad6435981e548aebf46e763dfeb9308db5cb939b2df737becc3b` |
+| `work-runtime.pdf` | `work-runtime.svg` | `2155f65234a2806d2c1d0e02ad45c0b914c7312fcd8d6fe970d08efc9f58d808` |
 | `rabin-e2e.pdf` | `rabin-e2e.svg` | `970efee290a22fd84869f2aa0ebc95e6700ada3f692ae1489c664d3963bcaa2f` |
 
 The checked-in PDFs were rendered with `rsvg-convert` 2.62.3 and normalized

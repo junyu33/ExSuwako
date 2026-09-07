@@ -65,6 +65,15 @@ struct gs_plan {
     poly_t state;
 };
 
+struct gs_online_context {
+    size_t m;
+    size_t state_words;
+    const size_t *taps;
+    size_t tap_count;
+    poly_t state;
+    shift_desc *shift_scratch;
+};
+
 static size_t aligned_shift_count(const shift_desc *shifts, size_t count) {
     size_t aligned = 0;
     for (size_t i = 0; i < count; ++i)
@@ -395,6 +404,105 @@ void gs_plan_destroy(gs_plan *plan) {
     free(plan->feedback_shifts);
     free(plan->rounds);
     free(plan);
+}
+
+gs_online_context *gs_online_context_create(
+    const size_t *taps, size_t s, size_t m)
+{
+    if (m == 0) die("FFR-online modulus degree must be positive");
+    if (s && !taps) die("FFR-online taps are missing");
+    for (size_t i = 0; i < s; ++i) {
+        if (taps[i] >= m)
+            die("FFR-online tap must be smaller than m");
+        if (i && taps[i - 1] >= taps[i])
+            die("FFR-online taps must be canonical and strictly increasing");
+    }
+
+    gs_online_context *context = calloc(1, sizeof(*context));
+    if (!context) die("allocation failed");
+    context->m = m;
+    context->state_words = poly_words_for_bits(m);
+    context->taps = taps;
+    context->tap_count = s;
+    context->state = poly_new(context->state_words + 1);
+    context->shift_scratch = s
+        ? malloc(s * sizeof(*context->shift_scratch)) : NULL;
+    if (s && !context->shift_scratch) die("allocation failed");
+    return context;
+}
+
+void gs_online_context_destroy(gs_online_context *context) {
+    if (!context) return;
+    free(context->shift_scratch);
+    poly_free(&context->state);
+    free(context);
+}
+
+size_t gs_online_context_storage_bytes(const gs_online_context *context) {
+    if (!context) return 0;
+    return sizeof(*context)
+         + context->state.n * sizeof(*context->state.v)
+         + context->tap_count * sizeof(*context->shift_scratch);
+}
+
+/*
+ * Schedule-free counterpart of gs_reduce_into().  Canonical ascending taps
+ * are traversed backwards during feedback, making increasing shift
+ * descriptors directly and avoiding both a stored schedule and an online
+ * sort.  The same scalar stage and assembly kernels are used by both paths.
+ */
+void gs_reduce_online_into(
+    const poly_t *input, gs_online_context *context, poly_t *output)
+{
+    if (!input || !context || !output)
+        die("FFR-online reduction received a null argument");
+    if (output->n < context->state_words)
+        die("FFR-online output is too small");
+
+    extract_high_part(context->state.v, context->state_words,
+                      input, context->m);
+
+    for (size_t factor = 1;; factor <<= 1) {
+        size_t shift_count = 0;
+        size_t aligned_count = 0;
+        size_t min_shift = context->m;
+
+        for (size_t i = context->tap_count; i-- > 0;) {
+            size_t tap = context->taps[i];
+            if (tap == 0) continue;
+            size_t delta = context->m - tap;
+            /* Remaining reverse-order taps have only larger distances. */
+            if (factor > (context->m - 1) / delta) break;
+            size_t shift = factor * delta;
+            context->shift_scratch[shift_count++] = (shift_desc){
+                shift / WORD_BITS,
+                (unsigned)(shift % WORD_BITS)
+            };
+            aligned_count += shift % WORD_BITS == 0;
+            if (shift < min_shift) min_shift = shift;
+        }
+        if (shift_count == 0) break;
+
+        feedback_stage_in_place(
+            context->state.v, context->state_words,
+            context->shift_scratch, shift_count, aligned_count,
+            poly_words_for_bits(context->m - min_shift));
+        if (factor > SIZE_MAX / 2) break;
+    }
+
+    size_t aligned_count = 0;
+    for (size_t i = 0; i < context->tap_count; ++i) {
+        size_t tap = context->taps[i];
+        context->shift_scratch[i] = (shift_desc){
+            tap / WORD_BITS,
+            (unsigned)(tap % WORD_BITS)
+        };
+        aligned_count += tap % WORD_BITS == 0;
+    }
+    assemble_low_part(
+        output, input, context->state.v, context->state_words,
+        context->shift_scratch, context->tap_count, aligned_count,
+        context->m);
 }
 
 size_t gs_plan_feedback_stage_count(const gs_plan *plan) {

@@ -232,12 +232,14 @@ Knezevic, Sakiyama, Fan, and Verbauwhede give precomputation-free Barrett or
 Montgomery reductions for two specific characteristic-two modulus families [7],
 rather than for arbitrary binary moduli.
 
-Thus, ``without precomputation'' is not an appropriate novelty claim.  The
-more precise boundary is that FFR seeks not to materialize a
-dense reciprocal or reduction matrix while allowing arbitrary binary monic
-moduli.  Sparse support affects the work favorably, but is not a correctness
-assumption.  Any comparison must state the modulus class, required partial
-products, stored constants, and setup-amortization model.
+Thus, schedule-free or ``without precomputation'' execution is not an
+appropriate novelty claim by itself. The more precise boundary is that FFR
+does not materialize a dense reciprocal or reduction matrix while allowing
+arbitrary binary monic moduli: it may retain a compact doubled-shift plan or
+derive those shifts online with only state and descriptor workspace. Sparse
+support affects the work favorably, but is not a correctness assumption. Any
+comparison must state the modulus class, required partial products, stored
+constants, workspace, and setup-amortization model.
 
 ## Current Novelty Boundary
 
@@ -248,7 +250,8 @@ formulation:
 > that simultaneously treats arbitrary binary monic moduli; realizes the
 > resulting fixed-length reduction as support-sensitive sparse shift/XOR
 > stages; reduces its sequential feedback chain through a factored nilpotent
-> inverse without materializing a dense reciprocal or reduction matrix;
+> inverse executable from either a compact plan or online without
+> materializing a dense reciprocal or reduction matrix;
 > exposes the characteristic-two evolution of every occupied feedback
 > diagonal without combinatorial support growth; and gives an exact
 > work--depth characterization in terms of the complete tap geometry.

@@ -32,12 +32,15 @@ Requirements:
 - no undefined shifts;
 - constant-time field-element handling.
 
-The implemented scalar FFR and Serial reducers share the word/bit shift
+The implemented planned FFR, online FFR, and Serial reducers share the word/bit shift
 descriptors, high-part extraction, and low/carry right-shift components in
-`sparse_shift.h`.  FFR retains its destination-oriented gather traversal and
-doubling schedule, while Serial retains its source-oriented scatter traversal
-and sequential feedback chain.  Thus the comparison shares the primitive
-being measured without collapsing the two algorithms into one loop structure.
+`sparse_shift.h`. Planned FFR retains its destination-oriented gather traversal
+and doubling schedule. Online FFR uses the same gather, stage, and assembly
+kernels but regenerates doubled and assembly descriptors from the canonical
+taps on every call, retaining only state and tap-sized scratch. Serial retains
+its source-oriented scatter traversal and sequential feedback chain. Thus the
+comparison shares the primitive being measured without collapsing distinct
+algorithmic traversals.
 
 ### 8.3 Fixed-Modulus Code Generation
 
@@ -295,6 +298,7 @@ The timing scope is explicit:
 | Registry name | Timed mathematical operation | Status |
 |---|---|---|
 | `reduction-steady-state:v1` | reduction of a materialized degree-below-$2m$ input into a preallocated output | implemented |
+| `ffr-online-steady-state:v1` | matched planned/online FFR reduction, with online descriptor generation inside the timed call | implemented separate representative experiment |
 
 For steady-state microbenchmarks, reusable plans, materialized inputs,
 outputs, and scratch buffers exist before the clock starts. Input generation,
@@ -323,6 +327,14 @@ steady-state timing only after the independent setup samples have stopped, so
 the inspection itself is outside both timed regions. Allocator overhead,
 shared modulus storage, benchmark buffers, and transient library workspace are
 not estimated.
+
+The separate `ffr-online-workspace:v1` contract does not alter the frozen
+phase-diagram rows. Planned FFR setup constructs its reusable doubled-shift and
+assembly schedule. Online FFR setup validates the borrowed canonical taps and
+allocates only an $n+1$ word state plus $s$ descriptor records; all descriptor
+generation is charged to steady-state reduction. Both methods use eight
+shared inputs, one discarded warm-up, 12 cyclically ordered batch repeats, and
+31 retained trials.
 
 For the algorithm-selection plots, use the modulus Hamming weight $h=s+1$ as
 the primary horizontal coordinate and report $s=|T|$ as the secondary support
@@ -545,7 +557,7 @@ cross-platform experiment.
 
 | Method | Direct-reduction applicability | Role in retained evidence | Reusable setup object | Boundary |
 |---|---|---|---|---|
-| Frobenius-factorized reduction (FFR; internal key `GS`) | Any monic binary modulus | Primary portable-C method | doubled-shift schedule and one state plus a sentinel | full tap geometry controls work and traffic |
+| Frobenius-factorized reduction (FFR; internal key `GS`) | Any monic binary modulus | Primary portable-C method; separate online slices | planned: doubled-shift schedule and state; online: state plus tap-sized descriptor scratch | full tap geometry and descriptor lifetime control work, setup, and storage |
 | Serial folding | Any monic binary modulus | Matched sparse baseline on the original grid; omitted from the high-weight extension after screening | sorted tap descriptors and state buffers | long dependency chain for small $\Delta_{\min}$ |
 | BarrettGF2X | Any monic binary modulus | Primary multiplication-based baseline | reciprocal $\mu$ and reusable product buffers | depends on gf2x multiplication thresholds |
 | L\'opez--Dahab loop | $\deg q\le m-W$, equivalently $\Delta_{\min}\ge W$ | Matched ordinary-loop baseline only where applicable | tap descriptors and a reusable $2m$-bit work buffer | not applicable outside its degree assumption |
@@ -603,6 +615,18 @@ Setup uses `modulus-plan:v1`; bytes use
 `requested-owned-bytes:v1` and exclude allocator overhead, shared modulus
 storage, benchmark buffers, and transient library workspace. A scalar
 cross-platform table remains planned and is intentionally absent.
+
+A separate 45-point representative experiment compares planned and online FFR
+at $m\in\{128,2048,32768,131072\}$,
+$\Delta_{\min}\in\{1,64,m/4\}$, and weights through $513$ where feasible.
+The per-degree median online/planned steady-state ratios are respectively
+1.676, 1.086, 1.006, and 1.002; five individual paired intervals contain one.
+For the explicitly derived $K=1$ quantity
+$T_{\rm setup}+T_{\rm reduce}$, online FFR is lower at every measured point
+and the overall median ratio is 0.915. This latter number is not a directly
+timed one-shot interval. The experiment supports a schedule-free
+implementation on the measured portable-C platform, not zero allocation or a
+platform-independent performance claim.
 
 ### 9.6 Negative Results
 

@@ -27,7 +27,7 @@ DISPLAY_NAMES = {
     "Serial": "Serial",
     "BarrettGF2X": "BarrettGF2X",
     "Dense": "Dense",
-    "LopezDahabLoop": "LopezDahabLoop",
+    "LopezDahabLoop": "LopezDahab",
     "uncertain": "uncertain",
 }
 BOUNDARY_CLASSES = {
@@ -171,8 +171,8 @@ def render(
                 "fill": COLORS[winner],
             })
         display_name = DISPLAY_NAMES[winner]
-        add_text(root, legend_x + 7, 49, display_name, font_size=9)
-        legend_x += 27 + 5.2 * len(display_name)
+        add_text(root, legend_x + 7, 49, display_name, font_size=12)
+        legend_x += 27 + 6.7 * len(display_name)
     if boundary_points is not None:
         for interface_class, label in BOUNDARY_CLASSES.values():
             ET.SubElement(root, f"{{{SVG_NS}}}line", {
@@ -180,8 +180,8 @@ def render(
                 "y1": "45", "y2": "45",
                 "class": f"predicted-boundary {interface_class}",
             })
-            add_text(root, legend_x + 19, 49, label, font_size=9)
-            legend_x += 42 + 5.2 * len(label)
+            add_text(root, legend_x + 19, 49, label, font_size=12)
+            legend_x += 42 + 6.7 * len(label)
 
     for panel_index, m in enumerate(degrees):
         column = panel_index % columns
@@ -220,7 +220,7 @@ def render(
                 "y2": str(y), "class": "grid",
             })
             label = f"{log_ratio:g}"
-            add_text(root, left - 7, y + 3, label, text_anchor="end", font_size=9)
+            add_text(root, left - 7, y + 4, label, text_anchor="end", font_size=11)
         ET.SubElement(root, f"{{{SVG_NS}}}line", {
             "x1": str(left), "x2": str(right), "y1": str(bottom),
             "y2": str(bottom), "class": "axis",
@@ -246,7 +246,7 @@ def render(
                 )
                 add_text(
                     root, x, bottom + 17, tick_label,
-                    text_anchor="middle", font_size=8,
+                    text_anchor="middle", font_size=11,
                 )
         for point in panel:
             x_coordinate = h_indices[point.h]
@@ -329,11 +329,11 @@ def render(
         add_text(
             root, (left + right) / 2, bottom + 36,
             "log2(h - 1)",
-            text_anchor="middle", font_size=10,
+            text_anchor="middle", font_size=13,
         )
         add_text(
             root, ox + 14, (top + bottom) / 2, "log2(m / Delta_min)",
-            text_anchor="middle", font_size=10,
+            text_anchor="middle", font_size=13,
             transform=f"rotate(-90 {ox + 14} {(top + bottom) / 2})",
         )
 

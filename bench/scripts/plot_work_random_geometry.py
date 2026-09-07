@@ -308,7 +308,7 @@ def render_work_runtime(path: Path, points: list[TimingPoint]) -> list[dict[str,
             y = map_y(value)
             ET.SubElement(root, f"{{{SVG_NS}}}line", {"x1": str(left), "x2": str(right),
                 "y1": str(y), "y2": str(y), "class": "grid"})
-            add_text(root, left - 7, y + 3, str(value), text_anchor="end", font_size=8)
+            add_text(root, left - 7, y + 4, str(value), text_anchor="end", font_size=11)
         for x, y in zip(xs, ys):
             ET.SubElement(root, f"{{{SVG_NS}}}circle", {
                 "cx": f"{map_x(x):.2f}", "cy": f"{map_y(y):.2f}", "r": "2.7",
@@ -318,16 +318,16 @@ def render_work_runtime(path: Path, points: list[TimingPoint]) -> list[dict[str,
         ET.SubElement(root, f"{{{SVG_NS}}}rect", {"x": str(left), "y": str(top),
             "width": str(right-left), "height": str(bottom-top), "fill": "none", "class": "axis"})
         for value in range(x_min, x_max + 1, 3):
-            add_text(root, map_x(value), bottom + 17, str(value), text_anchor="middle", font_size=8)
+            add_text(root, map_x(value), bottom + 17, str(value), text_anchor="middle", font_size=11)
         ET.SubElement(root, f"{{{SVG_NS}}}rect", {
             "x": str(right - 91), "y": str(top + 3), "width": "88", "height": "15",
             "fill": "#fff", "fill-opacity": ".88",
         })
         add_text(root, right - 5, top + 14, f"Spearman ρ = {rho:.3f}",
-                 text_anchor="end", font_size=8)
-        add_text(root, (left + right) / 2, bottom + 36, "log2(W_fb)", text_anchor="middle", font_size=10)
+                 text_anchor="end", font_size=11)
+        add_text(root, (left + right) / 2, bottom + 36, "log2(W_fb)", text_anchor="middle", font_size=13)
         add_text(root, ox + 13, (top + bottom) / 2, "log2(FFR ns)", text_anchor="middle",
-                 font_size=9, transform=f"rotate(-90 {ox+13} {(top+bottom)/2})")
+                 font_size=13, transform=f"rotate(-90 {ox+13} {(top+bottom)/2})")
     path.parent.mkdir(parents=True, exist_ok=True)
     ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
     return summaries

@@ -11,7 +11,11 @@ below.
 Frobenius-factorized reduction (FFR) applies a sparse, factored truncated reciprocal
 to the nilpotent feedback operator induced by a monic binary modulus. For a
 sparse non-leading part, it retains support-sensitive shift/XOR work while
-reducing the sequential feedback chain to logarithmic length.
+reducing the sequential feedback chain to logarithmic length. Its doubled
+shifts may be retained in a reusable plan or generated online without a
+materialized reciprocal, dense reduction matrix, or persistent
+modulus-specific schedule; the latter still requires state and descriptor
+workspace.
 
 Keep the following distinct:
 
@@ -102,10 +106,12 @@ Boolean-circuit upper bound into hardware depth without fixing the model.
 | Frobenius preserves formal per-stage sparsity; actual support is exact over reduced algebras | Formal proof | Binary internal audit passed; coefficient-algebra extension remains separate |
 | Scheduled geometry-sensitive work bound | Formal proof with operation model | Internal hostile audit passed; external review pending |
 | Exact schedule size, scalar temporary space, and setup bound | Formal proof with implementation boundary | Internal hostile audit passed; external review pending |
+| Schedule-free online realization | Formal workspace/generation bound plus matched implementation checks | $O(n+s)$ workspace and $O(s+r+S_{\rm fb})$ per-call descriptor generation stated; planned and online paths agree with long division |
 | Random-support work and depth laws | Formal distributional proof | Internal hostile audit passed; geometry agrees on 10,623 frozen supports |
 | Algebraic computational falsification | Reproducible independent tests | Measured over GF(2), GF(4), dual numbers, and F3; not a proof |
 | Generic bounded-fan-in depth lower bound | Formal model and proof | Open and omitted from the current manuscript |
 | Native scalar speed regions and setup amortization | Reproducible matched experiments | Fresh-checkout artifact reproduced from the hash-locked 67,576-row primary-platform dataset; no cross-platform claim |
+| Cost of online descriptor generation | Matched planned/online slices with separate setup | 45-point exploratory portable-C run complete; median online/planned steady-state ratio falls from 1.676 at $m=128$ to 1.002 at $m=131072$; paper-grade artifact freeze pending |
 | Rabin irreducibility-test speedup | Complete matched-driver and NTL measurements | Paper-grade 31-trial measurements at $m=128,512,2048,8192$; FFR leads both NTL and matched Barrett on the selected certified family |
 | Platform-optimal modulus changes | Search plus end-to-end measurements | Open hypothesis |
 | Novelty | Hostile primary-source audit | Provisional |
@@ -148,8 +154,9 @@ correctness checks, reduction microbenchmarks, and end-to-end workloads.
 ### Gate 1: Novelty
 
 No prior method has been found that simultaneously gives arbitrary-modulus
-correctness, sparse-support-sensitive work, logarithmic feedback depth, and a
-schedule derived without materializing a dense reciprocal or reduction matrix.
+correctness, sparse-support-sensitive work, logarithmic feedback depth, and
+factors executable either from a compact plan or online without materializing
+a dense reciprocal or reduction matrix.
 The hostile prior-art audit is closed for this claim boundary; reopen it only
 if this boundary changes or a direct counterexample is identified.
 

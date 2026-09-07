@@ -15,9 +15,11 @@ DL_LIBS ?= -ldl
 endif
 TARGET = build/reduction_benchmark
 RABIN_TARGET = build/rabin_irreducibility_benchmark
+FFR_ONLINE_TARGET = build/ffr_online_benchmark
 CHECK_TARGET = build/reduction_correctness_check
 GS_STAGE_CHECK_TARGET = build/gs_stage_correctness_check
 GS_COMPONENT_CHECK_TARGET = build/gs_component_correctness_check
+GS_ONLINE_CHECK_TARGET = build/gs_online_correctness_check
 SPARSE_SHIFT_CHECK_TARGET = build/sparse_shift_correctness_check
 GF2_SQUARE_CHECK_TARGET = build/gf2_square_correctness_check
 DENSE_CHECK_TARGET = build/dense_correctness_check
@@ -25,6 +27,7 @@ GENERATED_CHECK_TARGET = build/generated_correctness_check
 SAN_CHECK_TARGET = build/reduction_correctness_check_sanitize
 SAN_STAGE_CHECK_TARGET = build/gs_stage_correctness_check_sanitize
 SAN_COMPONENT_CHECK_TARGET = build/gs_component_correctness_check_sanitize
+SAN_GS_ONLINE_CHECK_TARGET = build/gs_online_correctness_check_sanitize
 SAN_SHIFT_CHECK_TARGET = build/sparse_shift_correctness_check_sanitize
 SAN_GF2_SQUARE_CHECK_TARGET = build/gf2_square_correctness_check_sanitize
 SAN_DENSE_CHECK_TARGET = build/dense_correctness_check_sanitize
@@ -44,6 +47,19 @@ $(TARGET): $(BENCH_SOURCES) include/*.h
 	mkdir -p build
 	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ $(BENCH_SOURCES) \
 		-L$(GF2X_PREFIX)/lib -lgf2x $(DL_LIBS)
+
+$(FFR_ONLINE_TARGET): bench/scripts/ffr_online_benchmark.c \
+		src/GS.c src/naive.c include/*.h
+	mkdir -p build
+	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
+		bench/scripts/ffr_online_benchmark.c src/GS.c src/naive.c \
+		-L$(GF2X_PREFIX)/lib -lgf2x
+
+ffr-online-benchmark: $(FFR_ONLINE_TARGET)
+
+freeze-ffr-online-manifest:
+	$(PYTHON) bench/scripts/generate_ffr_online_manifest.py \
+		--output bench/manifests/ffr-online-v1/representative-slices.jsonl
 
 build/rabin/%.o: src/%.c include/*.h
 	mkdir -p build/rabin
@@ -72,6 +88,12 @@ $(GS_COMPONENT_CHECK_TARGET): tests/check_gs_components.c src/GS.c include/*.h
 	mkdir -p build
 	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
 		tests/check_gs_components.c -L$(GF2X_PREFIX)/lib -lgf2x
+
+$(GS_ONLINE_CHECK_TARGET): tests/check_gs_online.c src/GS.c src/naive.c include/*.h
+	mkdir -p build
+	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
+		tests/check_gs_online.c src/GS.c src/naive.c \
+		-L$(GF2X_PREFIX)/lib -lgf2x
 
 $(SPARSE_SHIFT_CHECK_TARGET): tests/check_sparse_shift.c include/*.h
 	mkdir -p build
@@ -111,6 +133,12 @@ $(SAN_COMPONENT_CHECK_TARGET): tests/check_gs_components.c src/GS.c include/*.h
 	mkdir -p build
 	$(CC) $(SAN_CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
 		tests/check_gs_components.c -L$(GF2X_PREFIX)/lib -lgf2x
+
+$(SAN_GS_ONLINE_CHECK_TARGET): tests/check_gs_online.c src/GS.c src/naive.c include/*.h
+	mkdir -p build
+	$(CC) $(SAN_CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
+		tests/check_gs_online.c src/GS.c src/naive.c \
+		-L$(GF2X_PREFIX)/lib -lgf2x
 
 $(SAN_SHIFT_CHECK_TARGET): tests/check_sparse_shift.c include/*.h
 	mkdir -p build
@@ -177,12 +205,14 @@ artifact-rabin:
 		--output $(ARTIFACT_OUTPUT)/rabin-v1
 
 check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
-	$(GS_COMPONENT_CHECK_TARGET) $(SPARSE_SHIFT_CHECK_TARGET) \
+	$(GS_COMPONENT_CHECK_TARGET) $(GS_ONLINE_CHECK_TARGET) \
+	$(SPARSE_SHIFT_CHECK_TARGET) $(FFR_ONLINE_TARGET) \
 	$(GF2_SQUARE_CHECK_TARGET) $(DENSE_CHECK_TARGET) \
 	$(GENERATED_CHECK_TARGET) $(TARGET) $(RABIN_TARGET)
 	$(CHECK_TARGET)
 	$(GS_STAGE_CHECK_TARGET)
 	$(GS_COMPONENT_CHECK_TARGET)
+	$(GS_ONLINE_CHECK_TARGET)
 	$(SPARSE_SHIFT_CHECK_TARGET)
 	$(GF2_SQUARE_CHECK_TARGET)
 	$(DENSE_CHECK_TARGET)
@@ -201,6 +231,7 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(PYTHON) tests/check_feedback_depth_plot.py
 	$(PYTHON) tests/check_phase_slices.py
 	$(PYTHON) tests/check_setup_tradeoff.py
+	$(PYTHON) tests/check_ffr_online_pipeline.py --binary $(FFR_ONLINE_TARGET)
 	$(PYTHON) tests/check_work_random_geometry.py
 	$(PYTHON) tests/check_operator_schematic.py
 	$(PYTHON) tests/check_paper_tables.py
@@ -218,6 +249,7 @@ check-theory:
 
 check-sanitize: $(SAN_CHECK_TARGET) $(SAN_STAGE_CHECK_TARGET) \
 	$(SAN_COMPONENT_CHECK_TARGET) $(SAN_SHIFT_CHECK_TARGET) \
+	$(SAN_GS_ONLINE_CHECK_TARGET) \
 	$(SAN_GF2_SQUARE_CHECK_TARGET) $(SAN_DENSE_CHECK_TARGET) \
 	$(SAN_GENERATED_CHECK_TARGET) $(TARGET)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
@@ -226,6 +258,8 @@ check-sanitize: $(SAN_CHECK_TARGET) $(SAN_STAGE_CHECK_TARGET) \
 	UBSAN_OPTIONS=halt_on_error=1 $(SAN_STAGE_CHECK_TARGET)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 $(SAN_COMPONENT_CHECK_TARGET)
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 $(SAN_GS_ONLINE_CHECK_TARGET)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 $(SAN_SHIFT_CHECK_TARGET)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
@@ -241,13 +275,16 @@ check-sanitize: $(SAN_CHECK_TARGET) $(SAN_STAGE_CHECK_TARGET) \
 check-serial: check
 
 clean:
-	rm -f $(TARGET) $(RABIN_TARGET) $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
-		$(GS_COMPONENT_CHECK_TARGET) $(SPARSE_SHIFT_CHECK_TARGET) \
+	rm -f $(TARGET) $(RABIN_TARGET) $(FFR_ONLINE_TARGET) $(CHECK_TARGET) \
+		$(GS_STAGE_CHECK_TARGET) \
+		$(GS_COMPONENT_CHECK_TARGET) $(GS_ONLINE_CHECK_TARGET) \
+		$(SPARSE_SHIFT_CHECK_TARGET) \
 		$(GF2_SQUARE_CHECK_TARGET) \
 		$(DENSE_CHECK_TARGET) \
 		$(GENERATED_CHECK_TARGET) \
 		$(SAN_CHECK_TARGET) $(SAN_STAGE_CHECK_TARGET) \
 		$(SAN_COMPONENT_CHECK_TARGET) $(SAN_SHIFT_CHECK_TARGET) \
+		$(SAN_GS_ONLINE_CHECK_TARGET) \
 		$(SAN_GF2_SQUARE_CHECK_TARGET) \
 		$(SAN_DENSE_CHECK_TARGET) $(SAN_GENERATED_CHECK_TARGET)
 	rm -rf build/rabin

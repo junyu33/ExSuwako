@@ -689,3 +689,51 @@ $\gcd(x^{2^{m/2}}-x,g)$, and checks $x^{2^m}=x\pmod g$.
       factorization, candidate search, and modulus-distribution claims as
       limitations. `bench/artifact/rabin-v1.json` hash-locks the 465 raw rows,
       four-modulus manifest, summary, and figure.
+
+## Gate 6: Schedule-Free FFR Representative Slices
+
+This is an isolated exploratory contract and does not modify or extend the
+frozen `paper-v1` reduction rows.  Its purpose is to measure the cost of
+deriving doubled shifts online rather than retaining a modulus-specific FFR
+schedule.
+
+- [x] Implement `OnlineFFR` without a stored doubled-shift or assembly
+      schedule, while reusing the exact planned FFR scalar stage and assembly
+      kernels; verify both paths against independent long division. [A] The
+      online context borrows canonical taps and owns only the $m$-bit state,
+      sentinel, and one tap-sized descriptor scratch array. Every reduction
+      regenerates active doubled descriptors and final assembly descriptors.
+      A dedicated deterministic suite covers empty, constant-only, aligned,
+      unaligned, dense, non-word-aligned, and 4,000 randomized cases.
+- [x] Freeze a separate representative-slice manifest and timing contract.
+      [A] `ffr-online-representative-slice:v1` contains 45 deterministic
+      constant-free points at $m\in\{128,2048,32768,131072\}$,
+      $\Delta_{\min}\in\{1,64,m/4\}$, and $h\in\{3,9,65\}$ plus $h=513$
+      where feasible. `ffr-online-steady-state:v1` uses 8 shared inputs, one
+      discarded warm-up, 12 cyclically ordered batch repeats, and 31 retained
+      trials. Raw and summary CSV files live only under the ignored
+      `bench/data/ffr-online-v1/` directory.
+- [x] Run all 45 representative points, retain the raw rows and metadata, and
+      report paired-bootstrap intervals for steady-state
+      `OnlineFFR/PlannedFFR` together with separately measured setup and the
+      derived $K=1$ quantity $T_{\rm setup}+T_{\rm reduce}$. [A] The isolated
+      exploratory run retains 1,395 rows. The steady-state ratio's
+      minimum/median/maximum is 1.215/1.676/2.197 at $m=128$,
+      1.043/1.086/1.179 at $m=2048$, 0.998/1.006/1.009 at $m=32768$, and
+      0.995/1.002/1.006 at $m=131072$. Five points have paired 95\% intervals
+      containing one. The derived $K=1$ online/planned ratio is below one at
+      all 45 points, with overall median 0.915. The raw and summary hashes and
+      exact commands are recorded in
+      [ffr_online_benchmark.md](../bench/ffr_online_benchmark.md); this remains
+      single-host portable-C evidence rather than an architecture-independent
+      claim.
+- [x] Change the manuscript's no-precomputation wording only after the
+      representative data distinguish the algebraic availability of online
+      generation from its measured portable-C cost. [A] The abstract,
+      introduction, algorithm, space/setup proposition, prior-art boundary,
+      implementation, evaluation, limitations, and conclusion now distinguish
+      the proved absence of a persistent modulus-specific schedule from the
+      $O(n+s)$ workspace and measured descriptor-generation overhead. The
+      manuscript reports the four degree-slice medians and the derived $K=1$
+      result as single-platform representative evidence, without claiming
+      zero setup or direct one-shot timing.

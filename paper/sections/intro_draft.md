@@ -5,7 +5,7 @@
 1. Sparse Modular Reduction with Logarithmic Feedback Depth
 2. Breaking the Feedback Chain in Sparse Binary Polynomial Reduction
 3. Sparse Work without Serial Folding over $\mathbb F_2$
-4. Sparse, Shallow, and Precomputation-Light Modular Reduction
+4. Sparse, Shallow Modular Reduction without a Materialized Reciprocal
 
 Preferred working title:
 
@@ -79,6 +79,10 @@ factors remain sparse and contain only doubled original tap distances. Mixed
 tap combinations are realized implicitly through factor composition and never
 need to be materialized. The key algorithmic consequence is that every factor
 remains expressible using only shifts at doubled original tap distances.
+Those distances may be retained in a compact reusable plan or regenerated
+online from the canonical taps. The latter uses no persistent
+modulus-specific shift schedule, but still uses an $m$-bit state and
+tap-sized descriptor workspace.
 
 The resulting algorithm is correct for arbitrary binary moduli. When $q\ne0$,
 it uses
@@ -111,7 +115,12 @@ $$
 O\left(n\left(1+\log(m/\Delta_{\min})\right)\right).
 $$
 
-TODO: Add native implementation results and precise crossover claims.
+The completed native evaluation should be summarized only at its measured
+evidence level: the planned FFR phase diagram contains both winning and losing
+regions, while a separate 45-point planned/online experiment gives median
+steady-state online/planned ratios 1.676, 1.086, 1.006, and 1.002 at
+$m=128,2048,32768,131072$. The derived $K=1$ quantity favors online FFR at
+all measured points, but is not a directly timed one-shot interval.
 
 ## 1. Introduction
 

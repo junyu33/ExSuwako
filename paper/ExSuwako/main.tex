@@ -24,8 +24,8 @@
 \newcommand{\Dmin}{\Delta_{\min}}
 \newcommand{\Wfb}{W_{\mathrm{fb}}}
 
-\title[Sparse Modular Reduction]{Sparse Modular Reduction with Logarithmic
-Feedback Depth}
+\title[Reduction Modulo Binary Polynomials]{Reduction Modulo Binary
+Polynomials with Logarithmic Feedback Depth}
 
 \author{Junyu Zhou}
 \address{Sichuan University}
@@ -45,15 +45,18 @@ close to the leading term.  We study a different schedule obtained by
 expressing the high-part recurrence as the inverse of a nilpotent feedback
 operator.  In characteristic two, this inverse factors into Frobenius powers
 whose individual supports remain controlled by the original tap set.  The
-result is a matrix-free method, which we call \emph{Frobenius-factorized
-reduction} (FFR), with an exact feedback-stage count and a scheduled-work
-expression governed by the complete tap geometry.
+result is a method requiring neither a materialized reciprocal nor a dense
+reduction matrix, which we call \emph{Frobenius-factorized reduction} (FFR).
+Its doubled shifts may be generated online without a persistent
+modulus-specific schedule or retained in a reusable plan.  In either form,
+FFR has an exact feedback-stage count and a scheduled-work expression governed
+by the complete tap geometry.
 
 For a nonleading support of size $s$, we prove an exact logarithmic feedback
 depth and an exact active-tap work formula.  The former is
 $r=\lceil\log_2(m/\Dmin)\rceil$; the latter is bounded by
-$O(ms(1+\log(m/s)))$.  The reusable schedule and scalar temporary space are
-also explicit.  A matched portable-C evaluation over 1,096 controlled
+$O(ms(1+\log(m/s)))$.  The online workspace, reusable schedule, and scalar
+temporary space are also explicit.  A matched portable-C evaluation over 1,096 controlled
 supports and degrees $128$ through $131072$ identifies distinct FFR,
 L\'opez--Dahab, and gf2x-backed Barrett regions.  On the hostile
 $(h,\Dmin)=(9,1)$ slice, Barrett takes between $2.16$ and $37.71$ times the FFR
@@ -109,7 +112,14 @@ parallelism, but do not automatically preserve sparse support.  We ask whether
 the sparse feedback chain can be shortened without first materializing a dense
 reciprocal or reduction matrix.
 
-For an input of degree below twice the modulus degree, reduction gives a
+We answer this question with \emph{Frobenius-factorized reduction} (FFR).
+It requires no materialized reciprocal, dense reduction matrix, or persistent
+modulus-specific shift schedule: the doubled shifts may be derived online
+from the original taps or retained in a lightweight reusable plan.  Online
+execution still uses an $m$-bit state and tap-sized descriptor scratch, so the
+claim concerns precomputed reduction data rather than allocation-free
+execution.  For an
+input of degree below twice the modulus degree, reduction gives a
 finite forced recurrence.  We write it as $(I+U)Y=H$ for a truncated shift
 operator $U$.  When $U\ne0$, characteristic two gives
 \begin{equation}
@@ -123,14 +133,19 @@ power doubles the original tap distances.
 Mixed feedback paths arise through composition across stages rather than by
 expanding a dense reciprocal inside one stage.
 
-The contributions are: (i) a nilpotent-feedback formulation for any
-monic binary modulus; (ii) a sparse characteristic-two factorization;
-(iii) exact coefficient- and packed-word work--feedback-depth geometry,
-including schedule and temporary-space bounds; and (iv) a reproducible
-  portable-C study that maps the measured winning and losing regions against
-  serial folding, L\'opez--Dahab reduction, and gf2x-backed Barrett reduction;
-  and (v) an end-to-end Rabin irreducibility experiment on certified sparse
-  moduli, including an optimized NTL baseline.
+Our contributions are threefold.
+\begin{enumerate}
+\item We derive a nilpotent-feedback formulation and sparse
+      characteristic-two factorization that give a correct FFR algorithm for
+      any monic binary modulus.
+\item We give exact tap-geometry analyses of coefficient work, packed-word
+      work, feedback depth, schedule size, and workspace, together with
+      planned and schedule-free online realizations.
+\item We provide a reproducible portable-C evaluation that maps winning and
+      losing regions against serial folding, L\'opez--Dahab, and gf2x-backed
+      Barrett reduction, and test the reduction advantage inside a complete
+      Rabin irreducibility test with an optimized NTL baseline.
+\end{enumerate}
 
 Correctness does not require irreducibility; sparsity is a performance
 condition rather than an applicability condition.  We do not identify
@@ -216,35 +231,27 @@ products and modulus-dependent constants.  Sparse shift/XOR counts do not
 determine their machine cost.
 
 \begin{table}[t]
-\caption{Frozen direct-reduction comparison contract.  ``Primary'' denotes a
-winner-eligible portable-C method; ``diagnostic'' denotes a screened baseline.}
+\caption{Applicability of the compared direct-reduction methods.  Throughout,
+$g$ is as in~\eqref{eq:modulus}, $\deg A<2m$, and $n=\lceil m/W\rceil$; the
+dense-map bound is the 64 MiB limit used in the evaluation.}
 \label{tab:families}
 \centering
-\begin{tabular}{@{}
-  >{\raggedright\arraybackslash}p{0.18\textwidth}
-  >{\raggedright\arraybackslash}p{0.35\textwidth}
-  >{\raggedright\arraybackslash}p{0.37\textwidth}@{}}
+\small
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Method & Applicability and evidence role & Reusable plan and principal boundary\\
+Method
+& FFR
+& Serial
+& BarrettGF2X
+& L\'opez--Dahab
+& Dense\\
 \midrule
-FFR & Arbitrary monic modulus; primary method.
-& Doubled-shift schedule and one state plus a sentinel; cost depends on tap
-geometry and word traffic.\\
-\midrule
-Serial & Arbitrary monic modulus; screened sparse baseline.
-& Tap descriptors and two states; small $\Dmin$ creates a long dependency
-chain.\\
-\midrule
-BarrettGF2X & Arbitrary monic modulus; primary multiplication-based baseline.
-& Reciprocal and reusable product buffers; cost depends on gf2x multiplication
-thresholds.\\
-\midrule
-L\'opez--Dahab & $\deg q\le m-W$; primary baseline where applicable.
-& Tap descriptors and a $2m$-bit work buffer; unavailable outside its degree
-condition.\\
-\midrule
-Dense map & Fixed modulus with packed map at most 64 MiB; diagnostic baseline.
-& Packed $m\times m$ map and high-part scratch; storage is quadratic.\\
+Applicability
+& \eqref{eq:modulus}
+& \eqref{eq:modulus}
+& \eqref{eq:modulus}
+& $\deg q\le m-W$
+& $g\text{ fixed}$\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -340,17 +347,22 @@ fixed-length realization and its complete tap-geometry analysis.
 \section{Frobenius-Factorized Reduction}
 \label{sec:algorithm}
 
-We call the resulting method \emph{Frobenius-factorized reduction} (FFR),
-because it applies the Frobenius factors of the truncated feedback inverse
-without materializing that inverse.
+FFR applies the Frobenius factors of the truncated feedback inverse without
+materializing that inverse.  We distinguish a \emph{planned} realization,
+which retains compact shift descriptors, from an \emph{online} realization,
+which derives them from the original taps on every call.
 
 For every $k\ge0$, define
 \begin{equation}
   T_k=\{t\in T:2^k\Delta_t<m\}.
 \end{equation}
-Then $T_k=\varnothing$ for $k\ge r$.  The public schedule stores shifts
-$2^k\Delta_t$ for $t\in T_k$, $0\le k<r$, and the taps for final low
-assembly.
+Then $T_k=\varnothing$ for $k\ge r$.  At stage $k$, either realization uses
+the shifts $2^k\Delta_t$ for $t\in T_k$.  A reusable plan stores these shifts
+for $0\le k<r$ and the taps for final low assembly.  The online realization
+instead enumerates $T_k$, doubles the active distances, and constructs the
+same descriptors in tap order immediately before applying the stage; the
+descriptors are overwritten at the next stage and are not reused between
+reductions as a schedule.
 
 \begin{quote}
 \textbf{Algorithm 1 (Frobenius-factorized reduction).}
@@ -611,7 +623,7 @@ Proposition~\ref{prop:word-geometry} records loop geometry but deliberately
 does not convert aligned and cross-word contributions into an ISA-independent
 latency estimate.
 
-\begin{proposition}[Temporary space and schedule setup]
+\begin{proposition}[Temporary space, online generation, and schedule setup]
 \label{prop:space-setup}
 Excluding the caller-owned input and output, the in-place scalar reduction
 can be performed with one $m$-bit state.  The implementation evaluated in
@@ -625,7 +637,11 @@ explicit reusable plan stores
 \]
 in addition to constant-size metadata.  Such a plan can be constructed in
 $O(s+r+S_{\rm fb})$ word-RAM operations and the same asymptotic number of
-records.
+records.  Alternatively, the factors can be generated online with no
+persistent feedback or assembly schedule.  This realization uses $n+1$ state words and
+$s$ reusable descriptor records, hence $O(n+s)$ workspace, and performs
+$O(s+r+S_{\rm fb})$ additional scalar descriptor-generation operations per
+reduction.
 \end{proposition}
 \begin{proof}
 For a positive right shift, output coefficient $i$ depends only on old
@@ -641,11 +657,20 @@ $0,\ldots,\ell_t-1$, a difference array followed by one prefix sum computes
 all $r$ per-stage counts in $O(s+r)$ operations.  A second pass emits the
 $\ell_t$ doubled shifts of each tap into the corresponding stage buckets in
 $O(S_{\rm fb})$ operations.
+
+For the online realization, keep one $s$-record descriptor array.  Because
+the canonical taps are ordered, traversing them from highest to lowest emits
+the active feedback distances in increasing order and stops at the first
+inactive distance.  The total number emitted is $S_{\rm fb}$, with at most one
+termination check per stage; final assembly emits $s$ descriptors.  This gives
+$O(s+r+S_{\rm fb})$ scalar control work without carrying a descriptor set
+forward as the schedule for the next reduction.
 \end{proof}
 
 The setup bound describes a two-pass schedule construction, not compilation
 of generated code.  The experiments separately time the concrete reusable
-plan builders.  For comparison, serial sparse folding needs no doubled-shift
+plan builders and the schedule-free workspace, and measure online descriptor
+generation inside reduction.  For comparison, serial sparse folding needs no doubled-shift
 schedule but, when $U\ne0$, can execute up to
 $\lceil m/\Dmin\rceil$ dependent feedback iterations; L\'opez--Dahab has
 $\Theta(n(1+s))$ shift/scatter work under its
@@ -794,9 +819,11 @@ folding and applicable L\'opez--Dahab reduction as direct baselines.
 
 Barrett and Montgomery provide multiplication-based alternatives, including
 restricted precomputation-free families~\cite{KnezevicEtAl2008}.  Thus
-``without precomputation'' is not a novelty claim either.  Our plans avoid a
-materialized reciprocal or dense matrix, but still have a separately measured
-setup cost.
+schedule-free execution is not a novelty claim by itself.  FFR requires no
+materialized reciprocal or dense matrix; its planned realization has a
+separately measured schedule-construction cost, while its online realization
+retains only reusable state and descriptor scratch and generates shifts inside
+each reduction.
 
 Repeated Frobenius powering in factorization gives the closest application
 context.  Von zur Gathen and Gerhard combine theory, implementation, storage,
@@ -814,14 +841,17 @@ recurrence solver, or balanced XOR realization.
 
 \subsection{Implementations and validation}
 
-The native interface exposes FFR, serial top-down
+The native interface exposes planned and online FFR, serial top-down
 folding, and gf2x-backed Barrett reduction through the same operation
 \[
   A\longmapsto A\bmod g,\qquad \deg A<2m.
 \]
-FFR and serial folding use the same packed-word shift/XOR primitive.  The
-frozen implementation and dataset retain \texttt{GS} as their internal method
-identifier.  We also
+Both FFR realizations use the same scalar feedback-stage and final-assembly
+kernels; only the lifetime of their shift descriptors differs.  FFR and
+serial folding use the same packed-word shift/XOR primitive.  The frozen phase
+diagram retains \texttt{GS} as the internal identifier for planned FFR, while
+the separate representative experiment names the second path
+\texttt{OnlineFFR}.  We also
 implemented the ordinary-loop L\'opez--Dahab reducer, using it only when
 $\Dmin\ge W$, and a packed dense linear map for diagnostic screening.  An
 independent long-division implementation supplies the correctness oracle but
@@ -884,11 +914,34 @@ indices.  Every block is one observed support; blank regions were not measured
 and are not interpolated.  To expose the predicted regime decomposition, we
 overlay a fitted cost model.  At each fixed $m$, a deterministic alternating
 split of the sorted grid fits affine times for FFR from its portable scalar
-block-work count and for L\'opez--Dahab from
-$\lceil m/W\rceil(h-1)$; Barrett is represented by its fixed-$m$ calibration
-median.  The minimum predicted time labels each measured coordinate, and a
-line is drawn only where adjacent predicted labels differ.  Thus the blocks
-remain measurements whereas the lines are descriptive model predictions.
+block-work count and for L\'opez--Dahab from its shift/scatter count; Barrett
+is represented by its fixed-$m$ calibration median.  More precisely, the
+predictors and fitted times are
+\begin{align}
+  C_{\rm FFR}&=\widehat B_{\rm fb}+B_V,
+  &\widehat\tau_{\rm FFR}&=\alpha_{{\rm FFR},m}
+    +\beta_{{\rm FFR},m}C_{\rm FFR},\notag\\
+  C_{\rm LD}&=n(h-1)=ns,
+  &\widehat\tau_{\rm LD}&=\alpha_{{\rm LD},m}
+    +\beta_{{\rm LD},m}C_{\rm LD},\notag\\
+  &&\widehat\tau_{\rm B}&=b_m,
+  \label{eq:winner-time-model}
+\end{align}
+where each $\alpha$ and $\beta$ is fitted on the calibration half and $b_m$
+is the Barrett calibration median.  If $\mathcal A(p)$ is the set of methods
+available at grid point $p=(h,\Dmin)$, its predicted region for method $j$ is
+defined by
+\begin{equation}
+  \mathcal R_j
+  =\{p:\widehat\tau_j(p)\le\widehat\tau_i(p)
+       \text{ for every }i\in\mathcal A(p)\}.
+  \label{eq:winner-region-inequalities}
+\end{equation}
+The minimum predicted time labels each measured coordinate, and a line is
+drawn only where adjacent coordinates belong to different predicted regions.
+Thus the blocks remain measurements whereas the lines are discrete,
+descriptive approximations to the pairwise interfaces induced
+by~\eqref{eq:winner-region-inequalities}.
 
 \begin{figure}[t]
 \centering
@@ -899,8 +952,9 @@ $\log_2(m/\Dmin)$.  Colors identify the unique winner among the methods
 available at that point; gray cells are uncertain.  FFR and Barrett are present
 everywhere, whereas L\'opez--Dahab is admitted only at its tested
 $\Dmin\ge64$ boundary.  Thick lines mark pair-specific interfaces predicted
-by the fixed-$m$ fitted cost model; they neither change measured classifications
-nor interpolate unmeasured cells.}
+by the fixed-$m$ model~\eqref{eq:winner-time-model}, separating regions defined
+by the inequalities~\eqref{eq:winner-region-inequalities}.  They neither
+change measured classifications nor interpolate unmeasured cells.}
 \label{fig:winner-panels}
 \end{figure}
 
@@ -1015,6 +1069,23 @@ artifact separately derives
 we do not fold an unstated amortization factor into the reported reduction
 times.
 
+To isolate whether the FFR schedule itself is necessary, we additionally ran
+45 representative constant-free supports at
+$m\in\{128,2048,32768,131072\}$, with
+$\Dmin\in\{1,64,m/4\}$ and weights up to $513$ where feasible.  Planned and
+online FFR received the same eight inputs, used the same scalar kernels, and
+were cyclically ordered over 31 retained trials; the online path regenerated
+all descriptors inside the timed reduction.  The median
+$T_{\rm online}/T_{\rm planned}$ over each degree slice was $1.676$, $1.086$,
+$1.006$, and $1.002$, respectively.  Thus descriptor generation is material
+at small degree but is within about one percent of planned steady-state time
+in the two largest slices; five individual paired intervals contain one.  If
+setup and one reduction are combined as the declared derived quantity
+$T_{\rm setup}+T_{\rm reduce}$, rather than a directly timed one-shot
+interval, online FFR is lower at all 45 points and has overall median ratio
+$0.915$.  These measurements support online availability on this portable-C
+platform, not a zero-setup or architecture-independent claim.
+
 \subsection{End-to-end irreducibility testing}
 
 We finally test whether the reduction result survives inside one complete
@@ -1075,6 +1146,9 @@ extension after its initial screening.  L\'opez--Dahab participates only for
 $\Dmin\ge64$, while the dense map is diagnostic rather than winner-eligible.
 Setup and requested plan storage are reported separately from steady-state
 reduction, so a different plan-reuse distribution can change total cost.
+The online slices likewise retain workspace allocation outside steady-state
+timing and cover only 45 controlled supports; their near-equality at large
+$m$ is not asserted for other platforms or tap distributions.
 The Rabin study adds only four deterministically generated high-tap moduli of
 one weight; its scaling trend must not be read as a distribution over all
 irreducible polynomials.
@@ -1090,11 +1164,13 @@ multiplication.
 \label{sec:conclusion}
 
 We recast reduction by an arbitrary monic binary polynomial as inversion of a
-nilpotent feedback operator.  Characteristic-two Frobenius powers yield a
-matrix-free schedule with exact feedback depth
-$\lceil\log_2(m/\Dmin)\rceil$ and work governed by every tap distance.  The
-analysis also separates coefficient work, packed-word loop geometry, setup,
-and temporary space.
+nilpotent feedback operator.  Characteristic-two Frobenius powers yield exact
+feedback depth $\lceil\log_2(m/\Dmin)\rceil$ and work governed by every tap
+distance without materializing a reciprocal or dense reduction matrix.  The
+doubled shifts may be retained in a reusable plan or generated online with
+$O(n+s)$ workspace and no persistent modulus-specific schedule.  The analysis
+separates coefficient work, packed-word loop geometry, descriptor-generation
+work, setup, and temporary space.
 
 The portable scalar experiments show that this tradeoff has nontrivial
 algorithm-selection regions.  FFR wins for sparse moduli with
@@ -1102,17 +1178,27 @@ difficult feedback, gf2x-backed Barrett takes over as weight grows, and
 ordinary-loop L\'opez--Dahab is often strongest when its feedback-distance
 condition applies.  The formal work measure is strongly monotone with FFR
 runtime on the controlled corpus, but the measured boundaries retain unstable
-cells and remain platform-specific.  On the four certified high-tap moduli,
-the reduction advantage does survive a complete Rabin irreducibility test and
-widens relative to NTL over the measured degree range.  This establishes one
-computational-algebra consequence, not a claim about factorization, polynomial
-search, or arbitrary irreducible-modulus distributions.
+cells and remain platform-specific.  Representative slices further show that
+online descriptor generation is
+visible at small degree but approaches planned FFR steady-state time at the
+largest measured degrees.  On the four certified high-tap moduli,
+the reduction advantage survives a complete Rabin irreducibility test and
+widens relative to NTL over the measured degree range, providing a concrete
+end-to-end computational-algebra result.
 
-\paragraph{Software and data availability.}
+\section*{Software and Data Availability}
 The implementation, deterministic manifests, raw benchmark data, and
 reproduction scripts underlying the reported results are archived in the
 \href{https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v1}
 {\texttt{moc-artifact-v1} GitHub release}.
+
+\section*{Use of Artificial Intelligence}
+OpenAI Codex (GPT-5.6 Sol) was used during the research and manuscript-preparation
+workflow to assist with literature-search planning and synthesis,
+mathematical exploration and statement auditing, software and test
+development, benchmark-analysis and plotting code, and manuscript drafting
+and editing.  The author reviewed the resulting sources, arguments, code, and
+reported data and assumes full responsibility for the manuscript.
 
 \appendix
 
