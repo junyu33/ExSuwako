@@ -101,6 +101,7 @@ Boolean-circuit upper bound into hardware depth without fixing the model.
 | Reduction through a nilpotent feedback inverse | Formal proof | Candidate theorem |
 | Frobenius preserves formal per-stage sparsity; actual support is exact over reduced algebras | Formal proof | Candidate theorem |
 | Scheduled geometry-sensitive work bound | Formal proof with operation model | Candidate theorem |
+| Random-support work and depth laws | Formal distributional proof | Geometry agrees on 10,623 frozen supports; not a proof or timing result |
 | Algebraic computational falsification | Reproducible independent tests | Measured over GF(2), GF(4), dual numbers, and F3; not a proof |
 | Generic bounded-fan-in depth lower bound | Formal model and proof | Candidate theorem |
 | Native scalar speed regions and setup amortization | Reproducible matched experiments | Measured on the primary scalar platform; second-platform and artifact gates remain open |

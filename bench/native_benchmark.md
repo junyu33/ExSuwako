@@ -743,3 +743,36 @@ controlled cells; those quantiles describe the designed grid, not a random
 modulus population. The tradeoff panels plot every support at
 $\bigl(\log_2(W_{\rm fb}+1),D_{\rm fb}\bigr)$ and color it by
 $\log_2(T_{\rm setup,GS}+1)$.
+
+## Scheduled Work and Random-Support Geometry
+
+The final controlled timings and the frozen fixed-weight manifests are
+analyzed separately:
+
+```text
+python3 bench/scripts/plot_work_random_geometry.py \
+  --timing-input bench/data/phase_raw.csv \
+  --random-manifest bench/manifests/paper/random-m128.jsonl \
+                    bench/manifests/paper/random-m512.jsonl \
+                    bench/manifests/paper/random-m2048.jsonl \
+                    bench/manifests/paper/random-m8192.jsonl \
+                    bench/manifests/paper/random-m32768.jsonl \
+                    bench/manifests/paper/random-m131072.jsonl \
+  --work-runtime-figure bench/data/work-runtime.svg \
+  --work-runtime-summary bench/data/work-runtime-summary.csv \
+  --random-summary bench/data/random-geometry-summary.csv \
+  --random-depth-figure bench/data/random-depth.svg \
+  --random-work-figure bench/data/random-work.svg \
+  --paper-grade
+```
+
+The work/runtime path requires complete trial sequences under
+`reduction-steady-state:v1` and `scalar-source-v1`, takes one median `GS_ns`
+per exact controlled support, and computes Spearman correlation only within a
+fixed $m$. It labels $W_{\rm fb}$ as formal scheduled coefficient work rather
+than runtime or instructions. The random-support path does not consume timing
+data: it reconstructs $D_{\rm fb}$ and $W_{\rm fb}$ exactly from every frozen
+constant-free support, verifies each manifest cell's declared population and
+sample count, and reports median, nearest-rank p90, and nearest-rank p99.
+$W_{\rm fb}/m$ is used for the cross-degree work panels. These quantiles are
+deterministic support-geometry evidence, not random-support speed evidence.

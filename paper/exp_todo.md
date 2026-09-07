@@ -481,8 +481,18 @@ The paper-facing definition of this experiment is in
       $(\log_2(W_{\rm fb}+1),D_{\rm fb})$ and colors it by GS setup time.
       These are measured scalar setup and grid summaries, not instruction
       counts, minimal circuits, or a random-modulus distribution.
-- [ ] Plot predicted active-tap work against runtime and random-support depth
-      and work against $s$.
+- [x] Plot predicted active-tap work against runtime and random-support depth
+      and work against $s$. [A] `plot_work_random_geometry.py` validates and
+      collapses the 1,096 controlled timing points, then plots
+      $\log_2W_{\rm fb}$ against median $\log_2(\mathrm{GS\ ns})$ separately
+      for each $m$; the fixed-$m$ Spearman coefficients range from 0.987 to
+      0.993. From the six frozen fixed-weight manifests it independently
+      reconstructs exact depth and work for 10,623 supports and reports
+      median, p90, and p99 against $\log_2s$. Median depth grows approximately
+      as $1+\log_2s$, while median $W_{\rm fb}/m$ grows approximately linearly
+      with $s$. The first result is a native reduction microbenchmark
+      correlation; the second is deterministic random-support geometry, not
+      random-support timing or a proof of the distributional bounds.
 - [ ] Produce the operator schematic $U,U^2,U^4,\ldots$ as an explanatory
       figure, clearly labelled as a construction diagram rather than measured
       evidence.

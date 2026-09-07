@@ -114,7 +114,7 @@ tradeoffs.
 | Logarithmic feedback depth | required | scaling test | serial/LFSR |
 | Stage count independent of $|T|$ for fixed $\Delta_{\min}$ | required | fixed-gap $|T|$-sweep | multi-tap look-ahead |
 | Work sensitive to $h_k$ | required | work/runtime test | dense/generic division |
-| Random-support expected work and depth | required | fixed-weight support sweep | sparse reduction / look-ahead |
+| Random-support expected work and depth | proof required; geometry sampled on 10,623 frozen supports | fixed-weight depth/work quantiles | sparse reduction / look-ahead |
 | Three-regime algorithm-selection phase diagram | no universal boundary | fixed-$m$ sampled winner panels | serial folding / multiplication reduction |
 | Lower work than Barrett/Montgomery in sparse regimes | required | heatmap | multiplication reduction |
 | Lightweight setup | theorem still required; primary scalar setup measured | amortization and work--depth--setup map | reciprocal/matrix |

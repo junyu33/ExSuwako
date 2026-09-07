@@ -128,6 +128,7 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(PYTHON) tests/check_feedback_depth_plot.py
 	$(PYTHON) tests/check_phase_slices.py
 	$(PYTHON) tests/check_setup_tradeoff.py
+	$(PYTHON) tests/check_work_random_geometry.py
 	$(PYTHON) tests/check_benchmark_metadata.py --binary $(TARGET)
 	$(MAKE) check-theory
 

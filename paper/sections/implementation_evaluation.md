@@ -465,6 +465,26 @@ instruction-count, or circuit-depth claim. Because the quantiles summarize a
 designed Cartesian grid, they are not estimates over a random modulus
 population.
 
+The formal scheduled coefficient work is also compared directly with native
+GS time without identifying the two quantities. Within each fixed-$m$ panel,
+the scatter of $\log_2W_{\rm fb}$ against the median
+$\log_2(\mathrm{GS\ ns})$ has Spearman coefficient between $0.987$ and
+$0.993$ across the six degrees. This is strong monotone predictive evidence
+on the controlled grid, while the visible residual structure and the separate
+source-word analysis prevent it from being presented as an instruction-count
+or exact runtime model.
+
+The random-support geometry experiment is deliberately timing-free. The six
+frozen constant-free fixed-weight manifests contain 10,623 distinct supports:
+256 for every $(m,s)$ cell with
+$s\in\{1,2,4,8,16,32,64\}$ except the exhaustive 127-support population for
+$(m,s)=(128,1)$. Exact reconstruction from each tap list shows median feedback
+depth growing approximately as $1+\log_2s$ and median normalized work
+$W_{\rm fb}/m$ growing approximately linearly with $s$; nearest-rank p90 and
+p99 curves retain the upper tail. These observations are computational
+support-geometry evidence for the random-support theorem targets, not a proof
+and not a measurement of random-support reduction speed.
+
 1. **Schematic classical algorithm-selection phase diagram.** For a fixed
    $m$, show modulus Hamming weight $h$ horizontally and
    $m/\Delta_{\min}$ vertically on a logarithmic scale. Label the three
