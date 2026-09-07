@@ -27,10 +27,9 @@
 \title[Sparse Modular Reduction]{Sparse Modular Reduction with Logarithmic
 Feedback Depth}
 
-% Author metadata is intentionally omitted from this working manuscript.
-\author{Author Name}
-\address{Institution and postal address}
-\email{author@example.org}
+\author{Junyu Zhou}
+\address{Sichuan University}
+\email{helloworld@junyu33.me}
 \subjclass[2020]{Primary 11T06; Secondary 12Y05, 68W10, 68W40}
 \keywords{binary polynomials, modular reduction, finite fields,
 sparse polynomials, Frobenius map, parallel algorithms}
@@ -231,15 +230,19 @@ Method & Applicability and evidence role & Reusable plan and principal boundary\
 FFR & Arbitrary monic modulus; primary method.
 & Doubled-shift schedule and one state plus a sentinel; cost depends on tap
 geometry and word traffic.\\
+\midrule
 Serial & Arbitrary monic modulus; screened sparse baseline.
 & Tap descriptors and two states; small $\Dmin$ creates a long dependency
 chain.\\
+\midrule
 BarrettGF2X & Arbitrary monic modulus; primary multiplication-based baseline.
 & Reciprocal and reusable product buffers; cost depends on gf2x multiplication
 thresholds.\\
+\midrule
 L\'opez--Dahab & $\deg q\le m-W$; primary baseline where applicable.
 & Tap descriptors and a $2m$-bit work buffer; unavailable outside its degree
 condition.\\
+\midrule
 Dense map & Fixed modulus with packed map at most 64 MiB; diagnostic baseline.
 & Packed $m\times m$ map and high-part scratch; storage is quadratic.\\
 \bottomrule
@@ -564,6 +567,11 @@ They satisfy
   \le \widehat B_{\rm fb}+S_{\rm fb}.
   \label{eq:feedback-padding-overhead}
 \end{equation}
+Moreover,
+\begin{equation}
+  \sum_{k=0}^{r-1}a_k\le B_{\rm fb}^{\rm loop}.
+  \label{eq:stage-span-dominated}
+\end{equation}
 An in-place scalar implementation makes one $n$-word high-part extraction,
 traverses $a_k$ destination words at feedback stage $k$, and makes one
 $n$-word final assembly pass, in addition to the
@@ -584,6 +592,14 @@ the state.  It therefore visits
 destinations.  This is either the useful count
 $\lceil(m-d)/W\rceil$ or that count plus one; the latter case performs only a
 padding-word contribution.  Summing proves~\eqref{eq:feedback-padding-overhead}.
+For each $k<r$, a tap attaining $\Dmin$ is active and contributes
+\[
+  \min\left\{a_k,
+    n-\left\lfloor\frac{2^k\Dmin}{W}\right\rfloor\right\}=a_k.
+\]
+Summing these contributions proves~\eqref{eq:stage-span-dominated}; therefore
+the complete scalar loop decomposition is
+$O(n+B_{\rm fb}^{\rm loop}+B_V)$.
 The extraction and assembly statements follow from traversing the $m$-bit
 input and output states once.
 \end{proof}
@@ -652,53 +668,42 @@ here, not compiler instructions or measured cycles.
 \begin{table}[t]
 \caption{Reduction work and dependency depth.  Here
 $n=\lceil m/W\rceil$, $s=|T|$, and fan-in-two depth assumes free fanout.
+As defined in Proposition~\ref{prop:word-geometry},
+$B_{\rm fb}^{\rm loop}$ counts shifted-word contributions traversed by the
+feedback loops, while $B_V$ counts those traversed by final low-part assembly.
 The serial row assumes $U\ne0$, and the L\'opez--Dahab row assumes
-$\deg q\le m-W$.}
+$\deg q\le m-W$.  The displayed depths retain the natural dependency
+measure of each method rather than defining a common gate-depth metric.}
 \label{tab:method-complexity}
 \centering
-\small
-\renewcommand{\arraystretch}{1.55}
+\footnotesize
+\renewcommand{\arraystretch}{1.35}
 \begin{tabular}{@{}
-  >{\raggedright\arraybackslash}p{0.15\textwidth}
-  >{\centering\arraybackslash}p{0.38\textwidth}
-  >{\centering\arraybackslash}p{0.38\textwidth}@{}}
+  >{\raggedright\arraybackslash}p{0.17\textwidth}
+  >{\centering\arraybackslash}p{0.34\textwidth}
+  >{\centering\arraybackslash}p{0.41\textwidth}@{}}
 \toprule
-Method & Work & Depth\\
+Method & Work & Dependency depth\\
 \midrule
 FFR
-& $\displaystyle
-  \begin{gathered}
-    C_{\rm coeff}=\Wfb+W_V,\\
-    C_{\rm word}=O\!\left(n+\sum_k a_k\right.\\[-2pt]
-    \left.{}+B_{\rm fb}^{\rm loop}+B_V\right)
-  \end{gathered}$
-& $\displaystyle
-  \begin{gathered}
-    D_{\rm fb}=r=\left\lceil\log_2\frac{m}{\Dmin}\right\rceil,\\
-    D_\oplus\le
-    \sum_{k=0}^{r-1}\left\lceil\log_2(1+h_k)\right\rceil\\[-2pt]
-    {}+\left\lceil\log_2(1+s)\right\rceil
-  \end{gathered}$\\
+& $C_{\rm word}=O\!\left(n+B_{\rm fb}^{\rm loop}+B_V\right)$
+& $D_{\rm fb}=r=\left\lceil\log_2(m/\Dmin)\right\rceil$\\
+\midrule
 Serial
 & $C_{\rm word}=O(sn\nu_U)$
-& $\displaystyle
-  \begin{gathered}
-    D_{\rm fb}\le\nu_U\le\left\lceil\frac{m}{\Dmin}\right\rceil,\\
-    D_\oplus=O\!\left(\nu_U\log(s+1)\right)
-  \end{gathered}$\\
+& $D_{\rm fb}\le\nu_U\le\left\lceil m/\Dmin\right\rceil$\\
+\midrule
 L\'opez--Dahab
 & $C_{\rm word}=\Theta\!\left(n(1+s)\right)$
-& $\displaystyle
-  \begin{gathered}
-    D_{\rm loop}=n+O(1),\\
-    D_\oplus=O\!\left(n\log(s+1)\right)
-  \end{gathered}$\\
+& $D_{\rm loop}=n+O(1)$\\
+\midrule
 BarrettGF2X
 & $C_{\rm word}=2M(n)+O(n)$
 & $D=2D_M(n)+O(1)$\\
+\midrule
 Dense map
 & $C_{\rm word}=\Theta(mn)=\Theta(m^2/W)$
-& $D_\oplus=O(\log m)$\\
+& $D=O(\log m)$\\
 \bottomrule
 \end{tabular}
 \renewcommand{\arraystretch}{1}
@@ -930,10 +935,15 @@ is also Barrett; uncertain cells neither create nor break it.}
 $m$ & FFR (ns) & Barrett/FFR & crossover $h$ & ratio at crossover\\
 \midrule
 128    & 64.1    & 2.164  & 33  & 0.881\\
+\midrule
 512    & 272.9   & 3.807  & 97  & 0.718\\
+\midrule
 2048   & 1079.2  & 4.247  & 97  & 0.664\\
+\midrule
 8192   & 4390.2  & 8.654  & 129 & 0.819\\
+\midrule
 32768  & 17008.4 & 16.768 & 257 & 0.881\\
+\midrule
 131072 & 68167.1 & 37.712 & 641 & 0.886\\
 \bottomrule
 \end{tabular}
@@ -977,10 +987,15 @@ $(h,\Dmin)=(9,1)$.  Each entry is ``nanoseconds / bytes.''}
 $m$ & trials & FFR & Serial & Barrett\\
 \midrule
 128    & 127 & 596.5 / 744    & 119.5 / 416   & 782.0 / 184\\
+\midrule
 512    & 127 & 719.5 / 888    & 123.5 / 512   & 4770.5 / 376\\
+\midrule
 2048   & 127 & 887.5 / 1176   & 137.0 / 896   & 50799.0 / 1144\\
+\midrule
 8192   & 127 & 1152.0 / 2040  & 149.0 / 2432  & 558369.5 / 4216\\
+\midrule
 32768  & 127 & 1312.0 / 5208  & 235.0 / 8576  & 7760258.5 / 16504\\
+\midrule
 131072 & 31  & 2832.5 / 17592 & 856.5 / 33152 & 119030566.0 / 65656\\
 \bottomrule
 \end{tabular}
@@ -1093,6 +1108,11 @@ widens relative to NTL over the measured degree range.  This establishes one
 computational-algebra consequence, not a claim about factorization, polynomial
 search, or arbitrary irreducible-modulus distributions.
 
+\paragraph{Software and data availability.}
+The implementation, deterministic manifests, raw benchmark data, and
+reproduction scripts underlying the reported results will be available at
+\url{https://github.com/junyu33/ExSuwako}.
+
 \appendix
 
 \section{Coefficient-Algebra Extension}
@@ -1182,7 +1202,8 @@ and figure from the hash-locked external CSV.
 \bibitem{BiniPan1985}
 D.~Bini and V.~Pan, \emph{Fast parallel polynomial division via reduction to
 triangular Toeplitz matrix inversion and to polynomial inversion modulo a
-power}, Inform. Process. Lett. \textbf{21} (1985), no.~2.
+power}, Inform. Process. Lett. \textbf{21} (1985), no.~2,
+79--81, \url{https://doi.org/10.1016/0020-0190(85)90037-7}.
 
 \bibitem{Bini1984}
 D.~Bini, \emph{Parallel solution of certain Toeplitz linear systems},
@@ -1202,7 +1223,7 @@ $\mathbb F_2$}, Math. Comp. \textbf{71} (2002), no.~240, 1677--1698,
 
 \bibitem{Kalorkoti1993}
 K.~S.~K. Kalorkoti, \emph{Inverting polynomials and formal power series},
-SIAM J. Comput. \textbf{22} (1993), no.~3,
+SIAM J. Comput. \textbf{22} (1993), no.~3, 552--559,
 \url{https://doi.org/10.1137/0222037}.
 
 \bibitem{HoLee1990}
@@ -1213,17 +1234,20 @@ triangular systems}, IEEE Trans. Comput. \textbf{39} (1990), no.~6,
 \bibitem{KnezevicEtAl2008}
 M.~Knezevic, K.~Sakiyama, J.~Fan, and I.~Verbauwhede, \emph{Modular reduction
 in $\operatorname{GF}(2^n)$ without pre-computational phase}, WAIFI 2008,
-LNCS 5130, Springer, 2008, pp.~77--87.
+LNCS 5130, Springer, 2008, pp.~77--87,
+\url{https://doi.org/10.1007/978-3-540-69499-1_7}.
 
 \bibitem{KoggeStone1973}
 P.~M. Kogge and H.~S. Stone, \emph{A parallel algorithm for the efficient
 solution of a general class of recurrence equations}, IEEE Trans. Comput.
-\textbf{C-22} (1973), no.~8.
+\textbf{C-22} (1973), no.~8, 786--793,
+\url{https://doi.org/10.1109/TC.1973.5009159}.
 
 \bibitem{LopezDahab2000}
 J.~L\'opez and R.~Dahab, \emph{High-speed software multiplication in
 $\mathbb F_{2^m}$}, Progress in Cryptology---INDOCRYPT 2000, LNCS 1977,
-Springer, 2000.
+Springer, 2000, pp.~203--212,
+\url{https://doi.org/10.1007/3-540-44495-5_18}.
 
 \bibitem{LinEtAl2013}
 J.-C.~Lin, S.-J.~Chen, and Y.~H. Hu, \emph{Cycle-efficient LFSR
@@ -1245,7 +1269,8 @@ pp.~954--959, \url{https://doi.org/10.1109/ICASSP.1980.1171074}.
 \bibitem{NiehuesEtAl2018}
 L.~Boppre Niehues, R.~Custodio, and D.~Panario, \emph{Fast modular reduction
 and squaring in $\operatorname{GF}(2^m)$}, Inform. Process. Lett.
-\textbf{132} (2018), \url{https://doi.org/10.1016/j.ipl.2017.12.002}.
+\textbf{132} (2018), 33--38,
+\url{https://doi.org/10.1016/j.ipl.2017.12.002}.
 
 \bibitem{Shoup1990}
 V.~Shoup, \emph{New algorithms for finding irreducible polynomials over finite
@@ -1255,7 +1280,8 @@ fields}, Math. Comp. \textbf{54} (1990), no.~189, 435--447,
 \bibitem{Wu1999}
 H.~Wu, \emph{Low complexity bit-parallel finite field arithmetic using
 polynomial basis}, Cryptographic Hardware and Embedded Systems---CHES 1999,
-LNCS 1717, Springer, 1999, pp.~280--291.
+LNCS 1717, Springer, 1999, pp.~280--291,
+\url{https://doi.org/10.1007/3-540-48059-5_24}.
 \end{thebibliography}
 
 \end{document}
