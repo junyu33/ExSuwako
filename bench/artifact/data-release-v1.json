@@ -1,0 +1,22 @@
+{
+  "schema": "exsuwako-data-release:v1",
+  "release_tag": "moc-artifact-v1",
+  "release_url": "https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v1",
+  "asset": {
+    "filename": "ExSuwako-MoC-artifact-v1.tar.gz",
+    "bytes": 4903934,
+    "sha256": "c93cebad3bc2b915c4b1fc728a57c3db5a45c89b1f9693b623a5a37d8c81a622"
+  },
+  "datasets": [
+    {
+      "filename": "paper-v1-raw.csv",
+      "rows": 67576,
+      "sha256": "7244edc1ac03dabee71870386a59f722ffcde92769486786e22a00212761ee0e"
+    },
+    {
+      "filename": "rabin-main-5d91ddc.csv",
+      "rows": 465,
+      "sha256": "c68e1ef2a204e3bb63c2d057fedd2023b229494f9b6313ef481575c598ed0f95"
+    }
+  ]
+}

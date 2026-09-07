@@ -54,6 +54,14 @@ The artifact establishes the reported primary portable-scalar platform only.
 It makes no architecture-independent speed claim and therefore does not
 require or imply a second-machine result.
 
+The two canonical CSV payloads are published together in the
+[`moc-artifact-v1`](https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v1)
+release as `ExSuwako-MoC-artifact-v1.tar.gz`.  Its archive size and SHA-256,
+and the independent row counts and hashes of both extracted datasets, are
+frozen in [`data-release-v1.json`](data-release-v1.json).  Extract the archive
+under `bench/data/` before running the commands above; exploratory CSV files
+are not part of the release.
+
 [`validation-4465388.json`](validation-4465388.json) records the current
 fresh-worktree validation of the 26-output paper artifact and the two-output
 Rabin artifact. The predecessor 24-output audit remains preserved in
