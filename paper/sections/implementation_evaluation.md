@@ -443,6 +443,28 @@ measured applicability domain, and non-unique winner classifications remain
 visible as hollow markers. The plots use controlled supports and therefore
 do not substitute for the separate random-support quantiles.
 
+Setup is analyzed from the same 1,096 exact supports rather than folded into
+steady-state reduction. For mandatory, explicitly listed reuse counts $K$, the
+derived table retains each method's component medians and computes
+
+$$
+T_{\rm total}(K)=T_{\rm setup}+K T_{\rm reduce},\qquad
+\bar T(K)=T_{\rm reduce}+T_{\rm setup}/K.
+$$
+
+Six amortization panels plot the median competitor/GS ratio and the p10--p90
+range across measured controlled cells. They show that setup can change the
+descriptive grid-median ordering at small $K$: the Barrett/GS curve changes
+sign with reuse at $m=128$ and $m=2048$, while L\'opez--Dahab's lightweight
+plan is already favorable over most of its measured applicability domain.
+The breadth of the bands also rules out a single support-independent
+break-even count. A companion six-panel map plots every support at
+$(\log_2(W_{\rm fb}+1),D_{\rm fb})$ and encodes measured GS setup by color.
+It is a source-geometry and scalar-setup visualization, not a minimal-work,
+instruction-count, or circuit-depth claim. Because the quantiles summarize a
+designed Cartesian grid, they are not estimates over a random modulus
+population.
+
 1. **Schematic classical algorithm-selection phase diagram.** For a fixed
    $m$, show modulus Hamming weight $h$ horizontally and
    $m/\Delta_{\min}$ vertically on a logarithmic scale. Label the three

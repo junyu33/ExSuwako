@@ -103,7 +103,7 @@ Boolean-circuit upper bound into hardware depth without fixing the model.
 | Scheduled geometry-sensitive work bound | Formal proof with operation model | Candidate theorem |
 | Algebraic computational falsification | Reproducible independent tests | Measured over GF(2), GF(4), dual numbers, and F3; not a proof |
 | Generic bounded-fan-in depth lower bound | Formal model and proof | Candidate theorem |
-| Native scalar speed regions | Reproducible matched experiments | Exploratory |
+| Native scalar speed regions and setup amortization | Reproducible matched experiments | Measured on the primary scalar platform; second-platform and artifact gates remain open |
 | Platform-optimal modulus changes | Search plus end-to-end measurements | Open hypothesis |
 | Novelty | Hostile primary-source audit | Provisional |
 

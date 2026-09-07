@@ -469,8 +469,18 @@ The paper-facing definition of this experiment is in
       $\log_2(T_{\rm method}/T_{\rm GS})$ around an explicit zero crossover,
       omit L\'opez--Dahab outside measured applicability, preserve uncertain
       points as hollow markers, and perform no interpolation.
-- [ ] Plot setup amortization over $K$ and a work--feedback-depth--setup
-      tradeoff map.
+- [x] Plot setup amortization over $K$ and a work--feedback-depth--setup
+      tradeoff map. [A] `plot_setup_tradeoff.py` validates complete trial
+      sequences and the frozen timing/setup scopes, takes per-support medians
+      of the separately measured setup and reduction components, and derives
+      $T_{\rm setup}+K T_{\rm reduce}$ only for mandatory explicit $K$ values.
+      Its provenance-preserving CSV contains every enabled method for all
+      1,096 supports. One $2\times3$ figure reports competitor/GS amortized
+      ratios over $K$ as the median and p10--p90 range across measured
+      controlled cells; a second plots every support by
+      $(\log_2(W_{\rm fb}+1),D_{\rm fb})$ and colors it by GS setup time.
+      These are measured scalar setup and grid summaries, not instruction
+      counts, minimal circuits, or a random-modulus distribution.
 - [ ] Plot predicted active-tap work against runtime and random-support depth
       and work against $s$.
 - [ ] Produce the operator schematic $U,U^2,U^4,\ldots$ as an explanatory

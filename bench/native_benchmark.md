@@ -718,4 +718,28 @@ backend with every row.  The existing
 rows and records the exact support, active-tap profile, \(W_{\mathrm{fb}}\),
 and raw per-method setup and reduction timings. The plotting step must derive
 the amortized quantities for explicitly stated values of $K$; it must not add
-a hidden default $K$ to the raw data. No existing CSV is evidence for the map.
+a hidden default $K$ to the raw data.
+
+The implemented derivation is:
+
+```text
+python3 bench/scripts/plot_setup_tradeoff.py \
+  --input bench/data/phase_raw.csv \
+  --amortization-data bench/data/setup-amortization.csv \
+  --amortization-figure bench/data/setup-amortization.svg \
+  --tradeoff-figure bench/data/work-depth-setup.svg \
+  --k-values 1 2 4 8 16 32 64 128 256 512 1024 \
+  --plot-methods BarrettGF2X LopezDahabLoop
+```
+
+`--k-values` and the plotted competitor set are mandatory rather than hidden
+defaults. The derived CSV retains every exact support and the compiler,
+gf2x, machine, affinity, frequency, seed, implementation, backend, timing,
+setup, and storage-model provenance. It reports the medians of the separately
+sampled setup and reduction components and then computes
+$T_{\rm setup}+K T_{\rm reduce}$ and its per-reduction average. The
+amortization panels summarize the median and p10--p90 range across the measured
+controlled cells; those quantiles describe the designed grid, not a random
+modulus population. The tradeoff panels plot every support at
+$\bigl(\log_2(W_{\rm fb}+1),D_{\rm fb}\bigr)$ and color it by
+$\log_2(T_{\rm setup,GS}+1)$.

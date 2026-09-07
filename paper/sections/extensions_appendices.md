@@ -117,7 +117,7 @@ tradeoffs.
 | Random-support expected work and depth | required | fixed-weight support sweep | sparse reduction / look-ahead |
 | Three-regime algorithm-selection phase diagram | no universal boundary | fixed-$m$ sampled winner panels | serial folding / multiplication reduction |
 | Lower work than Barrett/Montgomery in sparse regimes | required | heatmap | multiplication reduction |
-| Lightweight setup | precise definition | amortization | reciprocal/matrix |
+| Lightweight setup | theorem still required; primary scalar setup measured | amortization and work--depth--setup map | reciprocal/matrix |
 | Useful on real moduli | no | deferred outside the current reduction study | parameter sources |
 | Coefficient-algebra extension | required | optional | algebra literature |
 
