@@ -1,0 +1,17 @@
+{
+  "schema": "exsuwako-paper-artifact:v1",
+  "raw_dataset": {
+    "file": "paper-v1-raw.csv",
+    "rows": 67576,
+    "sha256": "7244edc1ac03dabee71870386a59f722ffcde92769486786e22a00212761ee0e"
+  },
+  "random_manifests": [
+    "bench/manifests/paper/random-m128.jsonl",
+    "bench/manifests/paper/random-m512.jsonl",
+    "bench/manifests/paper/random-m2048.jsonl",
+    "bench/manifests/paper/random-m8192.jsonl",
+    "bench/manifests/paper/random-m32768.jsonl",
+    "bench/manifests/paper/random-m131072.jsonl"
+  ],
+  "expected_outputs": {}
+}

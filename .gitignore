@@ -13,5 +13,6 @@ bench/*_smoke.csv
 bench/*_tmp.csv
 bench/**/*.csv
 bench/*.csv
+/bench/data/
 src/native/barrett_gf2x_benchmark
 paper/ExSuwako/.overleaf/

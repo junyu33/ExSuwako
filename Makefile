@@ -2,6 +2,11 @@ CC ?= gcc
 PYTHON ?= python3
 GF2X_PREFIX ?= /usr/local
 CFLAGS ?= -O3 -std=c11 -Wall -Wextra
+ARTIFACT_DATA ?= bench/data
+ARTIFACT_OUTPUT ?= bench/data/paper-v1-artifact
+ARTIFACT_CPU ?= 0
+ARTIFACT_METADATA ?= /tmp/exsuwako-artifact-metadata.json
+ARTIFACT_SMOKE ?= bench/data/paper-v1-smoke.csv
 ifeq ($(OS),Windows_NT)
 DL_LIBS ?=
 else
@@ -106,6 +111,35 @@ freeze-winner-manifests:
 	$(PYTHON) bench/scripts/freeze_winner_manifests.py \
 		--output-dir bench/manifests/paper
 
+artifact-verify-data:
+	$(PYTHON) bench/scripts/reproduce_paper_artifact.py \
+		--data-root $(ARTIFACT_DATA) --verify-only
+
+artifact-paper:
+	$(PYTHON) bench/scripts/reproduce_paper_artifact.py \
+		--data-root $(ARTIFACT_DATA) --output $(ARTIFACT_OUTPUT)
+
+artifact-cost-model:
+	mkdir -p $(ARTIFACT_OUTPUT)
+	$(PYTHON) bench/scripts/analyze_gs_cost_model.py \
+		--input $(ARTIFACT_DATA)/paper-v1-raw.csv \
+		--correlations $(ARTIFACT_OUTPUT)/cost-correlations.csv \
+		--residuals $(ARTIFACT_OUTPUT)/cost-residuals.csv \
+		--diagnostics $(ARTIFACT_OUTPUT)/cost-diagnostics.csv \
+		--min-trials 31 --mismatch-threshold 0.10
+
+artifact-microbenchmark: $(TARGET)
+	$(PYTHON) bench/scripts/capture_benchmark_metadata.py \
+		--binary $(TARGET) --output $(ARTIFACT_METADATA) --cc "$(CC)" \
+		--cflags "$(CFLAGS)" --cpu $(ARTIFACT_CPU)
+	$(PYTHON) bench/scripts/phase_diagram_benchmark.py \
+		--binary $(TARGET) \
+		--manifest bench/manifests/regression_supports.jsonl \
+		--output $(ARTIFACT_SMOKE) --inputs 8 --repeats 12 \
+		--warmup-runs 1 --measurement-trials 31 \
+		--seed 0x4152544946414354 --no-naive \
+		--metadata $(ARTIFACT_METADATA) --paper-grade
+
 check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(GS_COMPONENT_CHECK_TARGET) $(SPARSE_SHIFT_CHECK_TARGET) \
 	$(DENSE_CHECK_TARGET) $(GENERATED_CHECK_TARGET) $(TARGET)
@@ -131,6 +165,7 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(PYTHON) tests/check_work_random_geometry.py
 	$(PYTHON) tests/check_operator_schematic.py
 	$(PYTHON) tests/check_paper_tables.py
+	$(PYTHON) tests/check_artifact_driver.py
 	$(PYTHON) tests/check_benchmark_metadata.py --binary $(TARGET)
 	$(MAKE) check-theory
 

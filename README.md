@@ -183,8 +183,10 @@ $$
 - `tests/`: native and Python correctness-only test programs.  `make check`
   runs the native reducer check and the two theorem-falsification suites.
 - `bench/scripts/`: benchmark entrypoints and experiment drivers.
-- `bench/data/`: local benchmark CSV outputs. These are ignored by Git during
-  the exploratory phase.
+- `bench/data/`: local or externally supplied benchmark payloads and generated
+  outputs. The complete directory is ignored by Git; the paper artifact keeps
+  only its SHA-256 contract, scripts, and deterministic manifests in the
+  repository.
 - `bench/*.md`: benchmark notes and command documentation.
 - `paper/`: this branch's venue-specific manuscript plan and claim boundaries;
   shared mathematical facts and provenance remain on `main`.
@@ -411,9 +413,11 @@ Setup remains outside the steady-state reduction region and is reported in
 separate columns. Input generation, output allocation, correctness checks, and
 checksum consumption are outside both operation timings.
 
-Experiment drivers live in `bench/scripts/`. Local CSV outputs should go under
-`bench/data/`; they are ignored by Git while the measurements remain
-exploratory.
+Experiment drivers live in `bench/scripts/`. Local CSV and generated analysis
+outputs belong under `bench/data/` and remain outside Git. The Math. Comp.
+artifact contract under `bench/artifact/` identifies an externally supplied
+canonical dataset by row count and SHA-256 and rebuilds the paper outputs from
+it without weakening the no-CSV-in-Git policy.
 
 ## Scope and assumptions
 
