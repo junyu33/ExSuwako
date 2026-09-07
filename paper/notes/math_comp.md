@@ -275,9 +275,11 @@ classical reduction theorem.
 
 | Statement | Status |
 |---|---|
-| Monic reduction reduces to nilpotent feedback inversion | Ready to prove formally. |
-| Characteristic-two Frobenius factors retain formal per-stage support; the nonzero support is exact over reduced algebras | Ready to prove formally. |
-| Scheduled geometry-sensitive work formula and its dense \(O(m^2)\) endpoint | Ready to prove formally after fixing the operation model. |
+| Monic reduction reduces to nilpotent feedback inversion | Binary proof drafted in paper/ExSuwako/main.tex; independent audit pending. |
+| Characteristic-two Frobenius factors retain formal per-stage support; the nonzero support is exact over reduced algebras | Binary proof drafted in paper/ExSuwako/main.tex; coefficient-algebra extension remains to be formalized separately. |
+| Scheduled geometry-sensitive work formula and its dense \(O(m^2)\) endpoint | Coefficient-work proof drafted in paper/ExSuwako/main.tex; independent audit pending. |
+| Exact schedule size, in-place scalar space, and constructive setup bound | Proof drafted in paper/ExSuwako/main.tex; independent audit pending. |
+| Uniform fixed-weight support expectations | Proof drafted in paper/ExSuwako/main.tex; independent audit pending. |
 | Generic bounded-fan-in depth lower bound | Plausible proof target; state only with the generic-coefficient model. |
 | Positive-characteristic and commuting-block generalisations | Algebraically plausible; retain as corollaries after full proof checking. |
 | Linear-size reversible circuits for all fixed-weight tap geometries | Open; do not claim. |

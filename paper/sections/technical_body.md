@@ -470,7 +470,7 @@ State that native code still requires a standard constant-time audit.
 
 ### 6.1 Feedback Depth
 
-**Theorem 4.** If $q\ne0$,
+**Theorem 4.** If $U\ne0$,
 
 $$
 D_{\mathrm{fb}}
@@ -480,8 +480,8 @@ D_{\mathrm{fb}}
 \right\rceil.
 $$
 
-If $q=0$, then $D_{\mathrm{fb}}=0$. For fixed $m$ and $\Delta_{\min}$, state
-separately:
+If $U=0$ (equivalently, $T\subseteq\{0\}$), then $D_{\mathrm{fb}}=0$.
+For fixed $m$ and $\Delta_{\min}$, state separately:
 
 $$
 D_{\mathrm{fb}}
@@ -664,23 +664,24 @@ follow the uniform-support formulas above.
 
 ### 6.5 Space
 
-With ping-pong buffers,
-
-$$
-S_{\mathrm{Ex}}=O(n).
-$$
-
-Give an exact number of temporary words.
+The low-to-high right-shift update permits one in-place state.  Excluding
+caller-owned input and output, the scalar implementation uses exactly
+\(n+1\) plan-owned scratch-array words: \(n=\lceil m/W\rceil\) state words
+and one zero sentinel.  The proof is now drafted in the manuscript.
 
 ### 6.6 Setup
 
-The explicit schedule has size
+The explicit feedback schedule has exactly
 
 $$
-O\left(\sum_kh_k\right).
+S_{\rm fb}=\sum_kh_k
+=\sum_{t\in T}\left\lceil\log_2\frac m{\Delta_t}\right\rceil
 $$
 
-Alternatively, it can be generated online from the tap list.
+shift records, plus \(r\) stage records and \(|T|\) assembly records.  A
+two-pass bucket construction takes \(O(|T|+r+S_{\rm fb})\) word-RAM
+operations.  These statements describe reusable schedule setup; the
+benchmark continues to time its concrete plan builder separately.
 
 Compare with reciprocal constants, dense matrices, and fixed XOR-network
 synthesis.

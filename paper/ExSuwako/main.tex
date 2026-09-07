@@ -10,6 +10,7 @@
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{example}[theorem]{Example}
@@ -106,10 +107,11 @@ monic binary modulus; (ii) a sparse characteristic-two factorization;
 study; and (v) evaluation in repeated modular squaring and one complete
 computational-algebra workload.
 
-\drafttodo{Items (i)--(iii) remain candidate theorem claims until the proof
-and cost-model audit is complete.  Items (iv)--(v) remain planned until the
-experiments in Sections~\ref{sec:evaluation} and~\ref{sec:consequences} are
-complete.  Delete unsupported contributions.}
+\drafttodo{Items (i)--(ii) now have complete binary proofs in
+Sections~\ref{sec:operators}--\ref{sec:algorithm}, but still require an
+independent proof audit.  Item (iii) remains open until the cost-model proof is
+complete.  Retain items (iv)--(v) only to the extent supported by
+Sections~\ref{sec:evaluation} and~\ref{sec:consequences}.}
 
 Correctness does not require irreducibility; sparsity is a performance
 condition rather than an applicability condition.  We do not identify
@@ -138,7 +140,8 @@ $\Delta_t=m-t$.  If $T\ne\varnothing$, let
 \begin{equation}
   \Dmin=\min\{\Delta_t:t\in T\}.
 \end{equation}
-For $T=\varnothing$, the feedback operator below is zero and we set $r=0$.
+When $T\subseteq\{0\}$, the feedback operator below is zero and we set
+$r=0$; otherwise $r$ is defined by~\eqref{eq:r}.
 
 Identify degree-below-$m$ polynomials with vectors in $\Ftwo^m$.  Let $N$ be
 the truncated right shift
@@ -155,12 +158,14 @@ For $A\in\poly$ with $\deg A<2m$, write
   \label{eq:low-high}
 \end{equation}
 For degree-below-$m$ input $Y$, define linear maps $V$ and $U$ by
-\begin{equation}
-  qY=V(Y)+x^mU(Y),
-  \qquad
-  U=\sum_{t\in T}N^{\Delta_t}.
+\begin{align}
+  qY&=V(Y)+x^mU(Y),\nonumber\\
+  V(Y)&=\sum_{t\in T}(x^tY\bmod x^m),
+  &U&=\sum_{t\in T}N^{\Delta_t}.
   \label{eq:UV}
-\end{equation}
+\end{align}
+Here and below an empty sum denotes the zero map.  The term $t=0$, when
+present, contributes the identity to $V$ and the zero shift $N^m$ to $U$.
 Monicity is sufficient for a unique remainder; irreducibility is required only
 when the quotient is intended to be a field.
 
@@ -225,8 +230,16 @@ For~\eqref{eq:low-high} and~\eqref{eq:UV},
 Consequently, if $H=(I+U)Y$, then $A\bmod g=L+V(Y)$.
 \end{lemma}
 \begin{proof}
-Expand $A-(x^m+q)Y$ and use subtraction equals addition in characteristic two.
-\prooftodo
+Using~\eqref{eq:low-high} and~\eqref{eq:UV}, and using that subtraction and
+addition coincide over $\Ftwo$, we obtain
+\begin{align*}
+  A-gY
+  &=L+x^mH+x^mY+qY\\
+  &=L+V(Y)+x^m\bigl(H+Y+U(Y)\bigr).
+\end{align*}
+If $H=(I+U)Y$, the entire high-part factor in the last display vanishes.
+Hence $A-(L+V(Y))=gY$, while $\deg(L+V(Y))<m$.  The uniqueness of the
+remainder on division by the monic polynomial $g$ proves the claim.
 \end{proof}
 
 \begin{lemma}[Sparse Frobenius powers]
@@ -239,14 +252,22 @@ For every $k\ge0$,
 where shifts by at least $m$ are zero.
 \end{lemma}
 \begin{proof}
-The shifts commute, and characteristic-two Frobenius removes mixed binomial
-terms.  Truncation removes shifts of distance at least $m$.
-\prooftodo
+The truncated shifts satisfy $N^aN^b=N^{a+b}$ and therefore commute.  In the
+endomorphism algebra of $\Ftwo^m$, commuting elements satisfy
+$(X_1+\cdots+X_s)^2=X_1^2+\cdots+X_s^2$.  Starting from
+$U=\sum_{t\in T}N^{\Delta_t}$ and iterating this identity $k$ times gives
+\[
+  U^{2^k}=\sum_{t\in T}(N^{\Delta_t})^{2^k}
+           =\sum_{t\in T}N^{2^k\Delta_t}.
+\]
+Finally, $N^d=0$ for $d\ge m$.  Since the distances $\Delta_t$ are distinct,
+the surviving shifts in the displayed sum cannot cancel.
 \end{proof}
 
 \begin{theorem}[Sparse feedback inverse]
 \label{thm:inverse}
-If $U=0$, then $(I+U)^{-1}=I$.  Otherwise, for
+If $U=0$, set $r=0$; then $(I+U)^{-1}=I$, with the empty product understood
+as $I$.  Otherwise, for
 \begin{equation}
   r=\left\lceil\log_2\frac{m}{\Dmin}\right\rceil,
   \label{eq:r}
@@ -256,11 +277,24 @@ we have $U^{2^r}=0$ and
   (I+U)^{-1}=\prod_{k=0}^{r-1}(I+U^{2^k}).
   \label{eq:inverse}
 \end{equation}
+Moreover, $r$ is the least nonnegative integer for which $U^{2^r}=0$.
 \end{theorem}
 \begin{proof}
-Lemma~\ref{lem:frobenius} gives $U^{2^r}=0$.  Multiplication of the factors
-gives $(I+U)\prod_{k<r}(I+U^{2^k})=I+U^{2^r}=I$.
-\prooftodo
+Suppose $U\ne0$.  Then $T$ contains a positive tap, $\Dmin<m$, and
+$r\ge1$.  By the definition of $r$, every $t\in T$ satisfies
+$2^r\Delta_t\ge2^r\Dmin\ge m$.  Lemma~\ref{lem:frobenius} therefore gives
+$U^{2^r}=0$.  On the other hand,
+$2^{r-1}\Dmin<m$, so the unique tap at distance $\Dmin$ contributes the
+nonzero shift $N^{2^{r-1}\Dmin}$ to $U^{2^{r-1}}$.  Thus $r$ is minimal.
+
+For any $j\ge0$, repeated use of $(I+X)^2=I+X^2$ gives the telescoping
+identity
+\begin{equation*}
+  (I+U)\prod_{k=0}^{j-1}(I+U^{2^k})=I+U^{2^j}.
+\end{equation*}
+Taking $j=r$ makes the right-hand side $I$.  All factors are polynomials in
+$U$ and hence commute, so the product is both a left and a right inverse of
+$I+U$.  The case $U=0$ is immediate.
 \end{proof}
 
 This is a factored truncated reciprocal.  Formal-series inversion itself is
@@ -297,46 +331,298 @@ For every monic $g\in\poly$ of degree $m$ and every $A$ with $\deg A<2m$,
 Algorithm~1 returns $A\bmod g$.
 \end{theorem}
 \begin{proof}
-The stages apply Theorem~\ref{thm:inverse}, so
-$Y=(I+U)^{-1}H$.  Lemma~\ref{lem:decomposition} then identifies $L+V(Y)$ as
-the remainder.
-\prooftodo
+At stage $k$, every summand reads the same value $Y_{\rm old}$, so the stage
+maps its input to
+\[
+  \left(I+\sum_{t\in T_k}N^{2^k\Delta_t}\right)Y_{\rm old}
+  =(I+U^{2^k})Y_{\rm old}
+\]
+by Lemma~\ref{lem:frobenius}.  After all stages,
+\[
+  Y=\prod_{k=0}^{r-1}(I+U^{2^k})H=(I+U)^{-1}H
+\]
+by Theorem~\ref{thm:inverse}; the order of the factors is immaterial because
+they commute.  Hence $H=(I+U)Y$, and Lemma~\ref{lem:decomposition} shows that
+the returned polynomial $L+V(Y)$ is $A\bmod g$.
 \end{proof}
 
 \begin{example}
-For $g=x^m+x^{m-d}+1$, feedback shifts are $d,2d,4d,\ldots$ while below $m$.
+Let
+\[
+  g=x^{16}+x^{15}+x^{11}+x^3+1.
+\]
+The nonconstant taps have distances $1$, $5$, and $13$; the constant tap has
+distance $16$ and contributes no feedback.  Thus $r=4$, and Algorithm~1
+applies the four maps
+\begin{align*}
+  I+N+N^5+N^{13},\qquad
+  I+N^2+N^{10},\qquad
+  I+N^4,\qquad
+  I+N^8.
+\end{align*}
+The shifts $26$, $20$, and $52$ have disappeared by truncation.  Their mixed
+feedback paths have not been discarded: they arise implicitly when these
+four factors are composed.  For the resulting state $Y$, the algorithm
+returns
+\[
+  L+Y+(x^3Y\bmod x^{16})+(x^{11}Y\bmod x^{16})
+    +(x^{15}Y\bmod x^{16}).
+\]
 \end{example}
 
-\drafttodo{Add one complete multi-tap example and cover $q=0$,
-constant-only, constant-free, dense, reducible, and non-word-aligned cases.}
+\begin{remark}[Boundary cases]
+If $T=\varnothing$, then $g=x^m$, $U=V=0$, no feedback stage is executed,
+and the remainder is $L$.  If $T=\{0\}$, then $g=x^m+1$, $U=0$ and $V=I$,
+so the remainder is $L+H$.  Omitting the constant tap merely removes the
+identity summand from $V$; it does not change the argument.  Dense and
+reducible moduli satisfy the same correctness theorem, although density can
+make the schedule unattractive.  Finally, a degree $m$ not divisible by the
+machine-word width changes masking and storage in an implementation, not the
+algebraic algorithm.
+\end{remark}
 
 \section{Work--Depth--Space Geometry}
 \label{sec:complexity}
 
-Let $h_k=|T_k|$.  Algorithm~1 has exactly
-$r=\lceil\log_2(m/\Dmin)\rceil$ feedback stages when $U\ne0$.  This is
-feedback depth, not gate depth.
+We first count \emph{scheduled coefficient contributions}: adding one shifted
+source coefficient to one destination coefficient costs one unit.  Retaining
+the unshifted stage input, copying a vector, testing a public bound, and
+reading a schedule descriptor are not included in this measure.  Let
+$s=|T|$, let $h_k=|T_k|$, and define
+\begin{equation}
+  \ell_t=\#\{k\ge0:2^k\Delta_t<m\}
+  =\left\lceil\log_2\frac{m}{\Delta_t}\right\rceil .
+  \label{eq:tap-lifetime}
+\end{equation}
+The equality includes the constant tap: if $t=0$, then $\Delta_t=m$ and
+$\ell_t=0$.
 
 \begin{theorem}[Geometry-sensitive scheduled work]
 \label{thm:work}
-The feedback factors have scheduled coefficient work
-\begin{equation}
-  \Wfb=\sum_{t\in T}
-  \sum_{k\ge0}[m-2^k\Delta_t]_+,
-  \qquad [z]_+=\max\{z,0\}.
+The number of stored feedback shifts and the feedback contribution work are,
+respectively,
+\begin{align}
+  S_{\rm fb}
+    &=\sum_{k=0}^{r-1}h_k
+      =\sum_{t\in T}\ell_t,
+      \label{eq:schedule-size}\\
+  \Wfb
+    &=\sum_{t\in T}\sum_{k\ge0}[m-2^k\Delta_t]_+,
+      \qquad [z]_+=\max\{z,0\}.
   \label{eq:work}
-\end{equation}
-If $s=|T|\ge1$, then
+\end{align}
+The final low-part assembly has scheduled coefficient work
 \begin{equation}
-  \Wfb<m\sum_{t\in T}\left\lceil\log_2\frac{m}{\Delta_t}\right\rceil
-  =O\!\left(ms\left(1+\log\frac{m}{s}\right)\right).
+  W_V=\sum_{t\in T}(m-t)=\sum_{t\in T}\Delta_t.
+  \label{eq:low-work}
 \end{equation}
+If $s\ge1$, then
+\begin{align}
+  S_{\rm fb}
+  &\le s+\log_2\frac{m^s}{s!}
+   \le s\left(1+\log_2\frac{em}{s}\right),                 \label{eq:schedule-bound}\\
+  \Wfb
+  &\le mS_{\rm fb}
+   =O\!\left(ms\left(1+\log\frac{m}{s}\right)\right),      \label{eq:work-bound}\\
+  \Wfb+W_V
+  &=O\!\left(ms\left(1+\log\frac{m}{s}\right)\right).
+  \label{eq:total-shift-work}
+\end{align}
+The inequality in~\eqref{eq:work-bound} is strict whenever $U\ne0$.
 \end{theorem}
 \begin{proof}
-A shift by $2^k\Delta_t$ affects $[m-2^k\Delta_t]_+$ positions.  Sum over
-active taps and stages.  For the last bound, order the distinct distances and
-use that the $i$th smallest positive distance is at least $i$.
-\prooftodo
+Tap $t$ appears precisely for the $\ell_t$ integers $k$ satisfying
+$2^k\Delta_t<m$, proving~\eqref{eq:schedule-size}.  At such an occurrence,
+the right shift affects exactly $m-2^k\Delta_t$ coefficient positions.
+Summing these contributions proves~\eqref{eq:work}.  Similarly,
+$x^tY\bmod x^m$ contains $m-t=\Delta_t$ scheduled source positions, which
+proves~\eqref{eq:low-work}.
+
+Order the distinct distances as
+$1\le d_1<\cdots<d_s\le m$.  Since $d_i\ge i$ and
+$\lceil z\rceil\le z+1$,
+\[
+  S_{\rm fb}
+  \le\sum_{i=1}^s\left(1+\log_2\frac{m}{i}\right)
+  =s+\log_2\frac{m^s}{s!}.
+\]
+The standard inequality $s!\ge(s/e)^s$ gives the second part
+of~\eqref{eq:schedule-bound}.  Every one of the $S_{\rm fb}$ feedback shifts
+affects at most $m$ positions, and affects strictly fewer than $m$ positions
+when it is nonzero.  This proves~\eqref{eq:work-bound}, including the
+non-strict boundary $\Wfb=S_{\rm fb}=0$ for a constant-only tap set.  Finally,
+$W_V\le ms$, and~\eqref{eq:total-shift-work} follows.
+\end{proof}
+
+\begin{corollary}[Feedback depth and a gate-depth upper bound]
+\label{cor:depth}
+If $U\ne0$, Algorithm~1 has exactly
+\[
+  r=\left\lceil\log_2\frac{m}{\Dmin}\right\rceil
+\]
+sequential feedback stages; if $U=0$, it has none.  Thus, for fixed $m$ and
+$\Dmin$, feedback depth is independent of $s$.  In a fan-in-two XOR model
+with free fanout and unrestricted temporary wires, the complete reduction has
+the upper bound
+\begin{equation}
+  D_\oplus
+  \le\sum_{k=0}^{r-1}\left\lceil\log_2(1+h_k)\right\rceil
+    +\left\lceil\log_2(1+s)\right\rceil .
+  \label{eq:gate-depth-upper}
+\end{equation}
+\end{corollary}
+\begin{proof}
+The exact feedback-stage count is the minimality statement in
+Theorem~\ref{thm:inverse}.  Within stage $k$, each output coefficient is the
+sum of its old value and at most $h_k$ shifted values, so a balanced XOR tree
+has depth at most $\lceil\log_2(1+h_k)\rceil$.  The stages are composed
+sequentially.  Final assembly adds $L$ and at most $s$ shifted values, giving
+the last term in~\eqref{eq:gate-depth-upper}.
+\end{proof}
+
+Equation~\eqref{eq:gate-depth-upper} is an upper bound in a specified circuit
+model, not a lower bound and not a hardware-depth claim.  In particular,
+feedback depth treats a whole synchronous vector update as one stage, whereas
+gate depth accounts for the XOR tree inside that stage.
+
+\subsection{Packed-word geometry}
+
+Let $W$ be the machine-word width and $n=\lceil m/W\rceil$.  The following
+counts describe destination-word contributions; they are not instruction
+counts.  A feedback shift by $d<m$ touches
+$\lceil(m-d)/W\rceil$ destination words.  A low-assembly shift by $t$ touches
+\[
+  n-\left\lfloor\frac{t}{W}\right\rfloor
+\]
+destination words.  The latter is not always
+$\lceil(m-t)/W\rceil$: a non-word-aligned interval may intersect an additional
+word.
+
+\begin{proposition}[Word-level loop geometry]
+\label{prop:word-geometry}
+For $U\ne0$, set
+\[
+  a_k=\left\lceil\frac{m-2^k\Dmin}{W}\right\rceil
+  \qquad(0\le k<r).
+\]
+The scheduled shifted-word contributions of generalized Suwako reduction are
+\begin{align}
+  B_{\rm fb}
+    &=\sum_{t\in T}\sum_{\substack{k\ge0\\2^k\Delta_t<m}}
+       \left\lceil\frac{m-2^k\Delta_t}{W}\right\rceil,\\
+  B_V
+    &=\sum_{t\in T}
+       \left(n-\left\lfloor\frac{t}{W}\right\rfloor\right).
+\end{align}
+An in-place scalar implementation makes one $n$-word high-part extraction,
+traverses $a_k$ destination words at feedback stage $k$, and makes one
+$n$-word final assembly pass, in addition to the $B_{\rm fb}+B_V$ shifted
+contributions.
+\end{proposition}
+\begin{proof}
+A right shift by $d$ occupies coefficient positions $0,\ldots,m-d-1$, which
+span $\lceil(m-d)/W\rceil$ words.  A left shift by $t$ occupies positions
+$t,\ldots,m-1$, which span the words numbered
+$\lfloor t/W\rfloor,\ldots,n-1$.  At stage $k$, the smallest active shift is
+$2^k\Dmin$, so the union of all affected destinations spans exactly $a_k$
+words.  The extraction and assembly statements follow from traversing the
+$m$-bit input and output states once.
+\end{proof}
+
+A word-aligned contribution can be formed from one source word.  A
+non-word-aligned contribution can require two adjacent source words, two
+machine shifts, and an XOR before accumulation.  Consequently,
+Proposition~\ref{prop:word-geometry} records loop geometry but deliberately
+does not convert aligned and cross-word contributions into an ISA-independent
+latency estimate.
+
+\begin{proposition}[Temporary space and schedule setup]
+\label{prop:space-setup}
+Excluding the caller-owned input and output, the in-place scalar reduction
+can be performed with one $m$-bit state.  The implementation evaluated in
+this paper allocates exactly $n+1$ plan-owned scratch-array words: $n$ state
+words and one zero sentinel.  An
+explicit reusable plan stores
+\[
+  r\ \text{stage records},\qquad
+  S_{\rm fb}\ \text{feedback-shift records},\qquad
+  s\ \text{assembly-shift records},
+\]
+in addition to constant-size metadata.  Such a plan can be constructed in
+$O(s+r+S_{\rm fb})$ word-RAM operations and the same asymptotic number of
+records.
+\end{proposition}
+\begin{proof}
+For a positive right shift, output coefficient $i$ depends only on old
+coefficients with indices at least $i$.  Updating coefficients from low to
+high therefore never destroys a value needed by a later destination.  This
+permits one in-place state; the extra sentinel is an implementation device for
+branch-free adjacent-word reads.
+
+The record counts follow directly from~\eqref{eq:schedule-size}.  For the
+setup bound, compute every $\ell_t$ by repeated doubling, at total cost
+$O(s+S_{\rm fb})$.  Because each tap is active on the stage interval
+$0,\ldots,\ell_t-1$, a difference array followed by one prefix sum computes
+all $r$ per-stage counts in $O(s+r)$ operations.  A second pass emits the
+$\ell_t$ doubled shifts of each tap into the corresponding stage buckets in
+$O(S_{\rm fb})$ operations.
+\end{proof}
+
+The setup bound describes a two-pass schedule construction, not compilation
+of generated code.  The experiments separately time the concrete reusable
+plan builders.  For comparison, serial sparse folding needs no doubled-shift
+schedule but can execute up to $\lceil m/\Dmin\rceil$ dependent feedback
+iterations; L\'opez--Dahab has $\Theta(n(1+s))$ shift/scatter work under its
+$\deg q\le m-W$ applicability condition; the Barrett baseline performs two
+polynomial multiplications on $\Theta(n)$-word operands after reciprocal
+setup; and a materialized dense map stores $\Theta(mn)$ words and performs
+$\Theta(mn)$ row-word products.  These are different cost primitives, so
+their constants and crossovers are determined experimentally rather than by
+equating the displayed source-level counts.
+
+\subsection{Uniform fixed-weight supports}
+
+We next record what the deterministic geometry implies for one explicit
+distribution.  Fix $m$ and $1\le s\le m$, and choose $T$ uniformly among the
+$s$-subsets of $\{0,\ldots,m-1\}$.  Equivalently, the distances form a
+uniform $s$-subset of $\{1,\ldots,m\}$.  This model permits a zero constant
+coefficient and reducible moduli; it is not a distribution on irreducible
+polynomials.
+
+\begin{theorem}[Random-support schedule geometry]
+\label{thm:random-support}
+Under the uniform fixed-weight model,
+\begin{align}
+  \mathbb E[h_k]
+    &=\frac{s}{m}\left\lfloor\frac{m-1}{2^k}\right\rfloor
+      <\frac{s}{2^k},                                      \label{eq:expected-hk}\\
+  \mathbb E[S_{\rm fb}]&<2s,                               \label{eq:expected-schedule}\\
+  \mathbb E[r]&\le\lceil\log_2s\rceil+2,                   \label{eq:expected-depth}\\
+  \mathbb E[\Wfb]&<2ms.                                    \label{eq:expected-work}
+\end{align}
+Moreover, $\mathbb E[W_V]=s(m+1)/2$, and hence the expected total scheduled
+coefficient contribution work is $O(ms)$.
+\end{theorem}
+\begin{proof}
+There are exactly $\lfloor(m-1)/2^k\rfloor$ distances $d\in\{1,\ldots,m\}$
+with $2^kd<m$.  Each distance belongs to the random support with probability
+$s/m$, proving~\eqref{eq:expected-hk}.  Summing over $k\ge0$ and using
+$S_{\rm fb}=\sum_kh_k$ gives~\eqref{eq:expected-schedule}.
+
+Since $r=\sum_{k\ge0}\mathbf 1_{\{h_k>0\}}$, Markov's inequality and
+\eqref{eq:expected-hk} give
+\[
+  \Pr(h_k>0)\le\min\{1,s/2^k\}.
+\]
+Summing the first $\lceil\log_2s\rceil$ unit bounds and the remaining
+geometric tail proves~\eqref{eq:expected-depth}.  The deterministic inequality
+$\Wfb\le mS_{\rm fb}$ proves~\eqref{eq:expected-work}.  Finally, every distance
+has inclusion probability $s/m$, so
+\[
+  \mathbb E[W_V]
+  =\frac{s}{m}\sum_{d=1}^m d
+  =\frac{s(m+1)}{2}.
+\]
 \end{proof}
 
 \begin{table}[t]
@@ -349,38 +635,24 @@ checks.  Passing tests is falsification evidence, not proof.}
 \toprule
 Statement & Status & Completed evidence\\
 \midrule
-Feedback decomposition and correctness & proof audit open & 20,000 random
+Feedback decomposition and correctness & proof drafted; audit open & 20,000 random
 GF(2) trials and 299,592 exhaustive binary modulus/input pairs\\
-Frobenius factors and inverse & proof audit open & independent agreement over
+Frobenius factors and inverse & proof drafted; audit open & independent agreement over
 GF(2), $\mathbb F_4$, dual numbers, and an $\mathbb F_3$ sign/radix check\\
-Exact feedback-stage count & candidate theorem & native schedule checks at all
+Exact feedback-stage count & proof drafted; audit open & native schedule checks at all
 72 tested $(m,\Dmin)$ coordinates\\
-Scheduled work $\Wfb$ and coarse bound & candidate theorem & all 262,125
+Scheduled work $\Wfb$ and coarse bound & proof drafted; audit open & all 262,125
 nonempty supports for $2\le m\le18$ pass; fixed-$m$ runtime correlations are
 $0.987$--$0.993$\\
-Random-support laws & conjectural target & exact geometry for 10,623 frozen
+Random-support laws & proof drafted; audit open & exact geometry for 10,623 frozen
 supports, including median, p90, and p99\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Exact work depends on every tap distance, not only on $(h,\Dmin)$.  A portable
-synchronous implementation can use two $m$-bit buffers and a public schedule;
-generated code trades traversal for code size.
-
-\drafttodo{Prove exact space, schedule-size, and setup-work bounds, and give a
-model-consistent cost account for every ordinary reducer retained in the
-evaluation.  For GS, serial folding, and L\'opez--Dahab, derive scheduled fold
-and word-contribution counts; in particular, compare
-$C_{\rm LD}=\Theta(\lceil m/W\rceil(h-1))$ under $\deg q<m-W$ with
-$C_{\rm GS}^{\rm sched}=\Theta(\lceil m/W\rceil+
-\sum_{t,k:\,2^k\Delta_t<m}\lceil(m-2^k\Delta_t)/W\rceil+
-\sum_t\lceil(m-t)/W\rceil)$.  For Barrett, record the number and operand
-sizes of polynomial multiplications; for the dense map, report setup, storage,
-and row-parity work; analyze Naive only if its timing is retained.  Keep these
-models distinct, separate aligned, cross-word, and cross-vector shifts where
-applicable, and do not identify source-level counts with machine
-instructions.  Either formalize the bounded-fan-in lower bound or omit it.}
+Exact work depends on every tap distance, not only on $(h,\Dmin)$.  The bounds
+above therefore describe families and schedules; they do not claim that one
+method wins at every modulus with the same degree and weight.
 
 \section{Prior Art and Novelty Boundary}
 \label{sec:related}
