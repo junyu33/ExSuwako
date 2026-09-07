@@ -707,36 +707,77 @@ linear-circuit comparisons.  Verify all metadata against primary sources.}
 \section{Implementations and Evaluation}
 \label{sec:evaluation}
 
-Existing falsification suites compare with independent long division over
-$\Ftwo$ and separately test $\mathbb F_4$, the nonreduced algebra
-$\Ftwo[\varepsilon]/(\varepsilon^2)$, exhaustive support geometry, and an
-$\mathbb F_3$ sign check.  These tests can expose errors, but do not prove
+\subsection{Implementations and validation}
+
+The native interface exposes generalized Suwako (GS), serial top-down
+folding, naive long division, and gf2x-backed Barrett reduction through the
+same operation
+\[
+  A\longmapsto A\bmod g,\qquad \deg A<2m.
+\]
+GS and serial folding use the same packed-word shift/XOR primitive.  We also
+implemented the ordinary-loop L\'opez--Dahab reducer, using it only when
+$\Dmin\ge W$, and a packed dense linear map for diagnostic screening.  Naive
+long division is a correctness reference rather than a performance
+competitor.  Montgomery REDC is excluded because it computes
+$AR^{-1}\bmod g$ in a different representation and hence does not satisfy the
+frozen direct-reduction contract.
+
+Before timing, the binary implementations are compared with independent long
+division at word boundaries and on deterministic random instances.  Separate
+falsification suites test the algebraic identities over $\Ftwo$,
+$\mathbb F_4$, and $\Ftwo[\varepsilon]/(\varepsilon^2)$, together with the
+odd-characteristic sign convention over $\mathbb F_3$.  These checks can
+expose implementation or statement errors, but are not proofs of
 Theorem~\ref{thm:correctness}.
 
-The native API exposes generalized Suwako, serial folding, naive long
-division, and gf2x-backed Barrett under one contract.  Generalized Suwako and
-serial folding share the word-shift primitive.  The ordinary-loop
-L\'opez--Dahab reducer is included where its degree assumption holds, and a
-dense map is screened diagnostically.  Montgomery REDC is excluded because it
-computes a different Montgomery-domain operation.
+\subsection{Experimental contract}
 
-\drafttodo{Record the experiment commit, commands, seeds, case counts, tap
-manifests, compiler, gf2x archive, platform, affinity/frequency policy, input
-distributions, timed boundaries, and setup policy.}
+We measured portable scalar C on one recorded x86-64 host, pinned to logical
+CPU~0.  The programs were compiled with GCC~16.1.1 using
+\texttt{-O3 -std=c11 -Wall -Wextra}; Barrett used
+\texttt{/usr/lib/libgf2x.so.3.0.0}.  The recorded frequency policy used the
+\texttt{powersave} governor with the
+\texttt{balance\_performance} preference and turbo enabled.  Thus every
+timing conclusion below is platform-specific.
 
-\placeholderbox{Predicted stage count and active-tap work versus instrumented
-counts and cycles, including deviations from traffic, barriers, and alignment.}
+For each support, the input corpus consists of eight materialized polynomials
+$A=L+x^mH$, where $L$ and $H$ are independent uniform $m$-bit polynomials.
+One complete warm-up invocation is discarded.  A retained trial uses twelve
+batch repetitions, with the method order cyclically rotated so that each
+enabled method occupies every timing position equally often.  The setup,
+input generation, allocation, correctness checks, and output handling lie
+outside the timed call to \texttt{reduce\_into}.  No observation is deleted or
+winsorized.  The data contain either 31 or 127 complete trials per support,
+according to the frozen collection cohort.
 
-For fixed $m$, the planned phase diagram places Hamming weight $h$ horizontally
-and $m/\Dmin$ on a base-two logarithmic vertical axis.  Each support is colored
-by the matched winner among the applicable GS, serial, L\'opez--Dahab, and
-Barrett implementations.
+The controlled corpus contains 1,096 constant-free supports at
+\[
+  m\in\{128,512,2048,8192,32768,131072\}.
+\]
+It varies $h$ and $\Dmin$ independently: the nearest tap is fixed at
+$m-\Dmin$, and the remaining taps are spread deterministically.  Every point
+compares GS with Barrett.  Serial is present in the 392 points retained from
+the initial and L\'opez--Dahab screening grids, while high-weight extensions
+omit it; L\'opez--Dahab is present precisely at measured points satisfying
+$\Dmin\ge64$.  Method availability is therefore part of each point, and an
+unmeasured method is never treated as a loser.
 
-\placeholderbox{Fixed-$m$ winner panels with median, p90, p99, uncertainty
-marks, complete tap manifests, and friendly and hostile supports.}
+For each method at each support, we take the median across trials and compute
+a deterministic 10,000-resample bootstrap 95\% interval.  A unique winner is
+assigned only if every participating median has relative interval half-width
+at most 1\%, the fastest median is at least 1\% below every competitor, and
+every paired fastest/competitor ratio interval lies strictly below one.
+Failures of these tests are retained as timing instability, operational ties,
+or statistical ties rather than forced into a phase boundary.
 
-\placeholderbox{Work--feedback-depth--setup Pareto map, fixed-gap and
-fixed-weight sweeps, and setup amortization over reductions per modulus.}
+The canonical dataset has 67,576 rows and SHA-256 digest
+\path{7244edc1ac03dabee71870386a59f722ffcde92769486786e22a00212761ee0e}.
+It records the complete taps, seeds, commands, compiler and library paths,
+binary digests, timing and setup contracts, affinity, and frequency policy.
+Three clean collection commits map one-to-one to three binary digests.  From a
+fresh checkout, the artifact verifies this dataset and reconstructs all 24
+declared figures and table sources with exact hash agreement.
 
 \begin{table}[t]
 \caption{Modulus provenance and the resulting claim boundary.  The timing
@@ -760,6 +801,43 @@ real-modulus and field-level performance are deferred\\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{Measured winner regions}
+
+Figure~\ref{fig:winner-panels} gives the complete measured phase diagram.  Its
+axes are the two principal geometric parameters rather than ordinal grid
+indices.  Every block is one observed support; blank regions were not measured
+and are not interpolated.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/winner-panels.pdf}
+\caption{Measured winner regions for six fixed degrees.  The horizontal axis
+is $\log_2(h-1)$ and the vertical axis is
+$\log_2(m/\Dmin)$.  Colors identify the unique winner among the methods
+available at that point; gray cells are uncertain.  GS and Barrett are present
+everywhere, whereas L\'opez--Dahab is admitted only at its tested
+$\Dmin\ge64$ boundary.  No boundary interpolation is performed.}
+\label{fig:winner-panels}
+\end{figure}
+
+Of the 1,096 cells, 983 have a unique winner: GS wins 321, Barrett wins 305,
+and L\'opez--Dahab wins 357.  The remaining 113 cells comprise 103
+timing-unstable cells and 10 operational ties; no cell is classified as a
+statistical tie.  The largest panel, $m=131072$, deliberately retains only 31
+trials and consequently has 52 unstable cells out of 289.  This visible
+uncertainty is part of the result, not evidence for any adjacent region.
+
+The diagram separates three regimes.  GS occupies the sparse,
+difficult-feedback region.  As weight increases, multiplication-based Barrett
+eventually wins even when $\Dmin$ is small.  When $\Dmin\ge64$,
+L\'opez--Dahab increasingly dominates the friendly-feedback region as $m$
+grows.  Across rows with $\Dmin<64$, the observed persistent Barrett onset is
+$h=33$--$65$, $97$, $65$--$97$, $129$, $225$--$257$, and $641$ for the six
+successive degrees.  In the L\'opez--Dahab-applicable rows the corresponding
+onsets are $65$, $129$, $129$--$193$, $257$--$385$, $513$--$769$, and beyond
+the largest sampled weight $1025$.  These are sampled, platform-specific
+crossovers, not monotonicity theorems.
 
 \begin{table}[t]
 \caption{Portable-C reduction summary on the controlled constant-free
@@ -788,6 +866,28 @@ These medians use \texttt{portable-scalar-c:v1},
 backend on the recorded primary machine.  They establish a platform-specific
 phase boundary, not a cross-platform ordering.
 
+\subsection{Does the work model predict GS time?}
+
+Figure~\ref{fig:work-runtime} compares the formal scheduled coefficient work
+$\Wfb$ with measured GS time.  Within each fixed degree, the Spearman
+correlation ranges from $0.9868$ to $0.9934$.  Thus the complete tap geometry
+captured by $\Wfb$ orders these controlled scalar runtimes unusually well.
+The residual scatter is not assigned to cache traffic, alignment, or any
+other hardware cause because no counter evidence was collected, and the
+correlation is not an instruction-count identity.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/work-runtime.pdf}
+\caption{Scheduled active-tap work versus median GS reduction time for all
+1,096 controlled supports, shown separately at fixed $m$.  Both axes use
+base-two logarithms.  The displayed $\rho$ is the within-panel Spearman
+correlation.}
+\label{fig:work-runtime}
+\end{figure}
+
+\subsection{Setup and storage}
+
 \begin{table}[t]
 \caption{Median setup time and requested plan-owned bytes at
 $(h,\Dmin)=(9,1)$.  Each entry is ``nanoseconds / bytes.''}
@@ -811,6 +911,16 @@ $m$ & trials & GS & Serial & Barrett\\
 Setup follows \texttt{modulus-plan:v1}.  Storage follows
 \texttt{requested-owned-bytes:v1} and excludes allocator overhead, shared
 modulus storage, benchmark buffers, and transient library workspace.
+The setup measurements show a tradeoff hidden by steady-state timings:
+Barrett's reciprocal construction becomes expensive at large $m$, while GS
+retains a modest schedule-construction cost.  This does not alter the
+reduction-only winner diagram.  For an explicitly chosen reuse count $K$, the
+artifact separately derives
+\[
+  T_{\mathrm{total}}(K)=T_{\mathrm{setup}}+K T_{\mathrm{reduce}};
+\]
+we do not fold an unstated amortization factor into the reported reduction
+times.
 
 \section{Computational-Algebra Consequences and Limitations}
 \label{sec:consequences}

@@ -538,7 +538,10 @@ The paper-facing definition of this experiment is in
       repository publication policy. [A] `.gitignore` excludes the complete
       `bench/data/` payload. Git tracks deterministic JSONL manifests, scripts,
       the canonical raw-data hash/row-count contract, and validation hashes;
-      no CSV or generated figure is tracked.
+      no CSV is tracked. Selected PDF renderings used by the LaTeX manuscript
+      are retained under `paper/ExSuwako/figures/`, with their canonical SVG
+      hashes and conversion command recorded beside them; the complete
+      generated artifact remains outside Git.
 - [x] Emit commit, command, seed, modulus manifest, compiler, linked gf2x
       library, machine, affinity, and timing metadata with every run. [A] All
       67,576 canonical rows pass the paper-grade metadata audit. Three clean
