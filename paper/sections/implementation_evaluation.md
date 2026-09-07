@@ -485,6 +485,22 @@ p99 curves retain the upper tail. These observations are computational
 support-geometry evidence for the random-support theorem targets, not a proof
 and not a measurement of random-support reduction speed.
 
+The operator schematic is generated independently of all benchmark data. It
+shows the state chain
+
+$$
+X_{k+1}=(I+U^{2^k})X_k
+$$
+
+with one immutable old state per stage, the doubling of every active shift
+distance, and termination at $U^{2^r}=0$. A concrete $m=16$ example with
+$T_+=\{3,11,15\}$ shows the active shift sets
+$\{1,5,13\},\{2,10\},\{4\},\{8\}$ and the pruning of shifts reaching $m$.
+It also states that mixed feedback paths arise through factor composition,
+not through a materialized pairwise-sum schedule. This is a construction
+diagram only; it is not included among measured performance or circuit-depth
+evidence.
+
 1. **Schematic classical algorithm-selection phase diagram.** For a fixed
    $m$, show modulus Hamming weight $h$ horizontally and
    $m/\Delta_{\min}$ vertically on a logarithmic scale. Label the three

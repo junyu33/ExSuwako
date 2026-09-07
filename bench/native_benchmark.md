@@ -776,3 +776,19 @@ constant-free support, verifies each manifest cell's declared population and
 sample count, and reports median, nearest-rank p90, and nearest-rank p99.
 $W_{\rm fb}/m$ is used for the cross-degree work panels. These quantiles are
 deterministic support-geometry evidence, not random-support speed evidence.
+
+## Explanatory Operator Schematic
+
+Generate the data-free construction diagram with:
+
+```text
+python3 bench/scripts/draw_operator_schematic.py \
+  --output bench/data/operator-schematic.svg
+```
+
+The figure shows $X_{k+1}=(I+U^{2^k})X_k$, doubled shift distances, active-tap
+pruning, nilpotent termination, and final low-part assembly. Its worked
+$m=16$ schedule uses canonical ascending taps $T_+=\{3,11,15\}$ and distances
+$\{13,5,1\}$. Every stage explicitly reads one immutable old state. The
+figure is labelled as a construction diagram and supplies no timing,
+instruction-depth, or circuit-depth evidence.

@@ -493,9 +493,16 @@ The paper-facing definition of this experiment is in
       with $s$. The first result is a native reduction microbenchmark
       correlation; the second is deterministic random-support geometry, not
       random-support timing or a proof of the distributional bounds.
-- [ ] Produce the operator schematic $U,U^2,U^4,\ldots$ as an explanatory
+- [x] Produce the operator schematic $U,U^2,U^4,\ldots$ as an explanatory
       figure, clearly labelled as a construction diagram rather than measured
-      evidence.
+      evidence. [A] `draw_operator_schematic.py` generates a data-free SVG
+      showing the factorized inverse, synchronous immutable-old updates,
+      doubled shift distances, active-tap pruning, nilpotent termination, and
+      final assembly. Its $m=16$, $T_+=\{3,11,15\}$ worked schedule has active
+      shifts $\{1,5,13\}$, $\{2,10\}$, $\{4\}$, and $\{8\}$, and explicitly
+      states that mixed paths arise through stage composition rather than a
+      materialized pairwise-sum schedule. The figure itself is marked as
+      algebraic construction, not measured timing or circuit depth.
 - [ ] Populate the planned method, theorem, real-modulus, portable-C, and
       setup/storage tables only from completed gates.
 
