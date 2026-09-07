@@ -460,8 +460,15 @@ The paper-facing definition of this experiment is in
       $D_{\rm fb}=\log_2m$ for the sampled power-of-two degrees. This validates
       the native schedule depth against the structural formula, not wall-clock
       latency, instruction depth, or circuit gate depth.
-- [ ] Plot fixed-gap weight sweeps and fixed-weight gap sweeps so that tap
-      count and feedback difficulty are not conflated.
+- [x] Plot fixed-gap weight sweeps and fixed-weight gap sweeps so that tap
+      count and feedback difficulty are not conflated. [A]
+      `plot_phase_slices.py` emits complementary $2\times3$ figures from the
+      retained winner-point medians. The fixed-gap figure varies
+      $\log_2(h-1)$ at $\Delta_{\min}=1,64$; the fixed-weight figure varies
+      $\log_2(m/\Delta_{\min})$ at $h=9,65$. Both plot
+      $\log_2(T_{\rm method}/T_{\rm GS})$ around an explicit zero crossover,
+      omit L\'opez--Dahab outside measured applicability, preserve uncertain
+      points as hollow markers, and perform no interpolation.
 - [ ] Plot setup amortization over $K$ and a work--feedback-depth--setup
       tradeoff map.
 - [ ] Plot predicted active-tap work against runtime and random-support depth

@@ -403,6 +403,14 @@ python3 bench/scripts/summarize_winner_regions.py \
   --input bench/data/winner-points.csv \
   --detail bench/data/winner-regions.csv \
   --summary bench/data/winner-region-summary.csv
+python3 bench/scripts/plot_phase_slices.py \
+  --input bench/data/winner-points.csv \
+  --output bench/data/fixed-gap-weight.svg \
+  --kind weight --selections 1 64
+python3 bench/scripts/plot_phase_slices.py \
+  --input bench/data/winner-points.csv \
+  --output bench/data/fixed-weight-gap.svg \
+  --kind gap --selections 9 65
 ```
 
 `paired-bootstrap-one-percent:v1` uses 10,000 deterministic bootstrap
@@ -429,6 +437,15 @@ do not create a false crossover. The summary separates the hard-feedback
 $\Delta_{\min}<W$ rows from the López--Dahab-applicable
 $\Delta_{\min}\ge W$ rows and records when no persistent Barrett region was
 observed within the sampled weight range.
+
+The two slice plots use the same six fixed-$m$ panels and plot
+$\log_2(T_{\rm method}/T_{\rm GS})$, with zero as the measured crossover.
+The fixed-gap view varies $\log_2(h-1)$ at $\Delta_{\min}=1$ and $64$; the
+fixed-weight view varies $\log_2(m/\Delta_{\min})$ at $h=9$ and $65$.
+L\'opez--Dahab appears only where its measurement is present, and hollow gray
+markers retain points whose winner classification is not unique. These are
+controlled-support slices of measured medians, not interpolated boundaries or
+fixed-weight random-support quantiles.
 
 ### Paper-grade run metadata
 

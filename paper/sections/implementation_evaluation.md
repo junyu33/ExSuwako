@@ -430,6 +430,19 @@ by $h=33$--$65$, while López--Dahab wins only two friendly cells. The measured
 low-feedback GS/LD pockets are not monotone, so the exact per-slice runs and
 uncertain cells are retained alongside this aggregate table.
 
+Two complementary six-panel slice figures prevent the phase coordinates from
+being read as a single undifferentiated notion of sparsity. At fixed
+$\Delta_{\min}\in\{1,64\}$, the horizontal coordinate is $\log_2(h-1)$; at
+fixed $h\in\{9,65\}$, it is $\log_2(m/\Delta_{\min})$. Both figures report
+$\log_2(T_{\rm method}/T_{\rm GS})$, so the zero line is the empirical
+crossover, positive values favor GS, and negative values favor the competing
+method. The fixed-gap slices expose the weight-driven GS--Barrett crossover,
+whereas the fixed-weight slices show how feedback geometry changes the
+comparison without changing tap count. L\'opez--Dahab is drawn only on its
+measured applicability domain, and non-unique winner classifications remain
+visible as hollow markers. The plots use controlled supports and therefore
+do not substitute for the separate random-support quantiles.
+
 1. **Schematic classical algorithm-selection phase diagram.** For a fixed
    $m$, show modulus Hamming weight $h$ horizontally and
    $m/\Delta_{\min}$ vertically on a logarithmic scale. Label the three
