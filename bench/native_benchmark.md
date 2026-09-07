@@ -792,3 +792,31 @@ $m=16$ schedule uses canonical ascending taps $T_+=\{3,11,15\}$ and distances
 $\{13,5,1\}$. Every stage explicitly reads one immutable old state. The
 figure is labelled as a construction diagram and supplies no timing,
 instruction-depth, or circuit-depth evidence.
+
+## Paper Table Summaries
+
+Generate the compact portable-C and setup/storage tables from the retained
+winner points and the highest-trial controlled anchor rows with:
+
+```text
+python3 bench/scripts/summarize_paper_tables.py \
+  --points bench/data/final-full3d-278aa9a-points.csv \
+  --raw bench/data/final-main-m128-t127-core.csv \
+        bench/data/final-main-m512-t127-core.csv \
+        bench/data/final-main-m2048-t127-core.csv \
+        bench/data/final-main-m8192-t127-core.csv \
+        bench/data/final-main-m32768-t127-core.csv \
+        bench/data/final-main-m131072-t31-core.csv \
+  --portable-output bench/data/final-paper-portable.csv \
+  --setup-storage-output bench/data/final-paper-setup-storage.csv \
+  --paper-grade
+```
+
+The portable summary fixes $(h,\Delta_{\min})=(9,1)$ as its sparse difficult-
+feedback anchor. On the complete $\Delta_{\min}=1$ slice, it reports the first
+stable Barrett winner after which every later stable sampled weight is also
+Barrett; uncertain cells are ignored rather than converted into wins. The
+setup/storage summary uses the same exact support and reports medians under
+`modulus-plan:v1` together with `requested-owned-bytes:v1`. These files do not
+create a real-irreducible-modulus or cross-platform result; those scopes remain
+unpopulated until their own gates are completed.

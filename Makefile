@@ -130,6 +130,7 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(PYTHON) tests/check_setup_tradeoff.py
 	$(PYTHON) tests/check_work_random_geometry.py
 	$(PYTHON) tests/check_operator_schematic.py
+	$(PYTHON) tests/check_paper_tables.py
 	$(PYTHON) tests/check_benchmark_metadata.py --binary $(TARGET)
 	$(MAKE) check-theory
 

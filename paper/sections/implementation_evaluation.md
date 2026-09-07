@@ -531,14 +531,73 @@ state that exact region boundaries are implementation- and
 platform-dependent. Cells with close timings or inconsistent winners should
 be marked as uncertain rather than forced into a clean region.
 
-### 9.5 Planned Tables
+### 9.5 Evidence Tables
 
-1. comparison of method families;
-2. theorem and complexity summary;
-3. real sparse moduli;
-4. portable C results;
-5. scalar cross-platform results;
-6. setup and storage.
+The tables below contain only completed-gate evidence. In particular, they do
+not turn the open proof audit into a proved theorem, call synthetic moduli
+irreducible, or substitute the single-machine portable-C run for a
+cross-platform experiment.
+
+| Method | Direct-reduction applicability | Role in retained evidence | Reusable setup object | Boundary |
+|---|---|---|---|---|
+| Generalized Suwako (GS) | Any monic binary modulus | Primary portable-C method | doubled-shift schedule and two state buffers | full tap geometry controls work and traffic |
+| Serial folding | Any monic binary modulus | Matched sparse baseline on the original grid; omitted from the high-weight extension after screening | sorted tap descriptors and state buffers | long dependency chain for small $\Delta_{\min}$ |
+| BarrettGF2X | Any monic binary modulus | Primary multiplication-based baseline | reciprocal $\mu$ and reusable product buffers | depends on gf2x multiplication thresholds |
+| L\'opez--Dahab loop | $\deg q\le m-W$, equivalently $\Delta_{\min}\ge W$ | Matched ordinary-loop baseline only where applicable | tap descriptors and a reusable $2m$-bit work buffer | not applicable outside its degree assumption |
+| Dense row-parity map | Any fixed monic modulus while the packed map is at most 64 MiB | Diagnostic screen, not a retained winner method | packed $m\times m$ binary map and high-part scratch | quadratic storage; diagnostic evidence only |
+| Naive long division | Any monic binary modulus | Independent correctness and portability reference | lightweight context | not presented as a tuned performance competitor |
+| Generated reducer | Fixed modulus | Implementation exists, but excluded from the general-code MoC winner contract | generated/compiled code | code generation is a different specialization contract |
+| Montgomery | Montgomery-domain operands | Not a matched direct-reduction baseline | Montgomery constants and representation | REDC computes $AR^{-1}\bmod g$, not $A\bmod g$ |
+
+| Candidate statement | Current status | Completed computational evidence | Remaining boundary |
+|---|---|---|---|
+| Low/high feedback decomposition and reduction correctness | statement drafted; proof audit open | 20,000 random GF(2) trials and 299,592 exhaustive binary modulus/input pairs; native reducers are differentially checked against long division | formal boundary-case proof and final wording |
+| Sparse Frobenius powers and factored inverse | statement drafted; proof audit open | independent agreement over GF(2), $\mathbb F_4$, dual numbers, and $\mathbb F_3$ sign/radix checks | separate arbitrary-algebra correctness from exact nonzero-support claims |
+| Exact feedback-stage count | candidate theorem | exhaustive native schedule checks at all 72 tested $(m,\Delta_{\min})$ coordinates | feedback depth must not be called bounded-fan-in gate depth |
+| Geometry-sensitive scheduled work $W_{\rm fb}$ and its coarse upper bound | candidate theorem | all 262,125 nonempty supports for $2\le m\le18$ pass the formula/bound checks; fixed-$m$ runtime correlation is $0.987$--$0.993$ | complete analytic proof and word-cost theorem |
+| Random-support depth/work laws | conjectural/distributional target | exact reconstruction for 10,623 frozen supports; reported median, p90, and p99 trends | probabilistic theorem remains open |
+
+| Modulus corpus | Irreducibility status | Evidence currently supported | Claim boundary |
+|---|---|---|---|
+| Controlled fixed-weight Cartesian supports | deliberately unclassified | 1,096 paper-grade reduction-only timing cells | implementation/platform phase diagram, not field performance |
+| Frozen random fixed-weight supports | deliberately unclassified | geometry for 10,623 distinct supports | no random-support timing claim |
+| Arbitrary monic correctness corpus | may include reducible moduli | differential and theorem-falsification checks | correctness does not require irreducibility |
+| Real named irreducible moduli | certificate required | not yet timed | real-modulus and field-level performance are deferred |
+
+The portable-C summary uses the controlled constant-free slice
+$(h,\Delta_{\min})=(9,1)$. The crossover column is the first stable Barrett
+winner on the $\Delta_{\min}=1$ slice after which every later stable sampled
+weight is also Barrett; uncertain cells do not create a crossover.
+
+| $m$ | GS at $(9,1)$ (ns) | Barrett/GS at $(9,1)$ | persistent Barrett $h$ | Barrett/GS at onset |
+|---:|---:|---:|---:|---:|
+| 128 | 64.1 | 2.164 | 33 | 0.881 |
+| 512 | 272.9 | 3.807 | 97 | 0.718 |
+| 2048 | 1079.2 | 4.247 | 97 | 0.664 |
+| 8192 | 4390.2 | 8.654 | 129 | 0.819 |
+| 32768 | 17008.4 | 16.768 | 257 | 0.881 |
+| 131072 | 68167.1 | 37.712 | 641 | 0.886 |
+
+All times above are medians in nanoseconds under
+`portable-scalar-c:v1`, `reduction-steady-state:v1`, and `gf2x:v1` on the
+recorded primary machine. They are not cross-platform results.
+
+At the same $(h,\Delta_{\min})=(9,1)$ anchor, setup and requested plan-owned
+storage are:
+
+| $m$ | trials | GS setup ns / bytes | Serial setup ns / bytes | Barrett setup ns / bytes |
+|---:|---:|---:|---:|---:|
+| 128 | 127 | 596.5 / 744 | 119.5 / 416 | 782.0 / 184 |
+| 512 | 127 | 719.5 / 888 | 123.5 / 512 | 4770.5 / 376 |
+| 2048 | 127 | 887.5 / 1176 | 137.0 / 896 | 50799.0 / 1144 |
+| 8192 | 127 | 1152.0 / 2040 | 149.0 / 2432 | 558369.5 / 4216 |
+| 32768 | 127 | 1312.0 / 5208 | 235.0 / 8576 | 7760258.5 / 16504 |
+| 131072 | 31 | 2832.5 / 17592 | 856.5 / 33152 | 119030566.0 / 65656 |
+
+Setup uses `modulus-plan:v1`; bytes use
+`requested-owned-bytes:v1` and exclude allocator overhead, shared modulus
+storage, benchmark buffers, and transient library workspace. A scalar
+cross-platform table remains planned and is intentionally absent.
 
 ### 9.6 Negative Results
 

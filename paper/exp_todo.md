@@ -503,8 +503,15 @@ The paper-facing definition of this experiment is in
       states that mixed paths arise through stage composition rather than a
       materialized pairwise-sum schedule. The figure itself is marked as
       algebraic construction, not measured timing or circuit depth.
-- [ ] Populate the planned method, theorem, real-modulus, portable-C, and
-      setup/storage tables only from completed gates.
+- [x] Populate the planned method, theorem, real-modulus, portable-C, and
+      setup/storage tables only from completed gates. [A]
+      `summarize_paper_tables.py` deterministically extracts the six-degree
+      portable-C anchor/crossover rows and the matched setup/storage medians
+      from retained paper-grade data. The paper-facing tables separate method
+      applicability, candidate-theorem status, modulus provenance, reduction
+      timing, and plan cost. They explicitly leave named irreducible-modulus
+      timing and scalar cross-platform results unpopulated, and label passing
+      computational checks as falsification evidence rather than proof.
 
 ## Gate 4: Reproducibility and Artifact
 

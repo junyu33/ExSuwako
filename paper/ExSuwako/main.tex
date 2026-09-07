@@ -188,24 +188,30 @@ with products and modulus-dependent constants.  Their machine cost cannot be
 deduced from sparse shift/XOR counts.
 
 \begin{table}[t]
-\caption{Reduction-family comparison contract.}
+\caption{Frozen direct-reduction comparison contract.  ``Primary'' denotes a
+winner-eligible portable-C method; ``diagnostic'' denotes a screened baseline.}
 \label{tab:families}
 \centering
+\small
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lllll@{}}
 \toprule
-Method & Modulus class & Main work & Setup & Main risk\\
+Method & Applicability & Evidence role & Reusable setup & Boundary\\
 \midrule
-Serial folding & arbitrary sparse & shifts/XORs & low & long feedback\\
-Specialized folding & fixed family & generated code & code & nonuniform\\
-Generalized Suwako & arbitrary monic & sparse factors & schedule & traffic\\
-Dense linear map & arbitrary fixed & XOR network & matrix & storage\\
-Barrett/Montgomery & general/restricted & products & constants & multiply cost\\
+GS & arbitrary monic & primary & doubled-shift schedule, two states & geometry/traffic\\
+Serial & arbitrary monic & screened sparse baseline & tap descriptors, states & dependency chain\\
+BarrettGF2X & arbitrary monic & primary & reciprocal and product buffers & gf2x thresholds\\
+L\'opez--Dahab & $\deg q\le m-W$ & primary where applicable & taps and $2m$-bit buffer & restricted degree\\
+Dense map & fixed, map $\le64$ MiB & diagnostic & packed $m\times m$ map & quadratic storage\\
+Naive & arbitrary monic & correctness/portability & lightweight context & not tuned\\
 \bottomrule
 \end{tabular}
+}
 \end{table}
 
-\drafttodo{Replace qualitative entries with model-consistent proved bounds.
-Keep measured times in separate tables.}
+Generated fixed-modulus code is outside the general-code winner contract.
+Montgomery is also excluded: REDC maps $A$ to $AR^{-1}\bmod g$, rather than
+performing the frozen direct reduction $A\mapsto A\bmod g$.
 
 \section{Sparse Feedback Operators}
 \label{sec:operators}
@@ -333,6 +339,31 @@ use that the $i$th smallest positive distance is at least $i$.
 \prooftodo
 \end{proof}
 
+\begin{table}[t]
+\caption{Status of the mathematical claims and their completed computational
+checks.  Passing tests is falsification evidence, not proof.}
+\label{tab:theorem-status}
+\centering
+\small
+\begin{tabular}{@{}p{0.27\textwidth}p{0.18\textwidth}p{0.45\textwidth}@{}}
+\toprule
+Statement & Status & Completed evidence\\
+\midrule
+Feedback decomposition and correctness & proof audit open & 20,000 random
+GF(2) trials and 299,592 exhaustive binary modulus/input pairs\\
+Frobenius factors and inverse & proof audit open & independent agreement over
+GF(2), $\mathbb F_4$, dual numbers, and an $\mathbb F_3$ sign/radix check\\
+Exact feedback-stage count & candidate theorem & native schedule checks at all
+72 tested $(m,\Dmin)$ coordinates\\
+Scheduled work $\Wfb$ and coarse bound & candidate theorem & all 262,125
+nonempty supports for $2\le m\le18$ pass; fixed-$m$ runtime correlations are
+$0.987$--$0.993$\\
+Random-support laws & conjectural target & exact geometry for 10,623 frozen
+supports, including median, p90, and p99\\
+\bottomrule
+\end{tabular}
+\end{table}
+
 Exact work depends on every tap distance, not only on $(h,\Dmin)$.  A portable
 synchronous implementation can use two $m$-bit buffers and a public schedule;
 generated code trades traversal for code size.
@@ -388,8 +419,10 @@ Theorem~\ref{thm:correctness}.
 
 The native API exposes generalized Suwako, serial folding, naive long
 division, and gf2x-backed Barrett under one contract.  Generalized Suwako and
-serial folding share the word-shift primitive.  Strong specialized reducers,
-dense reduction, and matched Montgomery reduction are added where applicable.
+serial folding share the word-shift primitive.  The ordinary-loop
+L\'opez--Dahab reducer is included where its degree assumption holds, and a
+dense map is screened diagnostically.  Montgomery REDC is excluded because it
+computes a different Montgomery-domain operation.
 
 \drafttodo{Record the experiment commit, commands, seeds, case counts, tap
 manifests, compiler, gf2x archive, platform, affinity/frequency policy, input
@@ -400,7 +433,8 @@ counts and cycles, including deviations from traffic, barriers, and alignment.}
 
 For fixed $m$, the planned phase diagram places Hamming weight $h$ horizontally
 and $m/\Dmin$ on a base-two logarithmic vertical axis.  Each support is colored
-by the matched winner among serial folding, generalized Suwako, and Barrett.
+by the matched winner among the applicable GS, serial, L\'opez--Dahab, and
+Barrett implementations.
 
 \placeholderbox{Fixed-$m$ winner panels with median, p90, p99, uncertainty
 marks, complete tap manifests, and friendly and hostile supports.}
@@ -409,19 +443,78 @@ marks, complete tap manifests, and friendly and hostile supports.}
 fixed-weight sweeps, and setup amortization over reductions per modulus.}
 
 \begin{table}[t]
-\caption{Reduction-only results; do not populate before the contract freezes.}
+\caption{Modulus provenance and the resulting claim boundary.  The timing
+corpora deliberately do not infer reducibility or irreducibility from their
+construction.}
+\label{tab:modulus-scope}
 \centering
-\begin{tabular}{@{}llllll@{}}
+\small
+\begin{tabular}{@{}p{0.28\textwidth}p{0.20\textwidth}p{0.42\textwidth}@{}}
 \toprule
-Platform & $m$ & support family & winner & median cycles & setup policy\\
+Corpus & Irreducibility status & Completed evidence\\
 \midrule
-\multicolumn{6}{c}{\textbf{TODO: matched experimental data}}\\
+Controlled fixed-weight grid & unclassified & 1,096 paper-grade
+reduction-only timing cells; no field-performance claim\\
+Frozen random fixed-weight supports & unclassified & exact geometry for
+10,623 supports; no random-support timing claim\\
+Arbitrary monic correctness cases & possibly reducible & differential and
+theorem-falsification checks; correctness needs only monicity\\
+Named real irreducible moduli & certificate required & not yet timed;
+real-modulus and field-level performance are deferred\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\drafttodo{Insert matched data and uncertainty treatment.  Preserve dense,
-small-degree, alignment-hostile, and specialized-baseline losing regions.}
+\begin{table}[t]
+\caption{Portable-C reduction summary on the controlled constant-free
+$\Dmin=1$ slice.  GS time and the first ratio use $h=9$.  The crossover is
+the first stable Barrett winner after which every later stable sampled weight
+is also Barrett; uncertain cells neither create nor break it.}
+\label{tab:portable-results}
+\centering
+\small
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+$m$ & GS (ns) & Barrett/GS & crossover $h$ & ratio at crossover\\
+\midrule
+128    & 64.1    & 2.164  & 33  & 0.881\\
+512    & 272.9   & 3.807  & 97  & 0.718\\
+2048   & 1079.2  & 4.247  & 97  & 0.664\\
+8192   & 4390.2  & 8.654  & 129 & 0.819\\
+32768  & 17008.4 & 16.768 & 257 & 0.881\\
+131072 & 68167.1 & 37.712 & 641 & 0.886\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These medians use \texttt{portable-scalar-c:v1},
+\texttt{reduction-steady-state:v1}, and the \texttt{gf2x:v1} multiplication
+backend on the recorded primary machine.  They establish a platform-specific
+phase boundary, not a cross-platform ordering.
+
+\begin{table}[t]
+\caption{Median setup time and requested plan-owned bytes at
+$(h,\Dmin)=(9,1)$.  Each entry is ``nanoseconds / bytes.''}
+\label{tab:setup-storage}
+\centering
+\small
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+$m$ & trials & GS & Serial & Barrett\\
+\midrule
+128    & 127 & 596.5 / 744    & 119.5 / 416   & 782.0 / 184\\
+512    & 127 & 719.5 / 888    & 123.5 / 512   & 4770.5 / 376\\
+2048   & 127 & 887.5 / 1176   & 137.0 / 896   & 50799.0 / 1144\\
+8192   & 127 & 1152.0 / 2040  & 149.0 / 2432  & 558369.5 / 4216\\
+32768  & 127 & 1312.0 / 5208  & 235.0 / 8576  & 7760258.5 / 16504\\
+131072 & 31  & 2832.5 / 17592 & 856.5 / 33152 & 119030566.0 / 65656\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Setup follows \texttt{modulus-plan:v1}.  Storage follows
+\texttt{requested-owned-bytes:v1} and excludes allocator overhead, shared
+modulus storage, benchmark buffers, and transient library workspace.
 
 \section{Computational-Algebra Consequences and Limitations}
 \label{sec:consequences}
