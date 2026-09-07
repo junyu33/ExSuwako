@@ -67,9 +67,10 @@ under `bench/data/` before running the commands above; unrelated exploratory
 CSV files are not part of the release.  The preceding two-dataset v1 contract
 remains recorded in [`data-release-v1.json`](data-release-v1.json).
 
-[`validation-4465388.json`](validation-4465388.json) records the current
-fresh-worktree validation of the 26-output paper artifact and the two-output
-Rabin artifact. The predecessor 24-output audit remains preserved in
+[`validation-668e52a.json`](validation-668e52a.json) records the current
+fresh-worktree validation of the 26-output paper artifact, the two-output
+Rabin artifact, and the 45-row online FFR summary. Earlier audits remain
+preserved in [`validation-4465388.json`](validation-4465388.json) and
 [`validation-68af036.json`](validation-68af036.json). Complete correctness
 logs, short microbenchmark CSV and metadata, and generated artifact reports
 remain beside the external CSV payload and are authenticated by the hashes in
