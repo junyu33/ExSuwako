@@ -1189,9 +1189,9 @@ make artifact-microbenchmark ARTIFACT\_CPU=0\\
 make artifact-paper
 \end{quote}
 Its 67,576-row external dataset and 26 derived
-outputs are hash-locked.  A detached clean checkout reproduced the 24-output
-predecessor artifact; the fitted-boundary extension has been rebuilt in the
-current tree and awaits its post-commit detached audit.  Exact seeds, tap
+outputs are hash-locked.  A detached clean checkout at commit
+\texttt{4465388} reproduced all 26 outputs with exact hash agreement and
+passed the complete correctness suite.  Exact seeds, tap
 manifests, commands, compiler and gf2x paths,
 binary digests, affinity, and frequency policy accompany every retained row.
 No secondary-platform result is included in this version.  The separate Rabin

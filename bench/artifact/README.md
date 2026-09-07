@@ -54,7 +54,10 @@ The artifact establishes the reported primary portable-scalar platform only.
 It makes no architecture-independent speed claim and therefore does not
 require or imply a second-machine result.
 
-[`validation-68af036.json`](validation-68af036.json) records the fresh-worktree
-validation of the frozen artifact commit. The complete correctness log, short
-microbenchmark CSV and metadata, and generated artifact report remain beside
-the external CSV payload and are authenticated by the hashes in that record.
+[`validation-4465388.json`](validation-4465388.json) records the current
+fresh-worktree validation of the 26-output paper artifact and the two-output
+Rabin artifact. The predecessor 24-output audit remains preserved in
+[`validation-68af036.json`](validation-68af036.json). Complete correctness
+logs, short microbenchmark CSV and metadata, and generated artifact reports
+remain beside the external CSV payload and are authenticated by the hashes in
+the corresponding records.

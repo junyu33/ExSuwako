@@ -623,19 +623,15 @@ while tracked JSONL manifests preserve deterministic support generation. The
 artifact accepts three explicitly recorded experiment-commit/binary cohorts;
 all remaining platform and contract metadata must agree.
 
-At artifact commit `68af036`, a detached fresh worktree completed `make check`,
-verified the external dataset, regenerated the then-current 24 paper-facing
-CSV/SVG products
-with exact hash agreement, reran the measured cost-model analysis, and ran a
-124-row metadata-complete reduction smoke test.  The fitted-boundary extension
-adds two deterministic CSV products and changes only the presentation-layer
-winner SVG; its 26-output current-tree rebuild is hash-locked, while a new
-post-commit fresh-checkout audit remains to be recorded.  The tracked validation record
-contains hashes for the external log, smoke rows, metadata snapshot, and
-artifact report.  Thus the timing study and predecessor analysis are
-independently reproduced; only the new deterministic presentation layer
-awaits its post-commit packaging audit.  None of this supplies real-modulus,
-end-to-end, proof, or cross-platform evidence.
+At artifact commit `4465388`, a detached fresh worktree completed `make check`,
+verified the external datasets, regenerated all 26 reduction products and both
+Rabin products with exact hash agreement, reran the measured cost-model
+analysis, completed a 124-row metadata-complete reduction smoke test, and
+compiled the manuscript. The tracked validation record contains hashes for
+the external log, smoke rows, metadata snapshot, and artifact report. Thus the
+timing and application artifacts are independently reproduced. This audit
+adds no proof or cross-platform evidence beyond the scoped claims of those
+artifacts.
 
 ### 9.8 Rabin Irreducibility E2E Pilot
 

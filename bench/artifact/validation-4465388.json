@@ -1,0 +1,67 @@
+{
+  "schema": "exsuwako-artifact-validation:v1",
+  "artifact_commit": "4465388c8f6934ef71ec325b741e4d68a2462a1b",
+  "fresh_worktree": true,
+  "git_dirty_before_validation": false,
+  "correctness": {
+    "command": "make check",
+    "exit_code": 0,
+    "external_log": "paper-v1-check-4465388.log",
+    "log_lines": 95,
+    "log_sha256": "f5375d7f6fea1da91e4def07ce79379f63381e54b02a901ee6c2dad1af02fdc6"
+  },
+  "paper_artifact": {
+    "command": "make artifact-paper ARTIFACT_DATA=<external-data-root> ARTIFACT_OUTPUT=<temporary-output>",
+    "exit_code": 0,
+    "raw_rows": 67576,
+    "derived_outputs": 26,
+    "all_output_hashes_matched": true,
+    "external_report_sha256": "eb9042d0f381cbc22c1654cfe20b89378e741e41a84e78d8c5df43cd49985363"
+  },
+  "cost_model": {
+    "command": "make artifact-cost-model ARTIFACT_DATA=<external-data-root> ARTIFACT_OUTPUT=<temporary-output>",
+    "exit_code": 0,
+    "supports": 1096,
+    "panels": 6,
+    "all_output_hashes_matched": true
+  },
+  "microbenchmark": {
+    "command": "make artifact-microbenchmark ARTIFACT_CPU=0",
+    "exit_code": 0,
+    "external_csv": "paper-v1-smoke-4465388.csv",
+    "csv_rows": 124,
+    "csv_sha256": "ad6696d6d789ade34e722a5fb8830871a09ef2e05932f77ff9282631aaa1cab7",
+    "external_metadata": "paper-v1-smoke-metadata-4465388.json",
+    "metadata_sha256": "3a0921b7d06051a5829e4334aa1d1ce87290070b2012ceb995df6db747064e95"
+  },
+  "rabin_artifact": {
+    "command": "make artifact-rabin ARTIFACT_DATA=<external-data-root> ARTIFACT_OUTPUT=<temporary-output>",
+    "exit_code": 0,
+    "raw_rows": 465,
+    "derived_outputs": 2,
+    "all_output_hashes_matched": true
+  },
+  "latex": {
+    "command": "pdflatex -interaction=nonstopmode -halt-on-error main.tex (twice)",
+    "exit_code": 0,
+    "pages": 19,
+    "undefined_references": false,
+    "overfull_boxes": false
+  },
+  "environment": {
+    "compiler": "cc (GCC) 16.1.1 20260728",
+    "compiler_flags": "-O3 -std=c11 -Wall -Wextra",
+    "gf2x_library": "/usr/lib/libgf2x.so.3.0.0",
+    "platform": "Linux-6.18.42-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "hostname": "zjy-work",
+    "cpu_affinity": 0,
+    "frequency_policy": {
+      "energy_performance_preference": "balance_performance",
+      "governor": "powersave",
+      "turbo_disabled": "0"
+    },
+    "implementation": "portable-scalar-c:v1",
+    "multiplication_backend": "gf2x:v1"
+  }
+}

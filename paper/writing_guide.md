@@ -162,11 +162,11 @@ work, space, setup, and all claimed comparisons.
 
 The evaluation identifies winning and losing regions under fixed platform,
 compiler, modulus, input distribution, and timing boundary. The reduction-only
-predecessor artifact gate is complete: a fresh checkout rebuilds its 24
-figures and table sources from the externally supplied, hash-locked canonical
-dataset.  The fitted-boundary extension raises the declared output count to
-26 and requires a new detached post-commit audit before the current artifact
-gate is closed again.
+artifact gate is complete: a detached fresh checkout at commit `4465388`
+rebuilds all 26 figures and table sources from the externally supplied,
+hash-locked canonical dataset with exact hash agreement. The same checkout
+also reproduces the two-output Rabin artifact and passes the full correctness
+suite.
 This is single-platform evidence and does not discharge relevance or theorem
 proof obligations.
 

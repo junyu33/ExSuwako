@@ -568,14 +568,14 @@ The paper-facing definition of this experiment is in
       phase/depth/slice/setup/work figures, random-support geometry,
       cost-model summaries, and paper table sources. The declared outputs and
       SHA-256 values are frozen in `bench/artifact/paper-v1.json`.
-- [ ] Verify the scoped artifact path from a fresh checkout. [A] A detached
-      checkout of artifact commit `68af036` verified the external raw-data
-      hash, regenerated all 24 outputs with exact hash agreement, reran the
-      cost-model command, and completed a 124-row metadata-complete native
-      timing smoke run. See `bench/artifact/validation-68af036.json`.  The
-      subsequent fitted-boundary extension adds two CSV outputs and changes
-      the winner SVG without changing timing data; record a new detached
-      fresh-checkout validation after this extension is committed.
+- [x] Verify the scoped artifact path from a fresh checkout. [A] A detached
+      checkout of commit `4465388` completed `make check`, verified the
+      67,576-row external dataset, regenerated all 26 reduction outputs with
+      exact hash agreement, reran the independent cost-model command, and
+      completed a 124-row metadata-complete native timing smoke run. It also
+      verified the 465-row Rabin dataset and both derived outputs, then
+      compiled the 19-page manuscript without undefined references or
+      overfull boxes. See `bench/artifact/validation-4465388.json`.
 - [-] Repeat representative classical cases on a second machine or ISA before
       making architecture-independent claims. [A] Not applicable to the
       frozen paper claim: every timing result is explicitly scoped to the
@@ -605,11 +605,13 @@ The paper-facing definition of this experiment is in
 - [x] The classical phase diagram contains both winning and losing regions.
       [A] Its 983 unique winners include GS, BarrettGF2X, and López--Dahab
       regions, while all 113 non-unique cells remain explicitly uncertain.
-- [ ] A fresh checkout reproduces every result used by the paper. [A] The
-      hash-locked external dataset plus tracked manifests and scripts rebuild
-      the 24-output predecessor artifact byte-for-byte at commit `68af036`;
-      the new 26-output fitted-boundary artifact must receive its own detached
-      post-commit audit before this gate is closed again.
+- [x] A fresh checkout reproduces every result used by the paper. [A] At
+      commit `4465388`, the hash-locked external datasets plus tracked
+      manifests and scripts reproduce the complete 26-output reduction
+      artifact and two-output Rabin artifact. The same detached checkout
+      passes the full correctness suite, the documented standalone cost-model
+      command, a metadata-complete native smoke run, and manuscript
+      compilation.
 
 ## Gate 5: End-to-End Rabin Irreducibility Test
 
