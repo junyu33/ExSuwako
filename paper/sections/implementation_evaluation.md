@@ -27,7 +27,8 @@ Requirements:
 - arbitrary public taps;
 - non-word-aligned degrees;
 - no assumption that the constant coefficient is present;
-- explicit ping-pong buffers;
+- immutable synchronous-stage semantics, with a proved low-to-high in-place
+  scalar realization;
 - no undefined shifts;
 - constant-time field-element handling.
 
@@ -540,7 +541,7 @@ cross-platform experiment.
 
 | Method | Direct-reduction applicability | Role in retained evidence | Reusable setup object | Boundary |
 |---|---|---|---|---|
-| Generalized Suwako (GS) | Any monic binary modulus | Primary portable-C method | doubled-shift schedule and two state buffers | full tap geometry controls work and traffic |
+| Generalized Suwako (GS) | Any monic binary modulus | Primary portable-C method | doubled-shift schedule and one state plus a sentinel | full tap geometry controls work and traffic |
 | Serial folding | Any monic binary modulus | Matched sparse baseline on the original grid; omitted from the high-weight extension after screening | sorted tap descriptors and state buffers | long dependency chain for small $\Delta_{\min}$ |
 | BarrettGF2X | Any monic binary modulus | Primary multiplication-based baseline | reciprocal $\mu$ and reusable product buffers | depends on gf2x multiplication thresholds |
 | L\'opez--Dahab loop | $\deg q\le m-W$, equivalently $\Delta_{\min}\ge W$ | Matched ordinary-loop baseline only where applicable | tap descriptors and a reusable $2m$-bit work buffer | not applicable outside its degree assumption |
@@ -551,11 +552,11 @@ cross-platform experiment.
 
 | Candidate statement | Current status | Completed computational evidence | Remaining boundary |
 |---|---|---|---|
-| Low/high feedback decomposition and reduction correctness | statement drafted; proof audit open | 20,000 random GF(2) trials and 299,592 exhaustive binary modulus/input pairs; native reducers are differentially checked against long division | formal boundary-case proof and final wording |
-| Sparse Frobenius powers and factored inverse | statement drafted; proof audit open | independent agreement over GF(2), $\mathbb F_4$, dual numbers, and $\mathbb F_3$ sign/radix checks | separate arbitrary-algebra correctness from exact nonzero-support claims |
-| Exact feedback-stage count | candidate theorem | exhaustive native schedule checks at all 72 tested $(m,\Delta_{\min})$ coordinates | feedback depth must not be called bounded-fan-in gate depth |
-| Geometry-sensitive scheduled work $W_{\rm fb}$ and its coarse upper bound | candidate theorem | all 262,125 nonempty supports for $2\le m\le18$ pass the formula/bound checks; fixed-$m$ runtime correlation is $0.987$--$0.993$ | complete analytic proof and word-cost theorem |
-| Random-support depth/work laws | conjectural/distributional target | exact reconstruction for 10,623 frozen supports; reported median, p90, and p99 trends | probabilistic theorem remains open |
+| Low/high feedback decomposition and reduction correctness | first internal hostile audit passed | 20,000 random GF(2) trials and 299,592 exhaustive binary modulus/input pairs; native reducers are differentially checked against long division | external review |
+| Sparse Frobenius powers and factored inverse | first internal hostile audit passed for the binary theorem | independent agreement over GF(2), $\mathbb F_4$, dual numbers, and $\mathbb F_3$ sign/radix checks | coefficient-algebra extension remains separate |
+| Exact feedback-stage count | first internal hostile audit passed | exhaustive native schedule checks at all 72 tested $(m,\Delta_{\min})$ coordinates | feedback depth must not be called bounded-fan-in gate depth |
+| Geometry-sensitive scheduled work $W_{\rm fb}$ and its coarse upper bound | first internal hostile audit passed | all 262,125 nonempty supports for $2\le m\le18$ pass the formula/bound checks; fixed-$m$ runtime correlation is $0.987$--$0.993$ | external review of the coefficient- and packed-word models |
+| Random-support depth/work laws | first internal hostile audit passed | exact reconstruction for 10,623 frozen supports; reported median, p90, and p99 trends | the theorem applies only to the stated uniform fixed-weight model |
 
 | Modulus corpus | Irreducibility status | Evidence currently supported | Claim boundary |
 |---|---|---|---|

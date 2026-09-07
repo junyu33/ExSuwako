@@ -90,14 +90,15 @@ reciprocal or reduction matrix.
 
 For an input of degree below twice the modulus degree, reduction gives a
 finite forced recurrence.  We write it as $(I+U)Y=H$ for a truncated shift
-operator $U$.  Characteristic two gives
+operator $U$.  When $U\ne0$, characteristic two gives
 \begin{equation}
   (I+U)^{-1}=\prod_{k=0}^{r-1}(I+U^{2^k}),
   \qquad
   r=\left\lceil\log_2\frac{m}{\Dmin}\right\rceil,
   \label{eq:intro-factorization}
 \end{equation}
-once $U^{2^r}=0$.  Each Frobenius power doubles the original tap distances.
+and $U^{2^r}=0$; when $U=0$, no feedback stage is needed.  Each Frobenius
+power doubles the original tap distances.
 Mixed feedback paths arise through composition across stages rather than by
 expanding a dense reciprocal inside one stage.
 
@@ -107,10 +108,9 @@ monic binary modulus; (ii) a sparse characteristic-two factorization;
 study; and (v) evaluation in repeated modular squaring and one complete
 computational-algebra workload.
 
-\drafttodo{Items (i)--(ii) now have complete binary proofs in
-Sections~\ref{sec:operators}--\ref{sec:algorithm}, but still require an
-independent proof audit.  Item (iii) remains open until the cost-model proof is
-complete.  Retain items (iv)--(v) only to the extent supported by
+\drafttodo{Items (i)--(iii) now have complete binary proofs that passed the
+first internal hostile audit; external review remains open.  Retain
+items (iv)--(v) only to the extent supported by
 Sections~\ref{sec:evaluation} and~\ref{sec:consequences}.}
 
 Correctness does not require irreducibility; sparsity is a performance
@@ -203,7 +203,7 @@ winner-eligible portable-C method; ``diagnostic'' denotes a screened baseline.}
 \toprule
 Method & Applicability & Evidence role & Reusable setup & Boundary\\
 \midrule
-GS & arbitrary monic & primary & doubled-shift schedule, two states & geometry/traffic\\
+GS & arbitrary monic & primary & doubled-shift schedule, one state plus sentinel & geometry/traffic\\
 Serial & arbitrary monic & screened sparse baseline & tap descriptors, states & dependency chain\\
 BarrettGF2X & arbitrary monic & primary & reciprocal and product buffers & gf2x thresholds\\
 L\'opez--Dahab & $\deg q\le m-W$ & primary where applicable & taps and $2m$-bit buffer & restricted degree\\
@@ -260,8 +260,9 @@ $U=\sum_{t\in T}N^{\Delta_t}$ and iterating this identity $k$ times gives
   U^{2^k}=\sum_{t\in T}(N^{\Delta_t})^{2^k}
            =\sum_{t\in T}N^{2^k\Delta_t}.
 \]
-Finally, $N^d=0$ for $d\ge m$.  Since the distances $\Delta_t$ are distinct,
-the surviving shifts in the displayed sum cannot cancel.
+Finally, $N^d=0$ for $d\ge m$.  For $d<m$, the matrix of $N^d$ occupies the
+$d$th superdiagonal.  Distinct surviving shifts therefore have disjoint
+matrix support and cannot cancel.
 \end{proof}
 
 \begin{theorem}[Sparse feedback inverse]
@@ -304,12 +305,13 @@ fixed-length realization and its complete tap-geometry analysis.
 \section{Generalized Suwako Reduction}
 \label{sec:algorithm}
 
-For $0\le k<r$, define
+For every $k\ge0$, define
 \begin{equation}
   T_k=\{t\in T:2^k\Delta_t<m\}.
 \end{equation}
-The public schedule stores shifts $2^k\Delta_t$ for $t\in T_k$ and the taps
-for final low assembly.
+Then $T_k=\varnothing$ for $k\ge r$.  The public schedule stores shifts
+$2^k\Delta_t$ for $t\in T_k$, $0\le k<r$, and the taps for final low
+assembly.
 
 \begin{quote}
 \textbf{Algorithm 1 (generalized Suwako reduction).}
@@ -489,7 +491,7 @@ gate depth accounts for the XOR tree inside that stage.
 
 Let $W$ be the machine-word width and $n=\lceil m/W\rceil$.  The following
 counts describe destination-word contributions; they are not instruction
-counts.  A feedback shift by $d<m$ touches
+counts.  A feedback shift by $d<m$ has potentially nonzero coefficients in
 $\lceil(m-d)/W\rceil$ destination words.  A low-assembly shift by $t$ touches
 \[
   n-\left\lfloor\frac{t}{W}\right\rfloor
@@ -505,19 +507,31 @@ For $U\ne0$, set
   a_k=\left\lceil\frac{m-2^k\Dmin}{W}\right\rceil
   \qquad(0\le k<r).
 \]
-The scheduled shifted-word contributions of generalized Suwako reduction are
+The useful feedback-word support and the shifted-word contributions traversed
+by the scalar stage loops are, respectively,
 \begin{align}
-  B_{\rm fb}
+  \widehat B_{\rm fb}
     &=\sum_{t\in T}\sum_{\substack{k\ge0\\2^k\Delta_t<m}}
        \left\lceil\frac{m-2^k\Delta_t}{W}\right\rceil,\\
+  B_{\rm fb}^{\rm loop}
+    &=\sum_{k=0}^{r-1}\sum_{t\in T_k}
+      \min\left\{a_k,\,
+        n-\left\lfloor\frac{2^k\Delta_t}{W}\right\rfloor\right\},\\
   B_V
     &=\sum_{t\in T}
        \left(n-\left\lfloor\frac{t}{W}\right\rfloor\right).
 \end{align}
+They satisfy
+\begin{equation}
+  \widehat B_{\rm fb}
+  \le B_{\rm fb}^{\rm loop}
+  \le \widehat B_{\rm fb}+S_{\rm fb}.
+  \label{eq:feedback-padding-overhead}
+\end{equation}
 An in-place scalar implementation makes one $n$-word high-part extraction,
 traverses $a_k$ destination words at feedback stage $k$, and makes one
-$n$-word final assembly pass, in addition to the $B_{\rm fb}+B_V$ shifted
-contributions.
+$n$-word final assembly pass, in addition to the
+$B_{\rm fb}^{\rm loop}+B_V$ shifted contributions.
 \end{proposition}
 \begin{proof}
 A right shift by $d$ occupies coefficient positions $0,\ldots,m-d-1$, which
@@ -525,8 +539,17 @@ span $\lceil(m-d)/W\rceil$ words.  A left shift by $t$ occupies positions
 $t,\ldots,m-1$, which span the words numbered
 $\lfloor t/W\rfloor,\ldots,n-1$.  At stage $k$, the smallest active shift is
 $2^k\Dmin$, so the union of all affected destinations spans exactly $a_k$
-words.  The extraction and assembly statements follow from traversing the
-$m$-bit input and output states once.
+words.  For a particular feedback shift $d=2^k\Delta_t$, the scalar loop also
+requires the source-word index $\lfloor d/W\rfloor$ to remain below the end of
+the state.  It therefore visits
+\[
+  \min\{a_k,n-\lfloor d/W\rfloor\}
+\]
+destinations.  This is either the useful count
+$\lceil(m-d)/W\rceil$ or that count plus one; the latter case performs only a
+padding-word contribution.  Summing proves~\eqref{eq:feedback-padding-overhead}.
+The extraction and assembly statements follow from traversing the $m$-bit
+input and output states once.
 \end{proof}
 
 A word-aligned contribution can be formed from one source word.  A
@@ -571,8 +594,9 @@ $O(S_{\rm fb})$ operations.
 The setup bound describes a two-pass schedule construction, not compilation
 of generated code.  The experiments separately time the concrete reusable
 plan builders.  For comparison, serial sparse folding needs no doubled-shift
-schedule but can execute up to $\lceil m/\Dmin\rceil$ dependent feedback
-iterations; L\'opez--Dahab has $\Theta(n(1+s))$ shift/scatter work under its
+schedule but, when $U\ne0$, can execute up to
+$\lceil m/\Dmin\rceil$ dependent feedback iterations; L\'opez--Dahab has
+$\Theta(n(1+s))$ shift/scatter work under its
 $\deg q\le m-W$ applicability condition; the Barrett baseline performs two
 polynomial multiplications on $\Theta(n)$-word operands after reciprocal
 setup; and a materialized dense map stores $\Theta(mn)$ words and performs
@@ -635,16 +659,16 @@ checks.  Passing tests is falsification evidence, not proof.}
 \toprule
 Statement & Status & Completed evidence\\
 \midrule
-Feedback decomposition and correctness & proof drafted; audit open & 20,000 random
+Feedback decomposition and correctness & internal audit passed & 20,000 random
 GF(2) trials and 299,592 exhaustive binary modulus/input pairs\\
-Frobenius factors and inverse & proof drafted; audit open & independent agreement over
+Frobenius factors and inverse & internal audit passed & independent agreement over
 GF(2), $\mathbb F_4$, dual numbers, and an $\mathbb F_3$ sign/radix check\\
-Exact feedback-stage count & proof drafted; audit open & native schedule checks at all
+Exact feedback-stage count & internal audit passed & native schedule checks at all
 72 tested $(m,\Dmin)$ coordinates\\
-Scheduled work $\Wfb$ and coarse bound & proof drafted; audit open & all 262,125
+Scheduled work $\Wfb$ and coarse bound & internal audit passed & all 262,125
 nonempty supports for $2\le m\le18$ pass; fixed-$m$ runtime correlations are
 $0.987$--$0.993$\\
-Random-support laws & proof drafted; audit open & exact geometry for 10,623 frozen
+Random-support laws & internal audit passed & exact geometry for 10,623 frozen
 supports, including median, p90, and p99\\
 \bottomrule
 \end{tabular}

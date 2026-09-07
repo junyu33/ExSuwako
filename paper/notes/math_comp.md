@@ -275,12 +275,12 @@ classical reduction theorem.
 
 | Statement | Status |
 |---|---|
-| Monic reduction reduces to nilpotent feedback inversion | Binary proof drafted in paper/ExSuwako/main.tex; independent audit pending. |
-| Characteristic-two Frobenius factors retain formal per-stage support; the nonzero support is exact over reduced algebras | Binary proof drafted in paper/ExSuwako/main.tex; coefficient-algebra extension remains to be formalized separately. |
-| Scheduled geometry-sensitive work formula and its dense \(O(m^2)\) endpoint | Coefficient-work proof drafted in paper/ExSuwako/main.tex; independent audit pending. |
-| Exact schedule size, in-place scalar space, and constructive setup bound | Proof drafted in paper/ExSuwako/main.tex; independent audit pending. |
-| Uniform fixed-weight support expectations | Proof drafted in paper/ExSuwako/main.tex; independent audit pending. |
-| Generic bounded-fan-in depth lower bound | Plausible proof target; state only with the generic-coefficient model. |
+| Monic reduction reduces to nilpotent feedback inversion | Binary proof passed the first internal hostile audit; external review pending. |
+| Characteristic-two Frobenius factors retain formal per-stage support; the nonzero support is exact over reduced algebras | Binary proof passed the first internal hostile audit; coefficient-algebra extension remains separate. |
+| Scheduled geometry-sensitive work formula and its dense \(O(m^2)\) endpoint | Coefficient-work proof passed the first internal hostile audit; external review pending. |
+| Exact schedule size, in-place scalar space, and constructive setup bound | Proof passed the first internal hostile audit; external review pending. |
+| Uniform fixed-weight support expectations | Proof passed the first internal hostile audit; external review pending. |
+| Generic bounded-fan-in depth lower bound | Open and omitted from the current manuscript. |
 | Positive-characteristic and commuting-block generalisations | Algebraically plausible; retain as corollaries after full proof checking. |
 | Linear-size reversible circuits for all fixed-weight tap geometries | Open; do not claim. |
 | Prefix-scan bound for bounded normalized feedback order | Separate proof obligation. |

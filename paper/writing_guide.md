@@ -98,13 +98,13 @@ Boolean-circuit upper bound into hardware depth without fixing the model.
 
 | Claim | Required evidence | Current status |
 |---|---|---|
-| Reduction through a nilpotent feedback inverse | Formal proof | Proof drafted in the manuscript; independent audit pending |
-| Frobenius preserves formal per-stage sparsity; actual support is exact over reduced algebras | Formal proof | Binary proof drafted in the manuscript; coefficient-algebra extension remains separate |
-| Scheduled geometry-sensitive work bound | Formal proof with operation model | Proof drafted in the manuscript; independent audit pending |
-| Exact schedule size, scalar temporary space, and setup bound | Formal proof with implementation boundary | Proof drafted in the manuscript; independent audit pending |
-| Random-support work and depth laws | Formal distributional proof | Proof drafted; geometry agrees on 10,623 frozen supports |
+| Reduction through a nilpotent feedback inverse | Formal proof | Internal hostile audit passed; external review pending |
+| Frobenius preserves formal per-stage sparsity; actual support is exact over reduced algebras | Formal proof | Binary internal audit passed; coefficient-algebra extension remains separate |
+| Scheduled geometry-sensitive work bound | Formal proof with operation model | Internal hostile audit passed; external review pending |
+| Exact schedule size, scalar temporary space, and setup bound | Formal proof with implementation boundary | Internal hostile audit passed; external review pending |
+| Random-support work and depth laws | Formal distributional proof | Internal hostile audit passed; geometry agrees on 10,623 frozen supports |
 | Algebraic computational falsification | Reproducible independent tests | Measured over GF(2), GF(4), dual numbers, and F3; not a proof |
-| Generic bounded-fan-in depth lower bound | Formal model and proof | Candidate theorem |
+| Generic bounded-fan-in depth lower bound | Formal model and proof | Open and omitted from the current manuscript |
 | Native scalar speed regions and setup amortization | Reproducible matched experiments | Fresh-checkout artifact reproduced from the hash-locked 67,576-row primary-platform dataset; no cross-platform claim |
 | Platform-optimal modulus changes | Search plus end-to-end measurements | Open hypothesis |
 | Novelty | Hostile primary-source audit | Provisional |
