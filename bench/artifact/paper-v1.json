@@ -13,5 +13,30 @@
     "bench/manifests/paper/random-m32768.jsonl",
     "bench/manifests/paper/random-m131072.jsonl"
   ],
-  "expected_outputs": {}
+  "expected_outputs": {
+    "cost-correlations.csv": "dd5819f14624529d4cf102fce3556f1be08e10466ce50d4d0fdd52c8715b2930",
+    "cost-diagnostics.csv": "ca0c9fa25f912699bf3a11893ec9f7cca021b5b1ddbdacf03dda9c4822ca9988",
+    "cost-residuals.csv": "600b931126feb77e1d8de839f8360c89a8209940657c19a288fca7cbc65640fe",
+    "feedback-depth.svg": "7cc861345c7a7b5d46f7f3ee4c7d3d945e1c675ce3998c12137d5d8e0157d2c0",
+    "fixed-gap-weight.svg": "d25aeffe4f91e58cfcc41ea58eef62b94d17f0ddcd9d82a2d1f4b50e55f11a93",
+    "fixed-weight-gap.svg": "9d2f6e2c38b5bc74ecca0fa9fc374bcff3cfde6c4ad200467d59ba542776a41f",
+    "operator-schematic.svg": "643a7a8dad1e2892cf41185d542d29f17bf2d6a0f5ca6e3909f71f67720c0ca7",
+    "paper-portable.csv": "33b834e97077530d892aa094eba53ab5aa5f7fe5462ea7ffa196e15582e9687b",
+    "paper-setup-storage.csv": "a733b9d9cfb31759b6fc31fcc3e63643f27edbf731742e0448873524c4ae5d3f",
+    "phase-geometry.svg": "0476b6ac1511825d3541997a41f281aaa77523cee666cf484bf8b09b181eee84",
+    "random-depth.svg": "f2c9b179df1a36fcc0f64d71ce695847fd155b16a9c7bea93cc07a065a08f540",
+    "random-geometry-summary.csv": "e71bff16f7e10ec0b50c4a5062673e94dcd4b0cf6df4c9a380291e5c2e1c3777",
+    "random-work.svg": "275df1c651fc43c74829a7211f269183eb46a203b3fd490bddb68add90bc4f1c",
+    "setup-amortization.csv": "5e029aab49b2efe42dc05aa84d6a3d9ff122c932563c8c004f8c14f65bc7047c",
+    "setup-amortization.svg": "15aaef76a7aab3c98e48b734bebdab02cf9efe02ec57ef2ccd2f1a5a102122ad",
+    "winner-comparisons.csv": "d40b1fdf7601e00235c4a339e9d8d5951dc72abba56f6fd7b0990527c21fef37",
+    "winner-panels.svg": "47e0596ecde337bc2492742e787f4f3f869ee53f90efa9cf4fcd8262b785fc2d",
+    "winner-points.csv": "de72cbfa5f7507ea76029bf91705af391dc8eea8069e562a3901392e04744efa",
+    "winner-region-summary.csv": "30231b84d041bced075adb15e88a24e7ba092ceba41d98cfa2b93adf327b971b",
+    "winner-regions.csv": "23a6a3ce275e67ba90264e91550d847d1464d6dbe10a5610db85ea998b0e4ac9",
+    "winner-summary.csv": "c1c225f3605854c79af45540eaf5b90bd3a3eca3d5c72461a8bdd1d281b507f4",
+    "work-depth-setup.svg": "aefb38d5af8dc35adbd1e41d964148865b6c8f2fbf0cabc251bf357b3b57b1f7",
+    "work-runtime-summary.csv": "aa6996d2a10c9b491d95ac476866356ab2aa890f8f3df0f548b58d90a900ceba",
+    "work-runtime.svg": "d3bb2e45ce658d1359285f4a039176e34bca67fa8d4098462cb962f1b79c0bbc"
+  }
 }
