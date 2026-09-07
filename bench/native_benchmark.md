@@ -857,3 +857,40 @@ tables and SVGs. Run `make artifact-verify-data`, `make artifact-paper`,
 `make artifact-cost-model`, and `make artifact-microbenchmark ARTIFACT_CPU=N`
 as documented in [`artifact/README.md`](artifact/README.md). No CSV payload or
 generated figure is tracked in Git.
+
+## Rabin Irreducibility End-to-End Pilot
+
+The E2E workload is separate from the frozen reduction-only artifact.  It is
+defined for an irreducible sparse modulus of power-of-two degree and executes
+the complete Rabin test: build one reducer plan, compute the $m$ successive
+modular squares of $x$, evaluate the $m/2$ checkpoint GCD, and check the final
+$x^{2^m}=x$ identity.  FFR, BarrettGF2X, Serial, and applicable ordinary-loop
+L\'opez--Dahab share `gf2_square_to_2m()` and the NTL GCD path.  NTL
+`IterIrredTest` is timed separately as an optimized complete-library baseline.
+
+Generate or recheck the pilot manifest and build the driver with:
+
+```text
+python3 bench/scripts/generate_rabin_irreducible_manifest.py \
+  --m 512 --h 9 --delta-min 1 --seed 0x524142494e5031 --count 1 \
+  --output bench/manifests/e2e/rabin-pilot-m512.jsonl
+make rabin-benchmark
+```
+
+Collect and summarize an exploratory 31-trial run pinned to CPU 0 with:
+
+```text
+python3 bench/scripts/collect_rabin_benchmark.py \
+  --binary build/rabin_irreducibility_benchmark \
+  --manifest bench/manifests/e2e/rabin-pilot-m512.jsonl \
+  --output bench/data/rabin-pilot-m512.csv \
+  --trials 31 --warmups 1 --cpu 0
+python3 bench/scripts/analyze_rabin_benchmark.py \
+  --input bench/data/rabin-pilot-m512.csv \
+  --output bench/data/rabin-pilot-m512-summary.csv
+```
+
+Add `--paper-grade` only from a clean experiment commit.  The collector then
+refuses a dirty worktree and records the exact command, commit, binary digest,
+compiler, linked gf2x and NTL libraries, host, affinity, and frequency policy.
+CSV data remain ignored under `bench/data/`.

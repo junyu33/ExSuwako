@@ -89,7 +89,7 @@ The first two directions should be pursued together: a cost model and a search o
 |---|---|
 | Repeated modular squaring occurs in factorization and irreducibility workflows | Established background; verify exact workload formulations and citations. |
 | Sparse high-tap moduli can be hostile to serial feedback | Proved at the feedback-depth level. |
-| FFR improves modular squaring for pentanomials | Open experimental hypothesis. |
+| FFR improves an irreducibility-testing workload on a sparse high-tap modulus | Supported by one metadata-complete but exploratory $m=512$ pilot: FFR was 2.35x faster than NTL and 3.80x faster than matched Barrett in median complete-test time; clean-commit collection and broader degrees remain open. |
 | The platform-optimal irreducible modulus changes under FFR | Open experimental hypothesis. |
 | CRC/Rabin is a compelling primary application | Currently unsupported. |
 

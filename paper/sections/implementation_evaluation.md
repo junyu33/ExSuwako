@@ -636,3 +636,25 @@ artifact report.  Thus the timing study and predecessor analysis are
 independently reproduced; only the new deterministic presentation layer
 awaits its post-commit packaging audit.  None of this supplies real-modulus,
 end-to-end, proof, or cross-platform evidence.
+
+### 9.8 Rabin Irreducibility E2E Pilot
+
+The first application experiment uses the complete Rabin irreducibility test
+at a power-of-two degree.  The matched paths share one scalar bit-dilation
+squarer and NTL GCD/check implementation and differ only in the selected
+reducer; NTL `IterIrredTest` is a separate optimized complete-library
+baseline.  The primary `rabin-power-of-two-irred:v1` interval includes reducer
+setup, all $m$ modular squares, the $m/2$ checkpoint GCD, and the final
+$x^{2^m}=x$ test.
+
+The deterministic pilot modulus has
+$m=512$, $h=9$, $\Delta_{\min}=1$, and
+$T=\{0,54,96,156,271,346,476,511\}$.  Sage 10.9 certifies it as irreducible,
+and the generator reaches it at attempt 221 from seed `0x524142494e5031`.
+Across 31 exploratory trials pinned to CPU 0, median complete times were
+0.154 ms for FFR, 0.359 ms for NTL, 0.588 ms for BarrettGF2X, and 13.06 ms for
+Serial.  The paired competitor/FFR median ratios were 2.35, 3.80, and 84.4;
+all bootstrap 95% intervals remained above one.  The FFR squaring chain
+accounted for about 95% of its total time.  These rows validate the experiment
+design and justify a clean-commit expansion, but remain exploratory and are
+not yet manuscript evidence.

@@ -25,7 +25,7 @@ static inline size_t poly_words_for_bits(size_t bits) {
 }
 
 static inline poly_t poly_new(size_t n) {
-    poly_t p = {calloc(n ? n : 1, sizeof(word_t)), n};
+    poly_t p = {(word_t *)calloc(n ? n : 1, sizeof(word_t)), n};
     if (!p.v) die("allocation failed");
     return p;
 }

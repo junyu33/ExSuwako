@@ -106,6 +106,7 @@ Boolean-circuit upper bound into hardware depth without fixing the model.
 | Algebraic computational falsification | Reproducible independent tests | Measured over GF(2), GF(4), dual numbers, and F3; not a proof |
 | Generic bounded-fan-in depth lower bound | Formal model and proof | Open and omitted from the current manuscript |
 | Native scalar speed regions and setup amortization | Reproducible matched experiments | Fresh-checkout artifact reproduced from the hash-locked 67,576-row primary-platform dataset; no cross-platform claim |
+| Rabin irreducibility-test speedup | Complete matched-driver and NTL measurements | Promising $m=512$ exploratory pilot; no paper claim before clean-commit collection |
 | Platform-optimal modulus changes | Search plus end-to-end measurements | Open hypothesis |
 | Novelty | Hostile primary-source audit | Provisional |
 

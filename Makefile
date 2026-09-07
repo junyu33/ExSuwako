@@ -1,4 +1,5 @@
 CC ?= gcc
+CXX ?= g++
 PYTHON ?= python3
 GF2X_PREFIX ?= /usr/local
 CFLAGS ?= -O3 -std=c11 -Wall -Wextra
@@ -13,22 +14,27 @@ else
 DL_LIBS ?= -ldl
 endif
 TARGET = build/reduction_benchmark
+RABIN_TARGET = build/rabin_irreducibility_benchmark
 CHECK_TARGET = build/reduction_correctness_check
 GS_STAGE_CHECK_TARGET = build/gs_stage_correctness_check
 GS_COMPONENT_CHECK_TARGET = build/gs_component_correctness_check
 SPARSE_SHIFT_CHECK_TARGET = build/sparse_shift_correctness_check
+GF2_SQUARE_CHECK_TARGET = build/gf2_square_correctness_check
 DENSE_CHECK_TARGET = build/dense_correctness_check
 GENERATED_CHECK_TARGET = build/generated_correctness_check
 SAN_CHECK_TARGET = build/reduction_correctness_check_sanitize
 SAN_STAGE_CHECK_TARGET = build/gs_stage_correctness_check_sanitize
 SAN_COMPONENT_CHECK_TARGET = build/gs_component_correctness_check_sanitize
 SAN_SHIFT_CHECK_TARGET = build/sparse_shift_correctness_check_sanitize
+SAN_GF2_SQUARE_CHECK_TARGET = build/gf2_square_correctness_check_sanitize
 SAN_DENSE_CHECK_TARGET = build/dense_correctness_check_sanitize
 SAN_GENERATED_CHECK_TARGET = build/generated_correctness_check_sanitize
 SAN_CFLAGS = -O1 -g -std=c11 -Wall -Wextra -fno-omit-frame-pointer \
 	-fsanitize=address,undefined
 REDUCTION_SOURCES = src/reduction.c src/GS.c src/barrett.c src/dense.c \
 	src/generated.c src/lopez_dahab.c src/naive.c src/serial.c
+RABIN_C_OBJECTS = $(patsubst src/%.c,build/rabin/%.o,$(REDUCTION_SOURCES)) \
+	build/rabin/gf2_square.o
 BENCH_SOURCES = bench/scripts/reduction_benchmark.c $(REDUCTION_SOURCES)
 CHECK_SOURCES = tests/check_reduction.c $(REDUCTION_SOURCES)
 
@@ -38,6 +44,19 @@ $(TARGET): $(BENCH_SOURCES) include/*.h
 	mkdir -p build
 	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ $(BENCH_SOURCES) \
 		-L$(GF2X_PREFIX)/lib -lgf2x $(DL_LIBS)
+
+build/rabin/%.o: src/%.c include/*.h
+	mkdir -p build/rabin
+	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -c -o $@ $<
+
+$(RABIN_TARGET): bench/scripts/rabin_irreducibility_benchmark.cpp \
+		$(RABIN_C_OBJECTS) include/*.h
+	mkdir -p build
+	$(CXX) -O3 -std=c++17 -Wall -Wextra -Iinclude \
+		-I$(GF2X_PREFIX)/include -o $@ $< $(RABIN_C_OBJECTS) \
+		-L$(GF2X_PREFIX)/lib -lntl -lgmp -lgf2x $(DL_LIBS)
+
+rabin-benchmark: $(RABIN_TARGET)
 
 $(CHECK_TARGET): $(CHECK_SOURCES) include/*.h tests/reduction_regressions.h
 	mkdir -p build
@@ -58,6 +77,12 @@ $(SPARSE_SHIFT_CHECK_TARGET): tests/check_sparse_shift.c include/*.h
 	mkdir -p build
 	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
 		tests/check_sparse_shift.c -L$(GF2X_PREFIX)/lib -lgf2x
+
+$(GF2_SQUARE_CHECK_TARGET): tests/check_gf2_square.c src/gf2_square.c include/*.h
+	mkdir -p build
+	$(CC) $(CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
+		tests/check_gf2_square.c src/gf2_square.c \
+		-L$(GF2X_PREFIX)/lib -lgf2x
 
 $(DENSE_CHECK_TARGET): tests/check_dense.c src/dense.c src/naive.c include/*.h
 	mkdir -p build
@@ -91,6 +116,12 @@ $(SAN_SHIFT_CHECK_TARGET): tests/check_sparse_shift.c include/*.h
 	mkdir -p build
 	$(CC) $(SAN_CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
 		tests/check_sparse_shift.c -L$(GF2X_PREFIX)/lib -lgf2x
+
+$(SAN_GF2_SQUARE_CHECK_TARGET): tests/check_gf2_square.c src/gf2_square.c include/*.h
+	mkdir -p build
+	$(CC) $(SAN_CFLAGS) -Iinclude -I$(GF2X_PREFIX)/include -o $@ \
+		tests/check_gf2_square.c src/gf2_square.c \
+		-L$(GF2X_PREFIX)/lib -lgf2x
 
 $(SAN_DENSE_CHECK_TARGET): tests/check_dense.c src/dense.c src/naive.c include/*.h
 	mkdir -p build
@@ -142,11 +173,13 @@ artifact-microbenchmark: $(TARGET)
 
 check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(GS_COMPONENT_CHECK_TARGET) $(SPARSE_SHIFT_CHECK_TARGET) \
-	$(DENSE_CHECK_TARGET) $(GENERATED_CHECK_TARGET) $(TARGET)
+	$(GF2_SQUARE_CHECK_TARGET) $(DENSE_CHECK_TARGET) \
+	$(GENERATED_CHECK_TARGET) $(TARGET) $(RABIN_TARGET)
 	$(CHECK_TARGET)
 	$(GS_STAGE_CHECK_TARGET)
 	$(GS_COMPONENT_CHECK_TARGET)
 	$(SPARSE_SHIFT_CHECK_TARGET)
+	$(GF2_SQUARE_CHECK_TARGET)
 	$(DENSE_CHECK_TARGET)
 	$(PYTHON) tests/check_generated_reducer.py \
 		--checker $(GENERATED_CHECK_TARGET) --binary $(TARGET) --cc "$(CC)" \
@@ -168,6 +201,9 @@ check: $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 	$(PYTHON) tests/check_paper_tables.py
 	$(PYTHON) tests/check_artifact_driver.py
 	$(PYTHON) tests/check_benchmark_metadata.py --binary $(TARGET)
+	$(PYTHON) tests/check_rabin_benchmark.py --binary $(RABIN_TARGET)
+	$(PYTHON) tests/check_rabin_manifest.py
+	$(PYTHON) tests/check_rabin_pipeline.py --binary $(RABIN_TARGET)
 	$(MAKE) check-theory
 
 check-theory:
@@ -176,7 +212,8 @@ check-theory:
 
 check-sanitize: $(SAN_CHECK_TARGET) $(SAN_STAGE_CHECK_TARGET) \
 	$(SAN_COMPONENT_CHECK_TARGET) $(SAN_SHIFT_CHECK_TARGET) \
-	$(SAN_DENSE_CHECK_TARGET) $(SAN_GENERATED_CHECK_TARGET) $(TARGET)
+	$(SAN_GF2_SQUARE_CHECK_TARGET) $(SAN_DENSE_CHECK_TARGET) \
+	$(SAN_GENERATED_CHECK_TARGET) $(TARGET)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 $(SAN_CHECK_TARGET)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
@@ -185,6 +222,8 @@ check-sanitize: $(SAN_CHECK_TARGET) $(SAN_STAGE_CHECK_TARGET) \
 	UBSAN_OPTIONS=halt_on_error=1 $(SAN_COMPONENT_CHECK_TARGET)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 $(SAN_SHIFT_CHECK_TARGET)
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 $(SAN_GF2_SQUARE_CHECK_TARGET)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 $(SAN_DENSE_CHECK_TARGET)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
@@ -196,10 +235,13 @@ check-sanitize: $(SAN_CHECK_TARGET) $(SAN_STAGE_CHECK_TARGET) \
 check-serial: check
 
 clean:
-	rm -f $(TARGET) $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
+	rm -f $(TARGET) $(RABIN_TARGET) $(CHECK_TARGET) $(GS_STAGE_CHECK_TARGET) \
 		$(GS_COMPONENT_CHECK_TARGET) $(SPARSE_SHIFT_CHECK_TARGET) \
+		$(GF2_SQUARE_CHECK_TARGET) \
 		$(DENSE_CHECK_TARGET) \
 		$(GENERATED_CHECK_TARGET) \
 		$(SAN_CHECK_TARGET) $(SAN_STAGE_CHECK_TARGET) \
 		$(SAN_COMPONENT_CHECK_TARGET) $(SAN_SHIFT_CHECK_TARGET) \
+		$(SAN_GF2_SQUARE_CHECK_TARGET) \
 		$(SAN_DENSE_CHECK_TARGET) $(SAN_GENERATED_CHECK_TARGET)
+	rm -rf build/rabin

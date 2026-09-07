@@ -17,7 +17,8 @@ evidence through the following levels:
 1. correctness;
 2. operation-count and cost-model validation;
 3. matched reduction microbenchmarks;
-4. reproducible artifact validation.
+4. reproducible artifact validation;
+5. end-to-end workload validation.
 
 Checkbox notation is `[x]` for completed work, `[ ]` for open work, and `[-]`
 for an item that was reviewed and found not applicable to the frozen
@@ -36,9 +37,9 @@ actionable experimental content is covered:
 |---|---|---|
 | [README.md](../README.md) and [native_benchmark.md](../bench/native_benchmark.md) | Current inventory, benchmark contract, gf2x provenance, and artifact rules in Current Inventory, P0, and Gate 4 | The source files as implementation documentation |
 | [writing_guide.md](writing_guide.md) | Evidence levels and completion criteria in all gates | Paper structure, claim status, and submission gates |
-| [implementation_evaluation.md](sections/implementation_evaluation.md) | Implementations, baselines, RQ1--RQ7, parameter sweeps, metrics, figures, tables, and negative results in Gates 1--4 | Paper-facing evaluation design |
+| [implementation_evaluation.md](sections/implementation_evaluation.md) | Implementations, baselines, RQ1--RQ7, parameter sweeps, metrics, figures, tables, negative results, and the Gate 5 E2E workload | Paper-facing evaluation design |
 | [extensions_appendices.md](sections/extensions_appendices.md) | Claim-to-evidence experiments and former implementation/evaluation TODOs in Gates 1--4 | Mathematical, prior-art, appendix, and submission planning |
-| [application.md](notes/application.md) | No executable gate: application material is motivation and possible future work, not part of the reduction experiment contract | Application motivation and provenance |
+| [application.md](notes/application.md) | Repeated modular squaring and Rabin irreducibility testing in Gate 5 | Application motivation, alternatives, and claim boundaries |
 | [math_1.md](raw/math_1.md) and [math_2.md](raw/math_2.md) | Optional coefficient-algebra checks in Gates 1 and 2 | General algebraic derivations, proofs, and open problems |
 | [related_1.md](raw/related_1.md), [related_2.md](raw/related_2.md), and [related_3.md](raw/related_3.md) | Their demands for matched classical comparisons enter Gate 3 | Hostile-search records summarized in [related_work.md](sections/related_work.md) and tracked in [prior_art_plan.md](notes/prior_art_plan.md) |
 | [math_comp.md](notes/math_comp.md), [technical_body.md](sections/technical_body.md), [intro_draft.md](sections/intro_draft.md), and [venue_choice.md](notes/venue_choice.md) | Any evidence requirements are represented by Gates 1--4; these files define no independent experiment queue | Mathematical synthesis, manuscript prose, and venue strategy |
@@ -587,7 +588,7 @@ The paper-facing definition of this experiment is in
       10 operational ties, and the Dense diagnostic result; uncertain cells
       are never converted into wins.
 
-## Completion Gates
+## Reduction-Only Completion Gates
 
 - [x] Every claimed reducer passes an independent correctness check. [A] The
       fresh `make check` run covers unrestricted reducers, the López--Dahab
@@ -609,3 +610,68 @@ The paper-facing definition of this experiment is in
       the 24-output predecessor artifact byte-for-byte at commit `68af036`;
       the new 26-output fitted-boundary artifact must receive its own detached
       post-commit audit before this gate is closed again.
+
+## Gate 5: End-to-End Rabin Irreducibility Test
+
+This gate is a new workload contract and does not alter the frozen
+reduction-only measurements above.  Its single paper-facing application is a
+complete Rabin irreducibility test for sparse binary polynomials of
+power-of-two degree.  For such a degree $m$, the test computes the modular
+squaring chain through $x^{2^m}$, evaluates
+$\gcd(x^{2^{m/2}}-x,g)$, and checks $x^{2^m}=x\pmod g$.
+
+- [x] Freeze deterministic manifests of sparse irreducible moduli, including
+      the complete taps, $m$, $h$, $\Delta_{\min}$, generator seed, and a
+      reproducible Sage irreducibility check.  The pilot is
+      $(m,h,\Delta_{\min})=(512,9,1)$; the paper study will decide expansion
+      only after the pilot. [A] The committed pilot manifest fixes
+      $T=\{0,54,96,156,271,346,476,511\}$, search seed
+      `0x524142494e5031`, accepted attempt 221, and Sage 10.9 certificate
+      provenance; `check_rabin_manifest.py` reconstructs the polynomial,
+      verifies irreducibility, and reproduces the manifest byte-for-byte.
+- [x] Implement one shared scalar polynomial squarer and a matched Rabin
+      driver that changes only the reducer among FFR, BarrettGF2X, Serial, and
+      L\'opez--Dahab where applicable.  The shared GCD/check path must not
+      depend on the selected reducer. [A] `gf2_square_to_2m()` supplies the
+      shared bit-dilation squarer; the C++ driver invokes the unified reduction
+      API and automatically admits L\'opez--Dahab exactly when
+      $\Delta_{\min}\ge W$.
+- [x] Compare every matched-driver result and checkpoint with NTL, and include
+      NTL `IterIrredTest` as a separate optimized end-to-end baseline rather
+      than as another reducer inside the matched driver. [A] Before timing,
+      every matched reducer's $m/2$ and $m$ checkpoints are compared with an
+      NTL `SqrMod` chain; NTL `GCD` is shared by the matched paths, while
+      `IterIrredTest` remains an independently timed whole-library baseline.
+- [x] Freeze `rabin-power-of-two-irred:v1`: the primary wall-clock interval
+      starts from reducer-plan construction and includes all modular squares,
+      the GCD, and the final equality test; modulus parsing, manifest I/O,
+      result validation, and reporting remain outside.  Also report setup,
+      squaring-chain, and GCD/check components without substituting their sum
+      for the primary end-to-end measurement. [A] The native CSV records the
+      primary interval and its contiguous setup, chain, and check segments;
+      the NTL row reports only its independently measured complete interval.
+- [x] Run at least one discarded complete warm-up and 31 cyclically ordered
+      complete trials per method, retain every observation, and use paired
+      deterministic bootstrap intervals for method ratios.  Preserve the
+      compiler, flags, gf2x and NTL paths, CPU affinity, frequency policy,
+      command, commit, and binary digest with every retained run. [A] The
+      collector attaches all required fields, and the analyzer rejects
+      incomplete paired trials before producing deterministic 10,000-resample
+      median and ratio intervals. Pipeline regression tests exercise this
+      contract; the current pilot rows remain explicitly exploratory because
+      they were collected from a dirty implementation worktree.
+- [x] Run the $m=512$ pilot.  Expand the corpus only if the implementation is
+      correct, the end-to-end interval is stable, and reduction remains a
+      material fraction of total time; otherwise record the negative result
+      and do not manufacture a broader application claim. [A] In the pinned
+      31-trial exploratory pilot, median complete times were 0.154 ms for FFR,
+      0.359 ms for NTL, 0.588 ms for BarrettGF2X, and 13.06 ms for Serial.
+      Paired competitor/FFR median ratios were respectively 2.35, 3.80, and
+      84.4, with all 95\% intervals strictly above one. The matched FFR
+      squaring chain occupied about 95\% of its total time. This clears
+      expansion but is not paper evidence until recollected from a clean
+      experiment commit.
+- [ ] Integrate the result into the manuscript only if a complete Rabin test,
+      not merely its reduction or modular-squaring component, shows the stated
+      effect.  A win over matched reducers but not over NTL must be reported
+      with that distinction.
