@@ -30,6 +30,9 @@ Polynomials with Logarithmic Feedback Depth}
 \author{Junyu Zhou}
 \address{Sichuan University}
 \email{helloworld@junyu33.me}
+\author{Kaiyi Zhang}
+\address{Tsinghua University}
+\email{kaiyizhang@tsinghua.edu.cn}
 \subjclass[2020]{Primary 11T06; Secondary 12Y05, 68W10, 68W40}
 \keywords{binary polynomials, modular reduction, finite fields,
 sparse polynomials, Frobenius map, parallel algorithms}
@@ -146,9 +149,8 @@ separately through Rabin irreducibility testing.
 Sections~\ref{sec:preliminaries}--\ref{sec:paradigms} fix the problem and
 comparison models.  Sections~\ref{sec:operators}--\ref{sec:complexity} develop
 the method and analysis.  Section~\ref{sec:related} states the prior-art
-boundary.  Sections~\ref{sec:evaluation} and~\ref{sec:consequences} contain the
-implementation and application evidence, and Section~\ref{sec:conclusion}
-concludes.
+boundary.  Section~\ref{sec:evaluation} contains the implementation and
+application evidence, and Section~\ref{sec:conclusion} concludes.
 
 \section{Preliminaries and Cost Models}
 \label{sec:preliminaries}
@@ -431,10 +433,12 @@ and the remainder is $L$.  If $T=\{0\}$, then $g=x^m+1$, $U=0$ and $V=I$,
 so the remainder is $L+H$.  Omitting the constant tap merely removes the
 identity summand from $V$; it does not change the argument.  Dense and
 reducible moduli satisfy the same correctness theorem, although density can
-make the schedule unattractive.  Finally, a degree $m$ not divisible by the
-machine-word width changes masking and storage in an implementation, not the
-algebraic algorithm.
+make the schedule unattractive.  Word misalignment affects implementation
+masking and storage, not the algebraic algorithm.
 \end{remark}
+
+Appendix~\ref{app:coefficient-algebra} gives the coefficient-algebra and
+odd-characteristic extensions.
 
 \section{Work--Depth--Space Geometry}
 \label{sec:complexity}
@@ -859,10 +863,10 @@ folding, and gf2x-backed Barrett reduction through the same operation
 Both FFR realizations use the same scalar feedback-stage and final-assembly
 kernels; only the lifetime of their shift descriptors differs.  FFR and
 serial folding use the same packed-word shift/XOR primitive.  The frozen phase
-diagram retains \texttt{GS} as the internal identifier for planned FFR, while
-the separate representative experiment names the second path
-\texttt{OnlineFFR}.  We also
-implemented the ordinary-loop L\'opez--Dahab reducer, using it only when
+diagram retains \texttt{GS} (Generalized Suwako) as the historical internal
+identifier for planned FFR; the paper-facing names are FFR and
+\texttt{OnlineFFR}.  We also implemented the ordinary-loop L\'opez--Dahab
+reducer, using it only when
 $\Dmin\ge W$, and a packed dense linear map for diagnostic screening.  An
 independent long-division implementation serves exclusively as the correctness
 oracle.  Montgomery REDC is assigned to the separate representation-aware
@@ -872,48 +876,41 @@ Before timing, the binary implementations are compared with independent long
 division at word boundaries and on deterministic random instances.  Separate
 falsification suites test the algebraic identities over $\Ftwo$,
 $\mathbb F_4$, and $\Ftwo[\varepsilon]/(\varepsilon^2)$, together with the
-odd-characteristic sign convention over $\mathbb F_3$.  Theorem~\ref{thm:correctness}
-is established analytically above, and these suites provide independent
-computational validation of its implementations and algebraic extensions.
+odd-characteristic sign convention over $\mathbb F_3$.
+
+Appendix~\ref{app:validation} records the detailed validation and reproduction
+entry points.
 
 \subsection{Experimental contract}
 
 We measured portable scalar C on one recorded x86-64 host, pinned to logical
-CPU~0.  The programs were compiled with GCC~16.1.1 using
-\texttt{-O3 -std=c11 -Wall -Wextra}; Barrett used
-\texttt{/usr/lib/libgf2x.so.3.0.0}.  The governor, energy-performance
-preference, and turbo state accompany every retained row.  Thus every timing
-conclusion below is scoped to this platform.
+CPU~0 and compiled with GCC~16.1.1 using
+\texttt{-O3 -std=c11 -Wall -Wextra}; Barrett linked
+\texttt{/usr/lib/libgf2x.so.3.0.0}.  Every row records the governor,
+energy-performance preference, and turbo state, and conclusions are scoped to
+this platform.
 
-For each support, the input corpus consists of eight materialized polynomials
-$A=L+x^mH$, where $L$ and $H$ are independent uniform $m$-bit polynomials.
-One complete warm-up invocation is discarded.  A retained trial uses twelve
-batch repetitions, with the method order cyclically rotated so that each
-enabled method occupies every timing position equally often.  The setup,
-input generation, allocation, correctness checks, and output handling lie
-outside the timed call to \texttt{reduce\_into}.  All observations are retained
-without winsorization.  The data contain either 31 or 127 complete trials per support,
-according to the frozen collection cohort.
+Each support uses eight materialized inputs $A=L+x^mH$ with independent uniform
+$m$-bit halves.  After one warm-up, 31 or 127 complete trials use twelve batch
+repetitions and cyclic method order.  Only \texttt{reduce\_into} is timed;
+setup, input generation, allocation, checking, and output handling are
+excluded, and no observation is removed.
 
 The controlled corpus contains 1,096 constant-free supports at
 \[
   m\in\{128,512,2048,8192,32768,131072\}.
 \]
-It varies $h$ and $\Dmin$ independently: the nearest tap is fixed at
-$m-\Dmin$, and the remaining taps are spread deterministically.  Every point
-compares FFR with Barrett.  Serial is present in the 392 points retained from
-the initial and L\'opez--Dahab screening grids, while high-weight extensions
-omit it; L\'opez--Dahab is present precisely at measured points satisfying
-$\Dmin\ge64$. Winner classification at each point ranges exactly over the
-methods measured there.
+It varies $h$ and $\Dmin$ independently by fixing the nearest tap at
+$m-\Dmin$ and spreading the others deterministically.  Every point compares
+FFR with Barrett; 392 initial or screening points also include Serial, and
+L\'opez--Dahab is present exactly at measured points with $\Dmin\ge64$.
+Winners range only over methods measured at that point.
 
-For each method at each support, we take the median across trials and compute
-a deterministic 10,000-resample bootstrap 95\% interval.  A unique winner is
-assigned only if every participating median has relative interval half-width
-at most 1\%, the fastest median is at least 1\% below every competitor, and
-every paired fastest/competitor ratio interval lies strictly below one.
-Failures of these tests are retained as timing instability, operational ties,
-or statistical ties rather than forced into a phase boundary.
+Each method is summarized by its trial median and a deterministic
+10,000-resample bootstrap 95\% interval.  A unique winner requires relative
+median-interval half-width at most 1\%, a margin of at least 1\% over every
+competitor, and paired ratio intervals strictly below one; failures remain
+timing instability, operational ties, or statistical ties.
 
 \subsection{Measured winner regions}
 
@@ -1140,35 +1137,6 @@ chain accounts for $85.5\%$ of FFR time at $m=128$ and $98.9\%$ at $m=8192$,
 so the measured difference remains central to the complete test rather than
 being hidden by setup or the terminal GCD.
 
-\section{Computational-Algebra Consequences and Limitations}
-\label{sec:consequences}
-
-Distinct-degree factorization, Rabin irreducibility testing, and sparse
-polynomial search repeatedly compute modular Frobenius powers.  The phase
-diagram isolates reduction on uniform degree-below-$2m$ inputs, whereas the
-Rabin experiment includes square formation, application-generated states, the
-GCD, and the final decision.  It therefore establishes an end-to-end effect
-for the tested irreducibility certificates.  The application evidence is scoped
-to complete Rabin tests on the four certified moduli.
-
-The reduction timing corpus consists of
-controlled constant-free supports with unclassified irreducibility and
-therefore measures general monic-modulus reduction.  All timings come from one
-x86-64 host, one compiler configuration, a 64-bit scalar representation, and
-one gf2x installation.  The largest panel retains 52
-timing-unstable cells, and serial folding was omitted from the high-weight
-extension after its initial screening.  L\'opez--Dahab participates only for
-$\Dmin\ge64$, while the dense map is diagnostic rather than winner-eligible.
-Setup and requested plan storage are reported separately from steady-state
-reduction, so a different plan-reuse distribution can change total cost.
-The online study covers 45 controlled supports and places workspace allocation
-outside steady-state timing.  The Rabin scaling trend is conditional on four
-deterministically generated high-tap moduli of one weight.
-
-Finally, dense supports, small degrees, cross-word shifts, and specialized
-fixed-modulus reducers can all make FFR unattractive, while
-fast polynomial multiplication favors Barrett.
-
 \section{Conclusion}
 \label{sec:conclusion}
 
@@ -1206,12 +1174,13 @@ OpenAI Codex (GPT-5.6 Sol) was used during the research and manuscript-preparati
 workflow to assist with literature-search planning and synthesis,
 mathematical exploration and statement auditing, software and test
 development, benchmark-analysis and plotting code, and manuscript drafting
-and editing.  The author reviewed the resulting sources, arguments, code, and
-reported data and assumes full responsibility for the manuscript.
+and editing.  The authors reviewed the resulting sources, arguments, code, and
+reported data and assume full responsibility for the manuscript.
 
 \appendix
 
 \section{Coefficient-Algebra Extension}
+\label{app:coefficient-algebra}
 
 Let $R$ be a commutative characteristic-two algebra and let
 \[
@@ -1263,6 +1232,7 @@ $\sum_{j=0}^{p-1}(-U^{p^k})^j$, and the final remainder is $L-V(Y)$ rather
 than the characteristic-two expression $L+V(Y)$.
 
 \section{Validation and Additional Results}
+\label{app:validation}
 
 The deterministic algebraic suites use independent polynomial long division
 or direct finite geometric series as their oracles.  Over $\Ftwo$, 20,000
