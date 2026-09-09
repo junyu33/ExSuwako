@@ -8,9 +8,12 @@
 \usepackage{array}
 \usepackage{booktabs}
 \usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{placeins}
 \usepackage{url}
 \usepackage[hidelinks]{hyperref}
 \setlength{\emergencystretch}{1em}
+\numberwithin{equation}{section}
 
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}[theorem]{Lemma}
@@ -53,7 +56,7 @@ its inverse by characteristic-two Frobenius powers.  The resulting
 modulus without materializing a reciprocal or dense reduction matrix, and its
 shifts can be generated online without a persistent modulus-specific schedule.
 For degree $m$ and nonempty nonleading support of size $s$, with nearest-tap
-distance $\Dmin$, FFR uses exactly $\lceil\log_2(m/\Dmin)\rceil$ Frobenius
+distance $\Dmin$, FFR uses exactly $\lceil\log_2(m/\Dmin)\rceil$ sequential
 feedback stages and has scheduled work $O(ms(1+\log(m/s)))$.  A portable-C
 evaluation on 1,096 supports through degree
 $131072$ identifies distinct FFR, L\'opez--Dahab, and gf2x-backed Barrett
@@ -165,8 +168,8 @@ performance regime.  Our depth results use the synchronous feedback-stage and
 bounded-fan-in models defined below; complete-workload effects are evaluated
 separately through Rabin irreducibility testing.
 
-Sections~\ref{sec:preliminaries}--\ref{sec:paradigms} fix the problem and
-comparison models.  Sections~\ref{sec:operators}--\ref{sec:complexity} develop
+Section~\ref{sec:preliminaries} fixes the problem and cost models.
+Sections~\ref{sec:operators}--\ref{sec:complexity} develop
 the method and analysis.  Section~\ref{sec:related} states the prior-art
 boundary.  Section~\ref{sec:evaluation} contains the implementation and
 application evidence, and Section~\ref{sec:conclusion} concludes.
@@ -180,7 +183,7 @@ Let
   \qquad T\subseteq\{0,\ldots,m-1\},
   \label{eq:modulus}
 \end{equation}
-be monic, and set $h=1+|T|$.  For $t\in T$, define
+be monic, and set $s=|T|$ and $h=1+s$.  For $t\in T$, define
 $\Delta_t=m-t$.  If $T\ne\varnothing$, let
 \begin{equation}
   \Dmin=\min\{\Delta_t:t\in T\}.
@@ -228,57 +231,6 @@ Caller-owned inputs and outputs are excluded from temporary-space counts.
 Section~\ref{sec:evaluation} separately fixes
 the steady-state reduction boundary, reusable-plan setup, storage, and any
 amortization over a stated reuse count.
-
-\section{Existing Reduction Paradigms}
-\label{sec:paradigms}
-
-Serial folding repeatedly eliminates high terms through the nonleading support.
-It has low setup, but a tap at distance $\Dmin$ can create on the order of
-$m/\Dmin$ dependent folds.  Fixed trinomial and pentanomial formulae,
-generated code, and L\'opez--Dahab reduction can be stronger under their
-family assumptions~\cite{LopezDahab2000}.
-
-Dense linear maps and generic parallel division expose a different tradeoff.
-Polynomial division can be reduced to triangular Toeplitz or reciprocal
-inversion~\cite{BiniPan1985}.  Barrett and Montgomery instead use polynomial
-products and modulus-dependent constants.  Their machine cost therefore
-depends on multiplication and memory behavior as well as tapwise shift/XOR
-counts.
-
-Table~\ref{tab:families} summarizes the applicability of the direct-reduction
-methods used in the comparison.
-
-\begin{table}[t]
-\caption{Applicability of the compared direct-reduction methods.  Throughout,
-$g$ is as in~\eqref{eq:modulus}, $\deg A<2m$, and $n=\lceil m/W\rceil$; the
-dense-map bound is the 64 MiB limit used in the evaluation.}
-\label{tab:families}
-\centering
-\small
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-Method
-& FFR
-& Serial
-& BarrettGF2X
-& L\'opez--Dahab
-& Dense\\
-\midrule
-Applicability
-& \eqref{eq:modulus}
-& \eqref{eq:modulus}
-& \eqref{eq:modulus}
-& $m>W,\ \deg q\le m-W$
-& $g\text{ fixed}$\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The general-code winner contract compares runtime loop implementations;
-generated fixed-modulus code forms a separate specialization contract.
-Montgomery REDC likewise belongs to a representation-aware multiplication
-contract because it maps $A$ to $AR^{-1}\bmod g$ instead of performing the
-direct reduction $A\mapsto A\bmod g$.
 
 \section{Feedback Operators}
 \label{sec:operators}
@@ -467,7 +419,7 @@ We first count \emph{scheduled coefficient contributions}: adding one shifted
 source coefficient to one destination coefficient costs one unit.  Retaining
 the unshifted stage input, copying a vector, testing a public bound, and
 reading a schedule descriptor are not included in this measure.  Let
-$s=|T|$, let $h_k=|T_k|$, and define
+$h_k=|T_k|$, and define
 \begin{equation}
   \ell_t=\#\{k\ge0:2^k\Delta_t<m\}
   =\left\lceil\log_2\frac{m}{\Delta_t}\right\rceil .
@@ -697,29 +649,21 @@ compilation of generated code.  The benchmarked reusable-plan builder uses a
 simpler stage-by-stage scan, sort, and allocation strategy and is not claimed
 to realize this asymptotic setup bound.  The experiments time that concrete
 builder and the schedule-free workspace separately, and measure online
-descriptor generation inside reduction.  For comparison, serial tapwise
-folding needs no doubled-shift schedule but, when $U\ne0$, can execute up to
-$\lceil m/\Dmin\rceil$ dependent feedback iterations; L\'opez--Dahab has
-$\Theta(n(1+s))$ shift/scatter work under its $m>W$ and
-$\deg q\le m-W$ applicability conditions; the Barrett baseline performs two
-polynomial multiplications on $\Theta(n)$-word operands after reciprocal
-setup; and a materialized dense map stores $\Theta(mn)$ words and performs
-$\Theta(mn)$ row-word products.  These are different cost primitives, so
-their constants and crossovers are determined experimentally rather than by
-equating the displayed source-level counts.
+descriptor generation inside reduction.
 
 For a compact comparison, let $M(n)$ and $D_M(n)$ denote the work and
 dependency depth of an $n$-word polynomial multiplication.  For $U\ne0$, let
 $\nu_U=\min\{j\ge1:U^j=0\}$; then
 $\nu_U\le\lceil m/\Dmin\rceil$.  The boundary $U=0$ has no dependent
-feedback fold.
+feedback fold.  The methods use different cost primitives, so their constants
+and crossovers are determined experimentally.
 Table~\ref{tab:method-complexity} collects the resulting method-specific
 source-level costs; Section~\ref{sec:evaluation} supplies the corresponding
 measured times.
 
 \begin{table}[t]
 \caption{Reduction work and dependency depth.  Here
-$n=\lceil m/W\rceil$, $s=|T|$, and fan-in-two depth assumes free fanout.
+$n=\lceil m/W\rceil$, and fan-in-two depth assumes free fanout.
 As defined in Proposition~\ref{prop:word-geometry},
 $B_{\rm fb}^{\rm loop}$ counts shifted-word contributions traversed by the
 feedback loops, while $B_V$ counts those traversed by final low-part assembly.
@@ -795,8 +739,8 @@ Since $r=\sum_{k\ge0}\mathbf 1_{\{h_k>0\}}$, Markov's inequality and
 \[
   \Pr(h_k>0)\le\min\{1,s/2^k\}.
 \]
-Summing the first $\lceil\log_2s\rceil$ unit bounds and the remaining
-geometric tail proves~\eqref{eq:expected-depth}.  The deterministic inequality
+Splitting the sum at $k=\lceil\log_2s\rceil$ and summing the geometric tail
+proves~\eqref{eq:expected-depth}.  The deterministic inequality
 $\Wfb\le mS_{\rm fb}$ proves~\eqref{eq:expected-work}.  Finally, every distance
 has inclusion probability $s/m$, so
 \[
@@ -875,33 +819,63 @@ geometry from all tap distances.
 
 \subsection{Implementations and validation}
 
-The native interface exposes planned and online FFR, serial top-down
-folding, and gf2x-backed Barrett reduction through the same operation
-\[
-  A\longmapsto A\bmod g,\qquad \deg A<2m.
-\]
-Both FFR realizations use the same scalar feedback-stage and final-assembly
-kernels; only the lifetime of their shift descriptors differs.  FFR and
-serial folding use the same packed-word shift/XOR primitive.  The frozen phase
-diagram retains \texttt{GS} (Generalized Suwako) as the historical internal
-identifier for planned FFR; the paper-facing names are FFR and
-\texttt{OnlineFFR}.  We also implemented the ordinary-loop L\'opez--Dahab
-reducer, using it only when
-$\Dmin\ge W$, and a packed dense linear map for diagnostic screening.  An
-independent long-division implementation serves exclusively as the correctness
-oracle.  Montgomery REDC is assigned to the separate representation-aware
-multiplication contract described in Section~\ref{sec:paradigms}.
+The comparison uses the direct operation $A\mapsto A\bmod g$ for
+$\deg A<2m$.  Serial folding repeatedly eliminates the high part through the
+nonleading support; the ordinary-loop L\'opez--Dahab method instead uses
+word-oriented shift/scatter operations where applicable.  BarrettGF2X uses
+polynomial products and a modulus-dependent reciprocal, whereas the dense
+baseline materializes a fixed-modulus linear map.  Table~\ref{tab:families}
+summarizes their applicability and role.
 
-Before timing, the binary implementations are compared with independent long
-division at word boundaries and on deterministic random instances.  Separate
-falsification suites test the algebraic identities over $\Ftwo$,
-$\mathbb F_4$, and $\Ftwo[\varepsilon]/(\varepsilon^2)$, together with the
-odd-characteristic sign convention over $\mathbb F_3$.
+\begin{table}[t]
+\caption{Compared direct-reduction methods.  Throughout, $g$ is as
+in~\eqref{eq:modulus} and $\deg A<2m$.}
+\label{tab:families}
+\vspace{0.5em}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}
+  >{\centering\arraybackslash}m{0.16\textwidth}
+  >{\centering\arraybackslash}m{0.12\textwidth}
+  >{\centering\arraybackslash}m{0.20\textwidth}
+  >{\raggedright\arraybackslash}m{0.435\textwidth}@{}}
+\toprule
+Method & Status & Applicability & Use in evidence\\
+\midrule
+\multirow{2}{*}{FFR} & Planned & \eqref{eq:modulus}
+& Direct candidate at all 1,096 points.\\
+\cmidrule(l){2-4}
+& Online & \eqref{eq:modulus}
+& Schedule-free 45-point study.\\
+\midrule
+Serial folding & Native & \eqref{eq:modulus}
+& Direct on the 392-point subset.\\
+\midrule
+BarrettGF2X & Native/gf2x & \eqref{eq:modulus}
+& Direct at all 1,096 points.\\
+\midrule
+L\'opez--Dahab & Native & $m>W$, $\deg q\le m-W$
+& Direct at every measured applicable point.\\
+\midrule
+Dense map & Native & $g$ fixed
+& Diagnostic map; $\Theta(m^2/W)$ words and row-word work; 64 MiB cap.\\
+\bottomrule
+\end{tabular}
+\renewcommand{\arraystretch}{1}
+\end{table}
 
-Appendix~\ref{app:validation} records the detailed validation and reproduction
-entry points.
+Generated fixed-modulus code and Montgomery REDC are excluded: the former is
+a specialization contract, while the latter computes $AR^{-1}\bmod g$ rather
+than direct reduction.
+The planned and online FFR realizations share scalar kernels, while FFR and
+serial folding share the packed-word shift/XOR primitive.  Before timing,
+every timed binary reducer is compared with independent long division;
+Appendix~\ref{app:validation} records these checks and the extended algebraic
+suites.
 
 \subsection{Experimental contract}
+\label{sec:experimental-contract}
 
 We measured portable scalar C on one recorded x86-64 host, pinned to logical
 CPU~0 and compiled with GCC~16.1.1 using
@@ -920,10 +894,42 @@ The controlled corpus contains 1,096 constant-free supports at
 \[
   m\in\{128,512,2048,8192,32768,131072\}.
 \]
-It varies $h$ and $\Dmin$ independently by fixing the nearest tap at
-$m-\Dmin$ and spreading the others deterministically.  Every point compares
-FFR with Barrett; 392 initial or screening points also include Serial, and
-L\'opez--Dahab is present exactly at measured points with $\Dmin\ge64$.
+Put
+\[
+  D_m=\{2^j:0\le j\le\log_2(m/2)\},\qquad
+  H_0=\{2,3,5,9,17,33,65\},
+\]
+and set $H_m=H_0\cup E_m$, where the frozen high-weight additions are
+\begin{align*}
+E_{128}&=\{81,97,113,121\},\\
+E_{512}&=\{97,129,193,257,385\},\\
+E_{2048}=E_{8192}&=\{97,129,193,257,385,513,769,1025\},\\
+E_{32768}&=\{97,129,161,193,225,257,321,385,513,769,1025\},\\
+E_{131072}&=\{97,129,193,257,385,513,641,769,897,1025\}.
+\end{align*}
+For every $(h,\Dmin)\in H_m\times D_m$ satisfying
+$h-1\le m-\Dmin$, the corpus contains the single support
+\[
+  T(m,h,\Dmin)
+  =\left\{\left\lfloor\frac{j(m-\Dmin)}{h-1}\right\rfloor:
+    1\le j\le h-1\right\}.
+\]
+This construction fixes the nearest tap at $m-\Dmin$ and yields exactly 1,096
+distinct supports.  The sets $E_m$ are grid-level crossover refinements fixed
+after preliminary screening; no individual support was selected by its
+measured winner.
+
+Every point compares FFR with Barrett, and L\'opez--Dahab is present exactly at
+measured points with $\Dmin\ge64$.  Serial is retained on 392 manifest-defined
+points: at all six degrees, the complete grid
+$H_0\times\{1,2,4,8,16,32\}$, together with, for
+$m\in\{512,2048,8192,32768\}$, the grid
+$H_0\times\{2^j:128\le2^j\le m/2\}$.  These are complete grids rather than
+pointwise runtime selections.
+
+All remaining cohorts use a no-Serial contract
+because its dependent iteration count can reach $\lceil m/\Dmin\rceil$ and its
+tapwise work grows with $h$, making full extension impractical.
 Winners range only over methods measured at that point.
 
 Each method is summarized by its trial median and a deterministic
@@ -931,6 +937,68 @@ Each method is summarized by its trial median and a deterministic
 median-interval half-width at most 1\%, a margin of at least 1\% over every
 competitor, and paired ratio intervals strictly below one; failures remain
 timing instability, operational ties, or statistical ties.
+
+\FloatBarrier
+\subsection{Setup, storage, and online generation}
+
+\begin{table}[t]
+\caption{Median setup time and requested plan-owned bytes at
+$(h,\Dmin)=(9,1)$.  Each entry is ``nanoseconds / bytes.''}
+\label{tab:setup-storage}
+\centering
+\small
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+$m$ & trials & FFR & Serial & Barrett\\
+\midrule
+128    & 127 & 596.5 / 744    & 119.5 / 416   & 782.0 / 184\\
+\midrule
+512    & 127 & 719.5 / 888    & 123.5 / 512   & 4770.5 / 376\\
+\midrule
+2048   & 127 & 887.5 / 1176   & 137.0 / 896   & 50799.0 / 1144\\
+\midrule
+8192   & 127 & 1152.0 / 2040  & 149.0 / 2432  & 558369.5 / 4216\\
+\midrule
+32768  & 127 & 1312.0 / 5208  & 235.0 / 8576  & 7760258.5 / 16504\\
+\midrule
+131072 & 31  & 2832.5 / 17592 & 856.5 / 33152 & 119030566.0 / 65656\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:setup-storage} reports setup and requested plan-owned storage
+under separately frozen contracts.
+The storage counts exclude allocator overhead, shared modulus storage,
+benchmark buffers, and transient library workspace.
+The setup measurements show a tradeoff hidden by steady-state timings:
+Barrett's reciprocal construction becomes expensive at large $m$, while FFR
+retains a modest schedule-construction cost.  For an explicitly chosen reuse
+count $K$, the artifact separately derives
+\[
+  T_{\mathrm{total}}(K)=T_{\mathrm{setup}}+K T_{\mathrm{reduce}};
+\]
+amortized values are reported only for explicitly stated reuse counts $K$.
+
+The online/planned study uses complete constant-free Cartesian slices:
+$h\in\{3,9,65\}$ for $m=128$ and $h\in\{3,9,65,513\}$ for
+$m\in\{2048,32768,131072\}$, each crossed with
+$\Dmin\in\{1,64,m/4\}$.  The resulting $9+36=45$ supports use the
+deterministic spread rule above.
+
+Planned and online FFR received the same eight inputs, used the same scalar
+kernels, and
+were cyclically ordered over 31 retained trials; the online path regenerated
+all descriptors inside the timed reduction.  The median
+$T_{\rm online}/T_{\rm planned}$ over each degree slice was $1.676$, $1.086$,
+$1.006$, and $1.002$, respectively.  Thus descriptor generation is material
+at small degree but is within about one percent of planned steady-state time
+in the two largest slices; five individual paired intervals contain one.  If
+setup and one reduction are combined as the declared derived quantity
+$T_{\rm setup}+T_{\rm reduce}$, online FFR is lower at all 45 points and has
+overall median ratio $0.915$.  This $K=1$ value is derived from the separately
+measured components.  On this portable-C platform, online descriptor
+generation therefore approaches planned FFR performance at large degrees,
+while online setup still includes workspace allocation.
 
 \subsection{Measured winner regions}
 
@@ -1006,39 +1074,54 @@ onsets are $65$, $129$, $129$--$193$, $257$--$385$, $513$--$769$, and beyond
 the largest sampled weight $1025$.  These are the sampled crossover locations
 on the recorded platform.
 
-Table~\ref{tab:portable-results} reports representative reduction times and
-the persistent Barrett crossovers on the $\Dmin=1$ slice.
+The $\Dmin=1$ slice permits a direct check of the fitted FFR--Barrett
+interface.  For its controlled support, write
+$C_m(h):=C_{\rm FFR}(T(m,h,1))
+=\widehat B_{\rm fb}(T(m,h,1))+B_V(T(m,h,1))$, using the exact sums in
+Proposition~\ref{prop:word-geometry}.
+Since the fitted slopes are positive, the model assigns the point to Barrett
+rather than FFR exactly when
+\begin{equation}
+\begin{aligned}
+  b_m\le\alpha_{{\rm FFR},m}+\beta_{{\rm FFR},m}C_m(h)
+  &\quad\Longleftrightarrow\quad
+  C_m(h)\ge C_m^\star
+  :=\left\lceil\frac{b_m-\alpha_{{\rm FFR},m}}
+                         {\beta_{{\rm FFR},m}}\right\rceil,\\
+  \widehat h_m&:=\min\{h\in H_m:C_m(h)\ge C_m^\star\}.
+\end{aligned}
+  \label{eq:barrett-ffr-crossover}
+\end{equation}
+Table~\ref{tab:portable-results} compares this prediction with the measured
+persistent crossover.  Five of the six degrees agree exactly; at $m=8192$
+the model predicts the next sampled weight, $193$ instead of $129$.
 
 \begin{table}[t]
-\caption{Portable-C reduction summary on the controlled constant-free
-$\Dmin=1$ slice.  FFR time and the first ratio use $h=9$.  The crossover is
-the first stable Barrett winner after which every later stable sampled weight
-is also Barrett; uncertain cells are omitted from this persistence test.}
+\caption{Crossover summary on the constant-free $\Dmin=1$ slice.  FFR time
+and Barrett/FFR use $h=9$; model thresholds follow
+\eqref{eq:barrett-ffr-crossover}, and $h_m^{\rm obs}$ is the measured
+persistent threshold.}
 \label{tab:portable-results}
 \centering
 \small
-\begin{tabular}{@{}rrrrr@{}}
+\begin{tabular}{@{}rrrrrr@{}}
 \toprule
-$m$ & FFR (ns) & Barrett/FFR & crossover $h$ & ratio at crossover\\
+$m$ & FFR (ns) & Barrett/FFR & $C_m^\star$ & $\widehat h_m$ & $h_m^{\rm obs}$\\
 \midrule
-128    & 64.1    & 2.164  & 33  & 0.881\\
+128    & 64.1    & 2.164  & 123     & 33  & 33\\
 \midrule
-512    & 272.9   & 3.807  & 97  & 0.718\\
+512    & 272.9   & 3.807  & 945     & 97  & 97\\
 \midrule
-2048   & 1079.2  & 4.247  & 97  & 0.664\\
+2048   & 1079.2  & 4.247  & 3631    & 97  & 97\\
 \midrule
-8192   & 4390.2  & 8.654  & 129 & 0.819\\
+8192   & 4390.2  & 8.654  & 26356   & 193 & 129\\
 \midrule
-32768  & 17008.4 & 16.768 & 257 & 0.881\\
+32768  & 17008.4 & 16.768 & 192509  & 257 & 257\\
 \midrule
-131072 & 68167.1 & 37.712 & 641 & 0.886\\
+131072 & 68167.1 & 37.712 & 1804748 & 641 & 641\\
 \bottomrule
 \end{tabular}
 \end{table}
-
-These medians use \texttt{portable-scalar-c:v1},
-\texttt{reduction-steady-state:v1}, and the \texttt{gf2x:v1} multiplication
-backend on the recorded primary machine.
 
 \subsection{Does the work model predict FFR time?}
 
@@ -1049,7 +1132,7 @@ captured by $\Wfb$ orders these controlled scalar runtimes unusually well.
 The residual scatter records effects beyond the source-work model, while the
 correlation summarizes runtime ordering under that model.
 
-\begin{figure}[t]
+\begin{figure}[b]
 \centering
 \includegraphics[width=\textwidth]{figures/work-runtime.pdf}
 \caption{Scheduled active-tap work versus median FFR reduction time for all
@@ -1059,66 +1142,7 @@ correlation.}
 \label{fig:work-runtime}
 \end{figure}
 
-\subsection{Setup and storage}
-
-Table~\ref{tab:setup-storage} separates measured setup time from requested
-plan-owned storage for the three principal implementations.
-
-\begin{table}[t]
-\caption{Median setup time and requested plan-owned bytes at
-$(h,\Dmin)=(9,1)$.  Each entry is ``nanoseconds / bytes.''}
-\label{tab:setup-storage}
-\centering
-\small
-\begin{tabular}{@{}rrrrr@{}}
-\toprule
-$m$ & trials & FFR & Serial & Barrett\\
-\midrule
-128    & 127 & 596.5 / 744    & 119.5 / 416   & 782.0 / 184\\
-\midrule
-512    & 127 & 719.5 / 888    & 123.5 / 512   & 4770.5 / 376\\
-\midrule
-2048   & 127 & 887.5 / 1176   & 137.0 / 896   & 50799.0 / 1144\\
-\midrule
-8192   & 127 & 1152.0 / 2040  & 149.0 / 2432  & 558369.5 / 4216\\
-\midrule
-32768  & 127 & 1312.0 / 5208  & 235.0 / 8576  & 7760258.5 / 16504\\
-\midrule
-131072 & 31  & 2832.5 / 17592 & 856.5 / 33152 & 119030566.0 / 65656\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Setup and requested plan-owned storage follow separately frozen contracts.
-The storage counts exclude allocator overhead, shared modulus storage,
-benchmark buffers, and transient library workspace.
-The setup measurements show a tradeoff hidden by steady-state timings:
-Barrett's reciprocal construction becomes expensive at large $m$, while FFR
-retains a modest schedule-construction cost.  For an explicitly chosen reuse
-count $K$, the artifact separately derives
-\[
-  T_{\mathrm{total}}(K)=T_{\mathrm{setup}}+K T_{\mathrm{reduce}};
-\]
-amortized values are reported only for explicitly stated reuse counts $K$.
-
-To isolate whether the FFR schedule itself is necessary, we additionally ran
-45 representative constant-free supports at
-$m\in\{128,2048,32768,131072\}$, with
-$\Dmin\in\{1,64,m/4\}$ and weights up to $513$ where feasible.  Planned and
-online FFR received the same eight inputs, used the same scalar kernels, and
-were cyclically ordered over 31 retained trials; the online path regenerated
-all descriptors inside the timed reduction.  The median
-$T_{\rm online}/T_{\rm planned}$ over each degree slice was $1.676$, $1.086$,
-$1.006$, and $1.002$, respectively.  Thus descriptor generation is material
-at small degree but is within about one percent of planned steady-state time
-in the two largest slices; five individual paired intervals contain one.  If
-setup and one reduction are combined as the declared derived quantity
-$T_{\rm setup}+T_{\rm reduce}$, online FFR is lower at all 45 points and has
-overall median ratio $0.915$.  This $K=1$ value is derived from the separately
-measured components.  On this portable-C platform, online descriptor
-generation therefore approaches planned FFR performance at large degrees,
-while online setup still includes workspace allocation.
-
+\FloatBarrier
 \subsection{End-to-end irreducibility testing}
 
 We finally test whether the reduction result survives inside one complete
@@ -1130,14 +1154,21 @@ criterion computes the chain of $m$ modular squares beginning at $x$, checks
   x^{2^m}=x\pmod g.
 \]
 We deterministically selected one Sage-certified irreducible modulus at each
-$m\in\{128,512,2048,8192\}$, always with $(h,\Dmin)=(9,1)$.  Each matched
-path uses the same scalar bit-dilation squarer and NTL GCD code and changes
-only the reducer.  Its primary interval includes reducer setup, all modular
+$m\in\{128,512,2048,8192\}$, always with $(h,\Dmin)=(9,1)$.  At each degree,
+the generator initializes a pseudorandom generator with the fixed seed recorded
+in the manifest, includes taps $0$ and $m-1$, samples the other six taps
+uniformly without replacement from $\{1,\ldots,m-2\}$, skips repeated
+supports, and retains the first candidate for which Sage
+\texttt{is\_irreducible()} returns true; the accepted-attempt index is also
+recorded.  No
+timing result enters this search.  Each matched path uses the same scalar
+bit-dilation squarer and NTL GCD code and changes only the reducer.  Its primary
+interval includes reducer setup, all modular
 squares, the GCD, and the final equality test.  NTL
 \texttt{IterIrredTest} is timed separately as an optimized complete-library
 baseline.
 
-\begin{figure}[t]
+\begin{figure}[b]
 \centering
 \includegraphics[width=\textwidth]{figures/rabin-e2e.pdf}
 \caption{Complete Rabin irreducibility testing on four deterministically
@@ -1157,6 +1188,7 @@ chain accounts for $85.5\%$ of FFR time at $m=128$ and $98.9\%$ at $m=8192$,
 so the measured difference remains central to the complete test rather than
 being hidden by setup or the terminal GCD.
 
+\FloatBarrier
 \section{Conclusion}
 \label{sec:conclusion}
 
