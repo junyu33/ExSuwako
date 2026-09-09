@@ -210,6 +210,67 @@ def main() -> None:
             if name not in boundary_classes:
                 raise AssertionError(f"winner SVG is missing {name!r}")
 
+        numeric_points = root / "numeric-points.csv"
+        numeric_figure = root / "numeric-winners.svg"
+        numeric_fields = [
+            "sample_id", "m", "h", "log2_m_over_delta", "winner",
+            "winner_reason", "method_set",
+        ]
+        with numeric_points.open("w", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=numeric_fields)
+            writer.writeheader()
+            for h, log_ratio in zip((65, 81, 97), (1, 1.25, 2)):
+                writer.writerow({
+                    "sample_id": f"numeric-h{h}",
+                    "m": 128,
+                    "h": h,
+                    "log2_m_over_delta": log_ratio,
+                    "winner": "GS",
+                    "winner_reason": "unique-winner",
+                    "method_set": "GS;BarrettGF2X",
+                })
+        run([
+            sys.executable, str(plotter), "--input", str(numeric_points),
+            "--output", str(numeric_figure), "--mode", "blocks",
+        ])
+        numeric_tree = ET.parse(numeric_figure)
+        numeric_x_grid = sorted(
+            float(node.attrib["x1"])
+            for node in numeric_tree.findall(".//svg:line[@class='grid']", namespace)
+            if node.attrib["x1"] == node.attrib["x2"]
+        )
+        observed_gap_ratio = (numeric_x_grid[1] - numeric_x_grid[0]) / (
+            numeric_x_grid[2] - numeric_x_grid[1]
+        )
+        expected_gap_ratio = (
+            (math.log2(80) - math.log2(64))
+            / (math.log2(96) - math.log2(80))
+        )
+        if not math.isclose(
+            observed_gap_ratio, expected_gap_ratio, rel_tol=0.03
+        ):
+            raise AssertionError(
+                "winner SVG uses ordinal rather than numerical log2(h-1) spacing"
+            )
+        numeric_y_grid = sorted(
+            (
+                float(node.attrib["y1"])
+                for node in numeric_tree.findall(
+                    ".//svg:line[@class='grid']", namespace
+                )
+                if node.attrib["y1"] == node.attrib["y2"]
+            ),
+            reverse=True,
+        )
+        observed_y_gap_ratio = (
+            (numeric_y_grid[0] - numeric_y_grid[1])
+            / (numeric_y_grid[1] - numeric_y_grid[2])
+        )
+        if not math.isclose(observed_y_gap_ratio, 1 / 3, rel_tol=0.03):
+            raise AssertionError(
+                "winner SVG uses ordinal rather than numerical log-ratio spacing"
+            )
+
         incomplete = root / "incomplete.csv"
         with source.open(newline="", encoding="utf-8") as stream:
             source_rows = list(csv.DictReader(stream))

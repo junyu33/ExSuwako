@@ -8,9 +8,9 @@ below.
 
 ## Central Thesis
 
-Frobenius-factorized reduction (FFR) applies a sparse, factored truncated reciprocal
-to the nilpotent feedback operator induced by a monic binary modulus. For a
-sparse non-leading part, it retains support-sensitive shift/XOR work while
+Frobenius-factorized reduction (FFR) applies a support-nondensifying, factored
+truncated reciprocal to the nilpotent feedback operator induced by a monic
+binary modulus. For a sparse non-leading part, it retains support-sensitive shift/XOR work while
 reducing the sequential feedback chain to logarithmic length. Its doubled
 shifts may be retained in a reusable plan or generated online without a
 materialized reciprocal, dense reduction matrix, or persistent
@@ -38,7 +38,7 @@ to the `eurocrypt` branch and must not be imported as contributions here.
 
 ## Working Title
 
-> Sparse Modular Reduction with Logarithmic Feedback Depth
+> Reduction Modulo Binary Polynomials with Logarithmic Feedback Depth
 
 Use *feedback depth* unless a Boolean gate model is explicitly fixed.
 
@@ -67,13 +67,12 @@ scope or final section order.
 1. Introduction
 2. Preliminaries and cost models
 3. Existing reduction paradigms
-4. Sparse feedback operators
+4. Feedback operators
 5. Frobenius-factorized reduction
 6. Complexity analysis
 7. Prior art and novelty boundary
 8. Implementations and evaluation
-9. Computational-algebra consequences and limitations
-10. Conclusion
+9. Conclusion
 
 The technical body follows a definition-first order. The introduction is
 limitation-first and is written only after the theorem, prior-art, and evidence
@@ -124,7 +123,7 @@ speedup” unless the matching row is discharged.
 1. Define the truncated coefficient space and low/high decomposition.
 2. Derive the reduction recurrence and feedback nilpotency.
 3. Express reduction through \((I+U)^{-1}\).
-4. Prove sparse Frobenius powers and the factored inverse.
+4. Prove support-nondensifying Frobenius powers and the factored inverse.
 5. State algorithmic correctness and exact feedback depth.
 6. Derive active-tap work, space, and setup.
 7. Add random-support and multiplication-based corollaries only under their
@@ -154,7 +153,7 @@ correctness checks, reduction microbenchmarks, and end-to-end workloads.
 ### Gate 1: Novelty
 
 No prior method has been found that simultaneously gives arbitrary-modulus
-correctness, sparse-support-sensitive work, logarithmic feedback depth, and
+correctness, support-sensitive work, logarithmic feedback depth, and
 factors executable either from a compact plan or online without materializing
 a dense reciprocal or reduction matrix.
 The hostile prior-art audit is closed for this claim boundary; reopen it only

@@ -124,6 +124,18 @@ def load_points(path: Path) -> list[WinnerPoint]:
     return points
 
 
+def cell_edges(values: list[float]) -> list[float]:
+    """Return midpoint cell boundaries for sorted numerical coordinates."""
+    if not values:
+        raise ValueError("cannot form cells without coordinates")
+    if len(values) == 1:
+        return [values[0] - 0.5, values[0] + 0.5]
+    edges = [values[0] - (values[1] - values[0]) / 2]
+    edges.extend((left + right) / 2 for left, right in zip(values, values[1:]))
+    edges.append(values[-1] + (values[-1] - values[-2]) / 2)
+    return edges
+
+
 def render(
     points: list[WinnerPoint], output: Path, columns: int, mode: str, heading: str,
     boundary_points: list[WinnerPoint] | None,
@@ -191,13 +203,13 @@ def render(
         left, right, top, bottom = ox + 62, ox + 347, oy + 34, oy + 230
         panel = [point for point in points if point.m == m]
         h_values = sorted({point.h for point in panel})
+        x_values = [math.log2(h - 1) for h in h_values]
+        x_by_h = dict(zip(h_values, x_values))
         log_values = sorted({point.log_ratio for point in panel})
-        h_indices = {h: index for index, h in enumerate(h_values)}
-        log_indices = {
-            log_ratio: index for index, log_ratio in enumerate(log_values)
-        }
-        x_min, x_max = -0.5, len(h_values) - 0.5
-        y_min, y_max = -0.5, len(log_values) - 0.5
+        x_edges = cell_edges(x_values)
+        y_edges = cell_edges(log_values)
+        x_min, x_max = x_edges[0], x_edges[-1]
+        y_min, y_max = y_edges[0], y_edges[-1]
 
         def map_x(value: float) -> float:
             return left + (value - x_min) / (x_max - x_min) * (right - left)
@@ -213,8 +225,8 @@ def render(
             root, (left + right) / 2, oy + 18, f"m = {m}",
             text_anchor="middle", font_size=13, font_weight="bold",
         )
-        for index, log_ratio in enumerate(log_values):
-            y = map_y(index)
+        for log_ratio in log_values:
+            y = map_y(log_ratio)
             ET.SubElement(root, f"{{{SVG_NS}}}line", {
                 "x1": str(left), "x2": str(right), "y1": str(y),
                 "y2": str(y), "class": "grid",
@@ -232,7 +244,7 @@ def render(
         labelled_h = {h for h in h_values if (h - 1) & (h - 2) == 0}
         labelled_h.update((h_values[0], h_values[-1]))
         for h in h_values:
-            x = map_x(h_indices[h])
+            x = map_x(x_by_h[h])
             ET.SubElement(root, f"{{{SVG_NS}}}line", {
                 "x1": str(x), "x2": str(x), "y1": str(top),
                 "y2": str(bottom), "class": "grid",
@@ -249,15 +261,17 @@ def render(
                     text_anchor="middle", font_size=11,
                 )
         for point in panel:
-            x_coordinate = h_indices[point.h]
-            y_coordinate = log_indices[point.log_ratio]
+            x_index = h_values.index(point.h)
+            y_index = log_values.index(point.log_ratio)
+            x_coordinate = x_by_h[point.h]
+            y_coordinate = point.log_ratio
             x, y = map_x(x_coordinate), map_y(y_coordinate)
             if mode == "blocks":
                 ET.SubElement(root, f"{{{SVG_NS}}}rect", {
-                    "x": f"{map_x(x_coordinate - 0.5):.2f}",
-                    "y": f"{map_y(y_coordinate + 0.5):.2f}",
-                    "width": f"{map_x(x_coordinate + 0.5) - map_x(x_coordinate - 0.5):.2f}",
-                    "height": f"{map_y(y_coordinate - 0.5) - map_y(y_coordinate + 0.5):.2f}",
+                    "x": f"{map_x(x_edges[x_index]):.2f}",
+                    "y": f"{map_y(y_edges[y_index + 1]):.2f}",
+                    "width": f"{map_x(x_edges[x_index + 1]) - map_x(x_edges[x_index]):.2f}",
+                    "height": f"{map_y(y_edges[y_index]) - map_y(y_edges[y_index + 1]):.2f}",
                     "fill": COLORS[point.winner], "class": "cell",
                 })
             elif point.winner == "uncertain":
@@ -301,11 +315,11 @@ def render(
                         )
                         if right_winner is not None and right_winner != winner:
                             interface_class = boundary_class(winner, right_winner)
-                            x = map_x(x_index + 0.5)
+                            x = map_x(x_edges[x_index + 1])
                             ET.SubElement(root, f"{{{SVG_NS}}}line", {
                                 "x1": f"{x:.2f}", "x2": f"{x:.2f}",
-                                "y1": f"{map_y(y_index - 0.5):.2f}",
-                                "y2": f"{map_y(y_index + 0.5):.2f}",
+                                "y1": f"{map_y(y_edges[y_index]):.2f}",
+                                "y2": f"{map_y(y_edges[y_index + 1]):.2f}",
                                 "class": f"predicted-boundary {interface_class}",
                             })
                     if y_index + 1 < len(log_values):
@@ -314,10 +328,10 @@ def render(
                         )
                         if upper_winner is not None and upper_winner != winner:
                             interface_class = boundary_class(winner, upper_winner)
-                            y = map_y(y_index + 0.5)
+                            y = map_y(y_edges[y_index + 1])
                             ET.SubElement(root, f"{{{SVG_NS}}}line", {
-                                "x1": f"{map_x(x_index - 0.5):.2f}",
-                                "x2": f"{map_x(x_index + 0.5):.2f}",
+                                "x1": f"{map_x(x_edges[x_index]):.2f}",
+                                "x2": f"{map_x(x_edges[x_index + 1]):.2f}",
                                 "y1": f"{y:.2f}", "y2": f"{y:.2f}",
                                 "class": f"predicted-boundary {interface_class}",
                             })

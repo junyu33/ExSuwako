@@ -1,5 +1,8 @@
 \documentclass{mcom-l}
-\issueinfo{00}{0}{Xxxx}{XXXX}
+\copyrightinfo{}{}
+\makeatletter
+\AtBeginDocument{\def\@serieslogo{\set@logo{\publname}}}
+\makeatother
 
 \usepackage{amsmath,amssymb,mathtools}
 \usepackage{array}
@@ -33,7 +36,7 @@ Polynomials with Logarithmic Feedback Depth}
 \author{Kaiyi Zhang}
 \address{Tsinghua University}
 \email{kaiyizhang@tsinghua.edu.cn}
-\subjclass[2020]{Primary 11T06; Secondary 12Y05, 68W10, 68W40}
+\subjclass[2020]{Primary 11T06; Secondary 12-08, 68W10, 68W40}
 \keywords{binary polynomials, modular reduction, finite fields,
 sparse polynomials, Frobenius map, parallel algorithms}
 
@@ -41,16 +44,18 @@ sparse polynomials, Frobenius map, parallel algorithms}
 
 \begin{abstract}
 Polynomial modular reduction is central to binary finite-field arithmetic and
-repeated Frobenius powering.  Sparse top-down folding uses few shift/XOR
-operations, but a tap near the leading term creates a long feedback chain.  We
+repeated Frobenius powering.  Top-down shift/XOR folding can use few operations
+when the nonleading support is sparse, but a tap near the leading term creates
+a long feedback chain.  We
 formulate this recurrence as inversion of a nilpotent shift operator and factor
 its inverse by characteristic-two Frobenius powers.  The resulting
 \emph{Frobenius-factorized reduction} (FFR) applies to every monic binary
 modulus without materializing a reciprocal or dense reduction matrix, and its
 shifts can be generated online without a persistent modulus-specific schedule.
-For degree $m$, nonleading support size $s$, and nearest-tap distance $\Dmin$,
-FFR has exact feedback depth $\lceil\log_2(m/\Dmin)\rceil$ and scheduled work
-$O(ms(1+\log(m/s)))$.  A portable-C evaluation on 1,096 supports through degree
+For degree $m$ and nonempty nonleading support of size $s$, with nearest-tap
+distance $\Dmin$, FFR uses exactly $\lceil\log_2(m/\Dmin)\rceil$ Frobenius
+feedback stages and has scheduled work $O(ms(1+\log(m/s)))$.  A portable-C
+evaluation on 1,096 supports through degree
 $131072$ identifies distinct FFR, L\'opez--Dahab, and gf2x-backed Barrett
 regions.  On four certified irreducible moduli, FFR makes complete Rabin
 irreducibility testing $1.35$--$8.04$ times faster than NTL and
@@ -75,7 +80,7 @@ coordinates for reduction time:
 \item the degree $m$, which fixes the operand length and hence the amount of
       word-level data processed;
 \item the Hamming weight $h$, including the leading term, which determines
-      the number of nonleading taps available to sparse shift/XOR methods; and
+      the number of nonleading taps processed by tapwise shift/XOR methods; and
 \item the nearest-tap distance $\Dmin$, namely the gap from degree $m$ to the
       highest positive nonleading tap, when one exists, which controls how far
       feedback can propagate before leaving the degree-$m$ state; without
@@ -96,9 +101,9 @@ equal-weight moduli may therefore induce very different dependency chains.
 Barrett and Montgomery reduction avoid this particular serial recurrence, but
 introduce multiplication kernels, modulus-dependent constants, and different
 setup costs.  Reciprocal methods and dense linear maps expose additional
-parallelism, but do not automatically preserve sparse support.  We ask whether
-the sparse feedback chain can be shortened without first materializing a dense
-reciprocal or reduction matrix.
+parallelism, but do not automatically preserve the original tap support.  We
+ask whether the tap-induced feedback chain can be shortened without first
+materializing a dense reciprocal or reduction matrix.
 
 We answer this question with \emph{Frobenius-factorized reduction} (FFR).
 It requires no materialized reciprocal, dense reduction matrix, or persistent
@@ -116,22 +121,36 @@ operator $U$.  When $U\ne0$, characteristic two gives
   \label{eq:intro-factorization}
 \end{equation}
 and $U^{2^r}=0$; when $U=0$, no feedback stage is needed.  Each Frobenius
-power doubles the original tap distances.
-Mixed feedback paths arise through composition across stages rather than by
-expanding a dense reciprocal inside one stage.
+power contains only the active original taps, with their distances doubled.
+
+The finite geometric inverse underlying
+\eqref{eq:intro-factorization} is classical
+\cite{BiniPan1985,Kalorkoti1993}, but the identity alone does not give a
+support-nondensifying executable reducer: expanding it exposes mixed feedback
+paths and supplies neither a support-sensitive execution schedule nor
+packed-word work bounds.
+The algorithmic point here is that the Frobenius factors preserve the tap
+structure without combinatorial densification inside a stage; mixed paths
+arise only through composition across stages.  This turns the inverse into an
+executable reducer for every monic binary modulus whose feedback depth, work,
+schedule size, and packed-word execution can be analyzed directly from the
+support geometry.
 
 This construction generalizes our earlier Suwako reducer for trinomials
 $x^m+x^t+1$~\cite{ZhouEtAl2025Suwako}.  That work established the
 logarithmic-depth, precomputation-free trinomial case through two specialized
-doubling folds.  The present contribution begins with the arbitrary multi-tap
-feedback formulation and includes the resulting all-tap geometry, packed-word
-analysis, planned and online implementations, and comparative evaluation.
+doubling folds.  With multiple taps, one cannot apply the trinomial fold to
+each tap independently: all shifts in one factor must read the same stage
+input, while their compositions create mixed paths between factors.  The
+present contribution resolves this multi-tap execution and gives the resulting
+all-tap geometry, packed-word analysis, planned and online implementations,
+and comparative evaluation.
 
 Our contributions are threefold.
 \begin{enumerate}
-\item We derive a nilpotent-feedback formulation and sparse
-      characteristic-two factorization that give a correct FFR algorithm for
-      any monic binary modulus.
+\item We derive a nilpotent-feedback formulation whose characteristic-two
+      factorization introduces no within-factor support densification and
+      gives a correct FFR algorithm for any monic binary modulus.
 \item We give exact tap-geometry analyses of coefficient work, packed-word
       work, feedback depth, schedule size, and workspace, together with
       planned and schedule-free online realizations.
@@ -213,7 +232,7 @@ amortization over a stated reuse count.
 \section{Existing Reduction Paradigms}
 \label{sec:paradigms}
 
-Serial folding repeatedly eliminates high terms through the sparse support.
+Serial folding repeatedly eliminates high terms through the nonleading support.
 It has low setup, but a tap at distance $\Dmin$ can create on the order of
 $m/\Dmin$ dependent folds.  Fixed trinomial and pentanomial formulae,
 generated code, and L\'opez--Dahab reduction can be stronger under their
@@ -223,7 +242,7 @@ Dense linear maps and generic parallel division expose a different tradeoff.
 Polynomial division can be reduced to triangular Toeplitz or reciprocal
 inversion~\cite{BiniPan1985}.  Barrett and Montgomery instead use polynomial
 products and modulus-dependent constants.  Their machine cost therefore
-depends on multiplication and memory behavior as well as sparse shift/XOR
+depends on multiplication and memory behavior as well as tapwise shift/XOR
 counts.
 
 Table~\ref{tab:families} summarizes the applicability of the direct-reduction
@@ -249,7 +268,7 @@ Applicability
 & \eqref{eq:modulus}
 & \eqref{eq:modulus}
 & \eqref{eq:modulus}
-& $\deg q\le m-W$
+& $\substack{m>W,\\ \deg q\le m-W}$
 & $g\text{ fixed}$\\
 \bottomrule
 \end{tabular}
@@ -261,7 +280,7 @@ Montgomery REDC likewise belongs to a representation-aware multiplication
 contract because it maps $A$ to $AR^{-1}\bmod g$ instead of performing the
 direct reduction $A\mapsto A\bmod g$.
 
-\section{Sparse Feedback Operators}
+\section{Feedback Operators}
 \label{sec:operators}
 
 \begin{lemma}[Low/high decomposition]
@@ -285,7 +304,7 @@ Hence $A-(L+V(Y))=gY$, while $\deg(L+V(Y))<m$.  The uniqueness of the
 remainder on division by the monic polynomial $g$ proves the claim.
 \end{proof}
 
-\begin{lemma}[Sparse Frobenius powers]
+\begin{lemma}[Support-nondensifying Frobenius powers]
 \label{lem:frobenius}
 For every $k\ge0$,
 \begin{equation}
@@ -308,7 +327,7 @@ $d$th superdiagonal.  Distinct surviving shifts therefore have disjoint
 matrix support and cannot cancel.
 \end{proof}
 
-\begin{theorem}[Sparse feedback inverse]
+\begin{theorem}[Frobenius-factorized feedback inverse]
 \label{thm:inverse}
 If $U=0$, set $r=0$; then $(I+U)^{-1}=I$, with the empty product understood
 as $I$.  Otherwise, for
@@ -342,8 +361,9 @@ $I+U$.  The case $U=0$ is immediate.
 \end{proof}
 
 This is a factored truncated reciprocal.  Formal-series inversion itself is
-classical~\cite{Kalorkoti1993}; the proposed contribution is the sparse
-fixed-length realization and its complete tap-geometry analysis.
+classical~\cite{Kalorkoti1993}; the proposed contribution is the
+support-nondensifying fixed-length realization and its complete tap-geometry
+analysis.
 
 \section{Frobenius-Factorized Reduction}
 \label{sec:algorithm}
@@ -677,11 +697,11 @@ compilation of generated code.  The benchmarked reusable-plan builder uses a
 simpler stage-by-stage scan, sort, and allocation strategy and is not claimed
 to realize this asymptotic setup bound.  The experiments time that concrete
 builder and the schedule-free workspace separately, and measure online
-descriptor generation inside reduction.  For comparison, serial sparse folding needs no doubled-shift
-schedule but, when $U\ne0$, can execute up to
+descriptor generation inside reduction.  For comparison, serial tapwise
+folding needs no doubled-shift schedule but, when $U\ne0$, can execute up to
 $\lceil m/\Dmin\rceil$ dependent feedback iterations; L\'opez--Dahab has
-$\Theta(n(1+s))$ shift/scatter work under its
-$\deg q\le m-W$ applicability condition; the Barrett baseline performs two
+$\Theta(n(1+s))$ shift/scatter work under its $m>W$ and
+$\deg q\le m-W$ applicability conditions; the Barrett baseline performs two
 polynomial multiplications on $\Theta(n)$-word operands after reciprocal
 setup; and a materialized dense map stores $\Theta(mn)$ words and performs
 $\Theta(mn)$ row-word products.  These are different cost primitives, so
@@ -800,18 +820,18 @@ classical~\cite{BiniPan1985}, as are formal-power-series inversion
 already use doubling, bandwidth, or prefix structure
 \cite{Bini1984,Morf1980,KoggeStone1973,HoLee1990}. These works establish the
 classical status of finite geometric inversion and logarithmic-depth
-recurrence solving. Our question is whether a sparse fixed-state realization
-retains useful support geometry without dense reciprocals, polynomial
-multiplication, or expanded state.
+recurrence solving. Our question is whether a support-nondensifying fixed-state
+realization retains useful support geometry without dense reciprocals,
+polynomial multiplication, or expanded state.
 
 The direct predecessor of the present method is our Suwako algorithm for
 trinomials $x^m+x^t+1$~\cite[Lemma~2, Eq.~(5)]{ZhouEtAl2025Suwako}.  It already replaces the
 $\Theta(m/(m-t))$ serial feedback chain by logarithmically many doubling steps
 without modulus-specific precomputation.  The present paper does not claim
 that trinomial mechanism anew: it derives the multi-tap operator equation,
-shows that every Frobenius factor retains the original tap set with doubled
-distances, and develops exact geometry and packed implementations for arbitrary
-monic binary moduli.
+shows that every Frobenius factor contains only the surviving doubled images
+of the original taps, and develops exact geometry and packed implementations
+for arbitrary monic binary moduli.
 
 The closest external recurrence-level antecedent is the term-preserving look-ahead transformation
 for LFSRs: in characteristic two, replacing a generator by its square doubles
@@ -846,7 +866,7 @@ and complete factorization over $\Ftwo$~\cite{GathenGerhard2002}; irreducible
 polynomial construction gives another context~\cite{Shoup1990}.
 
 Relative to these antecedents, FFR combines arbitrary monic-modulus
-correctness, sparse support-sensitive factors, logarithmic feedback depth,
+correctness, support-nondensifying Frobenius factors, logarithmic feedback depth,
 execution without a materialized dense reciprocal or matrix, and exact
 geometry from all tap distances.
 
@@ -1247,8 +1267,9 @@ $2\le m\le18$ finds no counterexample to the scheduled-work formula or its
 coarse bound.
 
 The repository entry point \texttt{make check} runs these suites together with
-the native differential, boundary, masking, sanitizer, dense, and
-L\'opez--Dahab checks.  The exact artifact entry points are
+the native differential, boundary, masking, dense, and L\'opez--Dahab checks;
+\texttt{make check-sanitize} separately runs sanitizer builds of the native
+reducers and generated-reducer checks.  The exact artifact entry points are
 \begin{center}
 \small\ttfamily
 make artifact-cost-model; make artifact-paper; make artifact-rabin;\\
@@ -1257,9 +1278,12 @@ make artifact-microbenchmark ARTIFACT\_CPU=0; make artifact-online.
 The 67,576-row primary dataset and its 26 derived outputs are hash-locked.  From
 a detached clean checkout at commit \texttt{668e52a}, all 26 outputs, the
 465-row Rabin artifact, and the 1,395-row, 45-support online artifact reproduced
-with exact hash agreement while the full correctness suite passed.  Every
-retained row records its seed, taps, command, compiler and gf2x paths, binary
-digest, affinity, and frequency policy.  This version contains no
+with exact hash agreement while the full \texttt{make check} suite passed.  Every
+retained primary-dataset and Rabin row records its seed, taps, command,
+compiler and gf2x paths, binary digest, affinity, and frequency policy.  The
+online artifact records its applicable execution metadata, including command,
+compiler flags, binary digest, affinity, and frequency policy; its
+multiplication backend is not applicable.  This version contains no
 secondary-platform result.
 
 \begin{thebibliography}{99}
