@@ -1186,8 +1186,8 @@ end-to-end computational-algebra result.
 \section*{Software and Data Availability}
 The implementation, deterministic manifests, raw benchmark data, and
 reproduction scripts underlying the reported results are archived in the
-\href{https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v2}
-{\texttt{moc-artifact-v2} GitHub release}.
+\href{https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v3}
+{\texttt{moc-artifact-v3} GitHub release}.
 
 \section*{Use of Artificial Intelligence}
 OpenAI Codex (GPT-5.6 Sol) was used during the research and manuscript-preparation
@@ -1276,9 +1276,10 @@ make artifact-cost-model; make artifact-paper; make artifact-rabin;\\
 make artifact-microbenchmark ARTIFACT\_CPU=0; make artifact-online.
 \end{center}
 The 67,576-row primary dataset and its 26 derived outputs are hash-locked.  From
-a detached clean checkout at commit \texttt{668e52a}, all 26 outputs, the
+a detached clean checkout at commit \texttt{8b21c90}, all 26 outputs, the
 465-row Rabin artifact, and the 1,395-row, 45-support online artifact reproduced
-with exact hash agreement while the full \texttt{make check} suite passed.  Every
+with exact hash agreement while the full \texttt{make check} and
+\texttt{make check-sanitize} suites passed.  Every
 retained primary-dataset and Rabin row records its seed, taps, command,
 compiler and gf2x paths, binary digest, affinity, and frequency policy.  The
 online artifact records its applicable execution metadata, including command,

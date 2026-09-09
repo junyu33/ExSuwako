@@ -24,6 +24,7 @@ the principal commands are:
 
 ```text
 make check
+make check-sanitize
 make artifact-cost-model
 make artifact-microbenchmark ARTIFACT_CPU=0
 make artifact-paper
@@ -32,6 +33,7 @@ make artifact-online
 ```
 
 - `make check` is the correctness command.
+- `make check-sanitize` separately runs the ASan/UBSan native checks.
 - `make artifact-cost-model` is the measured cost-model command.
 - `make artifact-microbenchmark` is a short, metadata-complete native
   reduction run over the permanent regression manifest; it is an artifact
@@ -59,18 +61,21 @@ It makes no architecture-independent speed claim and therefore does not
 require or imply a second-machine result.
 
 The three reported raw CSV payloads are published together in the
-[`moc-artifact-v2`](https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v2)
-release as `ExSuwako-MoC-artifact-v2.tar.gz`.  Its archive size and SHA-256,
+[`moc-artifact-v3`](https://github.com/junyu33/ExSuwako/releases/tag/moc-artifact-v3)
+release as `ExSuwako-MoC-artifact-v3.tar.gz`.  Its archive size and SHA-256,
 and the independent row counts and hashes of all extracted datasets, are
-frozen in [`data-release-v2.json`](data-release-v2.json).  Extract the archive
+frozen in [`data-release-v3.json`](data-release-v3.json).  Extract the archive
 under `bench/data/` before running the commands above; unrelated exploratory
-CSV files are not part of the release.  The preceding two-dataset v1 contract
-remains recorded in [`data-release-v1.json`](data-release-v1.json).
+CSV files are not part of the release.  The preceding v2 and v1 contracts
+remain recorded in [`data-release-v2.json`](data-release-v2.json) and
+[`data-release-v1.json`](data-release-v1.json), respectively.
 
-[`validation-668e52a.json`](validation-668e52a.json) records the current
-fresh-worktree validation of the 26-output paper artifact, the two-output
-Rabin artifact, and the 45-row online FFR summary. Earlier audits remain
-preserved in [`validation-4465388.json`](validation-4465388.json) and
+[`validation-8b21c90.json`](validation-8b21c90.json) records the current
+fresh-worktree validation of the correctness and sanitizer suites, the
+26-output paper artifact, the two-output Rabin artifact, and the 45-row online
+FFR summary. Earlier audits remain preserved in
+[`validation-668e52a.json`](validation-668e52a.json),
+[`validation-4465388.json`](validation-4465388.json), and
 [`validation-68af036.json`](validation-68af036.json). Complete correctness
 logs, short microbenchmark CSV and metadata, and generated artifact reports
 remain beside the external CSV payload and are authenticated by the hashes in

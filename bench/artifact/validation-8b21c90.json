@@ -1,0 +1,77 @@
+{
+  "schema": "exsuwako-artifact-validation:v3",
+  "artifact_commit": "8b21c90a04bbb33145d04524ea74b9d98732448e",
+  "fresh_worktree": true,
+  "git_dirty_before_validation": false,
+  "correctness": {
+    "command": "make check",
+    "exit_code": 0,
+    "external_log": "make-check.log",
+    "log_lines": 158,
+    "log_sha256": "da2d0832b3c33f5bb206f0b7dd8f0b702d8576e44e46a8a17aca4164c6e8a5d7"
+  },
+  "sanitizer": {
+    "command": "make check-sanitize",
+    "exit_code": 0,
+    "external_log": "make-check-sanitize.log",
+    "log_lines": 55,
+    "log_sha256": "068ba964708119cba85c44aced7147915ac38505c4ef0f51ada8f09f31efc9d3"
+  },
+  "paper_artifact": {
+    "command": "make artifact-paper ARTIFACT_DATA=<external-data-root> ARTIFACT_OUTPUT=<temporary-output>",
+    "exit_code": 0,
+    "raw_rows": 67576,
+    "derived_outputs": 26,
+    "all_output_hashes_matched": true,
+    "winner_panels_sha256": "463b0ee01bb83d69861ae26b546a30454608059e789cde4638667e0964d105d7",
+    "external_log_sha256": "f9cbb5a74c02552775291d93b72966725cdc9056d2dfb88385e2d3760b5937e5",
+    "external_report_sha256": "e4b758b156355220821bbc88ecb0a8deddf59f5478e028df7d90373928ab6a96"
+  },
+  "rabin_artifact": {
+    "command": "make artifact-rabin ARTIFACT_DATA=<external-data-root> ARTIFACT_OUTPUT=<temporary-output>",
+    "exit_code": 0,
+    "raw_rows": 465,
+    "derived_outputs": 2,
+    "summary_sha256": "ec52b95f6496ff4ad30c6a3929b602c34087cb3a8262f4fac5b1229ef0a42d8c",
+    "figure_sha256": "970efee290a22fd84869f2aa0ebc95e6700ada3f692ae1489c664d3963bcaa2f",
+    "external_log_sha256": "106801b7aee532e137c4ecf1cca4fab3e6da213d1cf1a6d68625183757170682"
+  },
+  "online_artifact": {
+    "command": "make artifact-online ARTIFACT_DATA=<external-data-root> ARTIFACT_OUTPUT=<temporary-output>",
+    "exit_code": 0,
+    "raw_rows": 1395,
+    "samples": 45,
+    "summary_sha256": "4f0deddf198ed72b14ee7a9ad8a12bb28b02695c293a917eeb8917b975b7c57f",
+    "external_log_sha256": "c103451bd0bc67023c6fbf1c3ce25be235f657d315b8a8c846ad19374b54ebc4",
+    "external_report_sha256": "2269b5f3efd226c38d94e9cd576f0272cbc9befb2cc82cf39f27f376cc2bd644"
+  },
+  "latex": {
+    "command": "latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex",
+    "exit_code": 0,
+    "pages": 20,
+    "undefined_references": false,
+    "overfull_hboxes": false,
+    "external_log_sha256": "e8de2a1a5e8b3e088984ba5354d85d8323fab1fa14636dd5833c3ee12c98a78f"
+  },
+  "release_asset": {
+    "filename": "ExSuwako-MoC-artifact-v3.tar.gz",
+    "bytes": 5032862,
+    "sha256": "24945c8a5073469d362d9f6a77e90bd499d402340016d6987b7b3126a2f2f2c0"
+  },
+  "environment": {
+    "compiler": "cc (GCC) 16.1.1 20260728",
+    "compiler_flags": "-O3 -std=c11 -Wall -Wextra",
+    "gf2x_library": "/usr/lib/libgf2x.so.3.0.0",
+    "platform": "Linux-6.18.42-1-lts-x86_64-with-glibc2.44",
+    "machine": "x86_64",
+    "hostname": "zjy-work",
+    "cpu_affinity": 0,
+    "frequency_policy": {
+      "energy_performance_preference": "balance_performance",
+      "governor": "powersave",
+      "turbo_disabled": "0"
+    },
+    "implementation": "portable-scalar-c:v1",
+    "multiplication_backend": "gf2x:v1"
+  }
+}
