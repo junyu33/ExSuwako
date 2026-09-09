@@ -268,7 +268,7 @@ Applicability
 & \eqref{eq:modulus}
 & \eqref{eq:modulus}
 & \eqref{eq:modulus}
-& $\substack{m>W,\\ \deg q\le m-W}$
+& $m>W,\ \deg q\le m-W$
 & $g\text{ fixed}$\\
 \bottomrule
 \end{tabular}
@@ -724,7 +724,7 @@ As defined in Proposition~\ref{prop:word-geometry},
 $B_{\rm fb}^{\rm loop}$ counts shifted-word contributions traversed by the
 feedback loops, while $B_V$ counts those traversed by final low-part assembly.
 The serial row assumes $U\ne0$, and the L\'opez--Dahab row assumes
-$\deg q\le m-W$.  The displayed depths retain the natural dependency
+$m>W$ and $\deg q\le m-W$.  The displayed depths retain the natural dependency
 measure of each method rather than defining a common gate-depth metric.}
 \label{tab:method-complexity}
 \centering
@@ -839,9 +839,9 @@ the feedback distances without increasing its term count~\cite{LinEtAl2013}.
 Parallel LFSR and CRC architectures also construct equivalent state-space
 updates for arbitrary generator polynomials~\cite{AyinalaParhi2011}. These
 provide the nearest recurrence-level antecedents for term-preserving doubling
-and parallel feedback. They transform or parallelize a homogeneous recurrence,
-whereas Algorithm~1 applies successive factors of an implicit inverse to a
-forced length-$m$ triangular system without enlarging the state.
+and parallel feedback. They transform or parallelize recurrence/state-space
+updates, whereas Algorithm~1 applies successive factors of an implicit inverse
+to a forced length-$m$ triangular system on a fixed $m$-bit state.
 
 Sparse binary-field reduction includes word- and bit-parallel polynomial-basis
 methods~\cite{Wu1999} and strong specialized formulae
